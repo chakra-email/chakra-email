@@ -10,7 +10,11 @@ end-of-life and is not recommended for production deployments.
 
 ## Reporting A Vulnerability
 
-Please report security issues privately through a [GitHub security advisory](https://github.com/ryanhefner/chakra-email/security/advisories/new), or contact the maintainer directly if advisory reporting is unavailable. Include affected versions, impact, reproduction steps, and any proposed mitigation when possible.
+Please report security issues privately through a [GitHub security advisory](https://github.com/ryanhefner/chakra-email/security/advisories/new). If private vulnerability reporting is unavailable, email [hi@ryanhefner.com](mailto:hi@ryanhefner.com) with `[chakra-email security]` in the subject. Include affected versions, impact, reproduction steps, and any proposed mitigation when possible.
+
+You should receive an acknowledgement within five business days and an initial
+assessment within ten business days. The maintainer will coordinate remediation
+and public disclosure timing with the reporter.
 
 Do not create a public issue for a suspected vulnerability.
 
