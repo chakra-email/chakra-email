@@ -120,7 +120,29 @@ if (!html.includes('Packed consumer smoke') || !html.startsWith('<!DOCTYPE')) {
   throw new Error('The packed ESM consumer did not render the expected email.');
 }
 
-console.log('ok packed ESM runtime with React 18');
+const packageSubpaths = [
+  '@chakra-email/core/components',
+  '@chakra-email/core/render',
+  '@chakra-email/core/system',
+  '@chakra-email/core/theme',
+  'chakra-email/components',
+  'chakra-email/render',
+  'chakra-email/system',
+  'chakra-email/theme',
+  '@chakra-email/chakra-v2/components',
+  '@chakra-email/chakra-v2/render',
+  '@chakra-email/chakra-v2/system',
+  '@chakra-email/chakra-v2/theme',
+];
+
+for (const packageSubpath of packageSubpaths) {
+  const packageExports = await import(packageSubpath);
+  if (Object.keys(packageExports).length === 0) {
+    throw new Error(packageSubpath + ' did not expose any ESM exports.');
+  }
+}
+
+console.log('ok packed ESM runtime and subpaths with React 18');
 `,
   );
 
@@ -139,7 +161,29 @@ for (const packageName of packageNames) {
   }
 }
 
-console.log('ok packed require(esm) runtime');
+const packageSubpaths = [
+  '@chakra-email/core/components',
+  '@chakra-email/core/render',
+  '@chakra-email/core/system',
+  '@chakra-email/core/theme',
+  'chakra-email/components',
+  'chakra-email/render',
+  'chakra-email/system',
+  'chakra-email/theme',
+  '@chakra-email/chakra-v2/components',
+  '@chakra-email/chakra-v2/render',
+  '@chakra-email/chakra-v2/system',
+  '@chakra-email/chakra-v2/theme',
+];
+
+for (const packageSubpath of packageSubpaths) {
+  const packageExports = require(packageSubpath);
+  if (Object.keys(packageExports).length === 0) {
+    throw new Error(packageSubpath + ' did not expose any require(esm) exports.');
+  }
+}
+
+console.log('ok packed require(esm) runtime and subpaths');
 `,
   );
 
@@ -147,11 +191,23 @@ console.log('ok packed require(esm) runtime');
     join(consumerDirectory, 'smoke.tsx'),
     `import type { ComponentType, ReactElement } from 'react';
 import { ThemeProvider, type ThemeProviderProps } from '@chakra-email/core';
+import * as CoreComponents from '@chakra-email/core/components';
+import * as CoreRender from '@chakra-email/core/render';
+import * as CoreSystem from '@chakra-email/core/system';
+import * as CoreTheme from '@chakra-email/core/theme';
 import {
   ChakraEmailV2Provider,
   type ChakraEmailV2ProviderProps,
 } from '@chakra-email/chakra-v2';
+import * as V2Components from '@chakra-email/chakra-v2/components';
+import * as V2Render from '@chakra-email/chakra-v2/render';
+import * as V2System from '@chakra-email/chakra-v2/system';
+import * as V2Theme from '@chakra-email/chakra-v2/theme';
 import { Body, Html, Text, render } from 'chakra-email';
+import * as ChakraComponents from 'chakra-email/components';
+import * as ChakraRender from 'chakra-email/render';
+import * as ChakraSystem from 'chakra-email/system';
+import * as ChakraTheme from 'chakra-email/theme';
 
 const CoreProvider: ComponentType<ThemeProviderProps> = ThemeProvider;
 const V2Provider: ComponentType<ChakraEmailV2ProviderProps> =
@@ -169,6 +225,20 @@ const email: ReactElement = (
 );
 
 void render(email);
+void [
+  CoreComponents,
+  CoreRender,
+  CoreSystem,
+  CoreTheme,
+  ChakraComponents,
+  ChakraRender,
+  ChakraSystem,
+  ChakraTheme,
+  V2Components,
+  V2Render,
+  V2System,
+  V2Theme,
+];
 `,
   );
 
