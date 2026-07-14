@@ -35,7 +35,7 @@ exports[`golden output snapshots > release notes email pretty HTML 1`] = `
 <title>Release notes</title>
 </head>
 <body bgcolor="#ffffff" style="background-color:#ffffff;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif">
-<div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden">What changed in version 2.0.<span style="display:none"> ‌ ‌ ‌ ‌ ‌ </span>
+<div aria-hidden="true" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden;visibility:hidden;opacity:0;mso-hide:all">What changed in version 2.0.<span style="display:none;mso-hide:all"> ‌ ‌ ‌ ‌ ‌ </span>
 </div>
 <table role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;max-width:600px">
 <tbody>
@@ -101,7 +101,7 @@ exports[`golden output snapshots > welcome email pretty HTML 1`] = `
 <title>Welcome to Acme</title>
 </head>
 <body bgcolor="#F7FAFC" style="background-color:#F7FAFC;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif">
-<div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden">Your Acme account is ready.<span style="display:none"> ‌ ‌ ‌ ‌ ‌ </span>
+<div aria-hidden="true" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden;visibility:hidden;opacity:0;mso-hide:all">Your Acme account is ready.<span style="display:none;mso-hide:all"> ‌ ‌ ‌ ‌ ‌ </span>
 </div>
 <table bgcolor="#ffffff" role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="background-color:#ffffff;width:100%;max-width:600px">
 <tbody>

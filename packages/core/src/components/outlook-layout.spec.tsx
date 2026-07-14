@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '../render';
 import { ThemeProvider } from '../theme';
-import { Body, Button, Column, Container, Html, Row, Section } from './index';
+import {
+  Body,
+  Box,
+  Button,
+  Column,
+  Container,
+  Html,
+  Preview,
+  Row,
+  Section,
+  Stack,
+} from './index';
 
 function openingTags(html: string, tagName: string): string[] {
   return html.match(new RegExp(`<${tagName}\\b[^>]*>`, 'g')) ?? [];
@@ -18,7 +29,7 @@ describe('Outlook-compatible layout markup', () => {
             </Container>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
     const [table] = openingTags(html, 'table');
     const [cell] = openingTags(html, 'td');
@@ -45,7 +56,7 @@ describe('Outlook-compatible layout markup', () => {
             </Section>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
     const [table] = openingTags(html, 'table');
     const [cell] = openingTags(html, 'td');
@@ -72,7 +83,7 @@ describe('Outlook-compatible layout markup', () => {
             </table>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
     const [fluidColumn, fixedColumn] = openingTags(html, 'td');
 
@@ -92,7 +103,7 @@ describe('Outlook-compatible layout markup', () => {
             </Button>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
     const [table] = openingTags(html, 'table');
     const [cell] = openingTags(html, 'td');
@@ -127,7 +138,7 @@ describe('Outlook-compatible layout markup', () => {
             </Button>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
     const [outlineCell, linkCell] = openingTags(html, 'td');
     const [outlineAnchor, linkAnchor] = openingTags(html, 'a');
@@ -138,5 +149,82 @@ describe('Outlook-compatible layout markup', () => {
     expect(linkCell).toContain('border:none');
     expect(linkAnchor).toContain('text-decoration:underline');
     expect(linkAnchor).toContain('padding:0');
+  });
+
+  it('forwards native attributes to the element represented by each primitive', async () => {
+    const html = await render(
+      <ThemeProvider>
+        <Html>
+          <Body>
+            <Container aria-label="Message container">
+              <Section aria-label="Message section">
+                <table role="presentation">
+                  <tbody>
+                    <Row aria-label="Message row">
+                      <Column colSpan={2} headers="message-heading">
+                        Content
+                      </Column>
+                    </Row>
+                    <Row>
+                      <Box as="td" colSpan={2} headers="message-heading">
+                        Polymorphic cell
+                      </Box>
+                    </Row>
+                  </tbody>
+                </table>
+              </Section>
+              <Stack aria-label="Message stack">
+                <Button
+                  href="https://example.com/cta"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Open account"
+                >
+                  Open
+                </Button>
+              </Stack>
+            </Container>
+          </Body>
+        </Html>
+      </ThemeProvider>,
+    );
+    const tables = openingTags(html, 'table');
+    const [anchor] = openingTags(html, 'a');
+
+    expect(
+      tables.some((table) => table.includes('aria-label="Message container"')),
+    ).toBe(true);
+    expect(
+      tables.some((table) => table.includes('aria-label="Message section"')),
+    ).toBe(true);
+    expect(
+      tables.some((table) => table.includes('aria-label="Message stack"')),
+    ).toBe(true);
+    expect(html).toContain('<tr aria-label="Message row">');
+    expect(html.match(/colSpan="2"/g)).toHaveLength(2);
+    expect(html.match(/headers="message-heading"/g)).toHaveLength(2);
+    expect(anchor).toContain('target="_blank"');
+    expect(anchor).toContain('rel="noopener noreferrer"');
+    expect(anchor).toContain('aria-label="Open account"');
+  });
+
+  it('hides preview text from classic Outlook as well as standards-based clients', async () => {
+    const html = await render(
+      <Html>
+        <Body>
+          <Preview>Inbox preview</Preview>
+        </Body>
+      </Html>,
+    );
+    const [preview, spacer] = openingTags(html, 'div').concat(
+      openingTags(html, 'span'),
+    );
+
+    expect(preview).toContain('aria-hidden="true"');
+    expect(preview).toContain('display:none');
+    expect(preview).toContain('visibility:hidden');
+    expect(preview).toContain('opacity:0');
+    expect(preview).toContain('mso-hide:all');
+    expect(spacer).toContain('mso-hide:all');
   });
 });

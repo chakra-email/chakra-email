@@ -1,11 +1,19 @@
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import type { TableHTMLAttributes } from 'react';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 import {
   getLegacyWidthAttribute,
   paddingStyleKeys,
   splitStyles,
 } from './layout-styles.js';
 
-export type SectionProps = BaseChakraEmailProps;
+export interface SectionProps
+  extends
+    BaseChakraEmailProps,
+    Omit<TableHTMLAttributes<HTMLTableElement>, keyof BaseChakraEmailProps> {}
 
 export function Section({ children, ...props }: SectionProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
@@ -13,7 +21,10 @@ export function Section({ children, ...props }: SectionProps) {
     width: 'full',
     ...styleProps,
   });
-  const [tableStyles, cellStyles] = splitStyles(resolvedStyles, paddingStyleKeys);
+  const [tableStyles, cellStyles] = splitStyles(
+    resolvedStyles,
+    paddingStyleKeys,
+  );
   const legacyWidth = getLegacyWidthAttribute(tableStyles.width) ?? '100%';
 
   const legacyBackgroundAttribute = tableStyles.backgroundColor

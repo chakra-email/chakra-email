@@ -1,13 +1,25 @@
-import { Children, type ReactNode } from 'react';
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import { Children, type ReactNode, type TableHTMLAttributes } from 'react';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 import { Spacer } from './Spacer.js';
 
-export interface StackProps extends BaseChakraEmailProps {
+export interface StackProps
+  extends
+    BaseChakraEmailProps,
+    Omit<TableHTMLAttributes<HTMLTableElement>, keyof BaseChakraEmailProps> {
   spacing?: string | number;
   divider?: ReactNode;
 }
 
-export function Stack({ spacing = 4, divider, children, ...props }: StackProps) {
+export function Stack({
+  spacing = 4,
+  divider,
+  children,
+  ...props
+}: StackProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
   const styles = useChakraStyles({
     width: 'full',

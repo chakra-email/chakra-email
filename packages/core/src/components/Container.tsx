@@ -1,11 +1,22 @@
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import type { TableHTMLAttributes } from 'react';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 import {
   getLegacyWidthAttribute,
   paddingStyleKeys,
   splitStyles,
 } from './layout-styles.js';
 
-export interface ContainerProps extends BaseChakraEmailProps {
+export interface ContainerProps
+  extends
+    BaseChakraEmailProps,
+    Omit<
+      TableHTMLAttributes<HTMLTableElement>,
+      keyof BaseChakraEmailProps | 'align'
+    > {
   maxW?: string | number;
   centerContent?: boolean;
 }
@@ -22,10 +33,13 @@ export function Container({
     maxW,
     ...styleProps,
   });
-  const [tableStyles, cellStyles] = splitStyles(resolvedStyles, paddingStyleKeys);
+  const [tableStyles, cellStyles] = splitStyles(
+    resolvedStyles,
+    paddingStyleKeys,
+  );
   const legacyWidth =
     getLegacyWidthAttribute(
-      tableStyles.width === '100%' ? tableStyles.maxWidth : tableStyles.width
+      tableStyles.width === '100%' ? tableStyles.maxWidth : tableStyles.width,
     ) ??
     getLegacyWidthAttribute(tableStyles.width) ??
     '100%';

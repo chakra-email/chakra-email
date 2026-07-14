@@ -1,9 +1,19 @@
-import type { CSSProperties } from 'react';
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import type { AnchorHTMLAttributes, CSSProperties } from 'react';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 import { getMsoPaddingAlt, splitStyles } from './layout-styles.js';
 import { sanitizeHref } from './Link.js';
 
-export interface ButtonProps extends BaseChakraEmailProps {
+export interface ButtonProps
+  extends
+    BaseChakraEmailProps,
+    Omit<
+      AnchorHTMLAttributes<HTMLAnchorElement>,
+      keyof BaseChakraEmailProps | 'href' | 'size'
+    > {
   href: string;
   variant?: 'solid' | 'outline' | 'ghost' | 'link';
   size?: 'sm' | 'md' | 'lg';
@@ -76,7 +86,10 @@ export function Button({
 
   // Margins are rendered on the outer table only; keeping them on the
   // inline-block anchor as well would apply them twice.
-  const [anchorBaseStyles, cellStyles] = splitStyles(styles, buttonCellStyleKeys);
+  const [anchorBaseStyles, cellStyles] = splitStyles(
+    styles,
+    buttonCellStyleKeys,
+  );
   const outlookPadding = getMsoPaddingAlt(styles);
   const outlookCellStyles: CSSProperties & { msoPaddingAlt?: string } = {
     ...cellStyles,
@@ -98,7 +111,6 @@ export function Button({
 
   return (
     <table
-      {...elementProps}
       role="presentation"
       cellSpacing={0}
       cellPadding={0}
@@ -113,7 +125,7 @@ export function Button({
             align="center"
             style={outlookCellStyles}
           >
-            <a href={sanitizeHref(href)} style={anchorStyles}>
+            <a {...elementProps} href={sanitizeHref(href)} style={anchorStyles}>
               {children}
             </a>
           </td>

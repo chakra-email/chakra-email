@@ -1,7 +1,18 @@
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import type { TdHTMLAttributes } from 'react';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 import { getLegacyWidthAttribute } from './layout-styles.js';
 
-export interface ColumnProps extends BaseChakraEmailProps {
+export interface ColumnProps
+  extends
+    BaseChakraEmailProps,
+    Omit<
+      TdHTMLAttributes<HTMLTableCellElement>,
+      keyof BaseChakraEmailProps | 'align' | 'width'
+    > {
   width?: string | number;
   align?: 'left' | 'center' | 'right';
 }

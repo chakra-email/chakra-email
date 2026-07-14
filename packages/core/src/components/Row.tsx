@@ -1,6 +1,14 @@
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import type { HTMLAttributes } from 'react';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 
-export type RowProps = BaseChakraEmailProps;
+export interface RowProps
+  extends
+    BaseChakraEmailProps,
+    Omit<HTMLAttributes<HTMLTableRowElement>, keyof BaseChakraEmailProps> {}
 
 export function Row({ children, ...props }: RowProps) {
   const [styleProps, elementProps] = splitStyleProps(props);

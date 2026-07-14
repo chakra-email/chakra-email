@@ -1,11 +1,21 @@
-import type { ElementType } from 'react';
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import type { ComponentPropsWithoutRef, ElementType } from 'react';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 
-export interface BoxProps extends BaseChakraEmailProps {
-  as?: 'div' | 'span' | 'table' | 'tbody' | 'tr' | 'td';
-}
+type BoxElement = 'div' | 'span' | 'table' | 'tbody' | 'tr' | 'td';
 
-export function Box({ as: Component = 'div', children, ...props }: BoxProps) {
+export type BoxProps<T extends BoxElement = 'div'> = BaseChakraEmailProps & {
+  as?: T;
+} & Omit<ComponentPropsWithoutRef<T>, keyof BaseChakraEmailProps | 'as'>;
+
+export function Box<T extends BoxElement = 'div'>({
+  as: Component = 'div' as T,
+  children,
+  ...props
+}: BoxProps<T>) {
   const [styleProps, elementProps] = splitStyleProps(props);
   const styles = useChakraStyles(styleProps);
   const BoxElement = Component as ElementType;
