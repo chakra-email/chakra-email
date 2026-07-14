@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const releaseScript = fileURLToPath(
   new URL('./run-release.mjs', import.meta.url),
+);
+const packageManifest = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
 );
 
 function validateReleaseInput(version, overrides = {}) {
@@ -75,4 +79,32 @@ test('rejects non-boolean workflow flags', () => {
     invalidFirstRelease.stderr,
     /RELEASE_FIRST_RELEASE must be either/,
   );
+});
+
+test('workflows install the npm version declared by packageManager', () => {
+  const packageManagerMatch = /^npm@(\d+\.\d+\.\d+)$/.exec(
+    packageManifest.packageManager,
+  );
+  assert.ok(
+    packageManagerMatch,
+    'packageManager must pin an exact npm version',
+  );
+
+  const expectedInstall = `run: npm install --global npm@${packageManagerMatch[1]}`;
+  for (const workflow of ['ci.yml', 'pages.yml', 'release.yml']) {
+    const workflowSource = readFileSync(
+      new URL(`../.github/workflows/${workflow}`, import.meta.url),
+      'utf8',
+    );
+    const setupNodeCount = workflowSource.match(
+      /uses: actions\/setup-node@/g,
+    )?.length;
+    const pinnedNpmCount = workflowSource.split(expectedInstall).length - 1;
+
+    assert.equal(
+      pinnedNpmCount,
+      setupNodeCount,
+      `${workflow} must install the pinned npm after every setup-node step`,
+    );
+  }
 });

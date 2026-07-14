@@ -55,6 +55,9 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Install pinned npm
+        run: npm install --global npm@11.16.0
+
       - run: npm ci
       - run: npm run release:check
 
@@ -75,6 +78,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
+
+      - name: Install pinned npm
+        run: npm install --global npm@11.16.0
 
       - run: npm ci
 
@@ -107,6 +113,9 @@ jobs:
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Install pinned npm
+        run: npm install --global npm@11.16.0
 
       # Install before adding push credentials so dependency lifecycle scripts
       # cannot read a write-capable GitHub token from the repository config.
