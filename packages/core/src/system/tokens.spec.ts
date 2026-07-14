@@ -18,17 +18,28 @@ describe('token resolvers', () => {
   });
 
   it('degrades responsive values to their base value without throwing', () => {
-    expect(resolveSpacing([2, 4] as unknown as number, defaultTheme)).toBe('8px');
+    expect(resolveSpacing([2, 4] as unknown as number, defaultTheme)).toBe(
+      '8px',
+    );
     expect(
-      resolveFontSize({ base: 'sm', md: 'md' } as unknown as string, defaultTheme)
+      resolveFontSize(
+        { base: 'sm', md: 'md' } as unknown as string,
+        defaultTheme,
+      ),
     ).toBe('14px');
-    expect(resolveSpacing({ md: 4 } as unknown as number, defaultTheme)).toBe('16px');
+    expect(resolveSpacing({ md: 4 } as unknown as number, defaultTheme)).toBe(
+      '16px',
+    );
   });
 
   it('resolves unusable values to undefined instead of throwing', () => {
-    expect(resolveSpacing([] as unknown as number, defaultTheme)).toBeUndefined();
+    expect(
+      resolveSpacing([] as unknown as number, defaultTheme),
+    ).toBeUndefined();
     expect(resolveSpacing(Number.NaN, defaultTheme)).toBeUndefined();
-    expect(resolveColor((() => '#fff') as unknown as string, defaultTheme)).toBeUndefined();
+    expect(
+      resolveColor((() => '#fff') as unknown as string, defaultTheme),
+    ).toBeUndefined();
   });
 
   it('drops malformed values found in array-based theme scales', () => {
@@ -38,7 +49,7 @@ describe('token resolvers', () => {
     };
 
     expect(
-      resolveColor(0 as unknown as string, theme as unknown as EmailTheme)
+      resolveColor(0 as unknown as string, theme as unknown as EmailTheme),
     ).toBeUndefined();
   });
 

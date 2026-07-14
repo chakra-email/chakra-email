@@ -12,7 +12,7 @@ describe('component regressions', () => {
             <Text>After zero</Text>
           </Stack>
         </Body>
-      </Html>
+      </Html>,
     );
 
     expect(html).toContain('<td>0');
@@ -31,7 +31,10 @@ describe('component regressions', () => {
       </Html>
     );
 
-    const [html, text] = await Promise.all([render(email), renderPlainText(email)]);
+    const [html, text] = await Promise.all([
+      render(email),
+      renderPlainText(email),
+    ]);
 
     expect(html).toContain('<span>Nested preview</span>');
     expect(text).not.toContain('Nested preview');

@@ -12,7 +12,9 @@ describe('theme utilities', () => {
     });
 
     expect(theme.colors?.white).toBe('#ffffff');
-    expect((theme.colors?.brand as Record<string, string>)?.[500]).toBe('#0055ff');
+    expect((theme.colors?.brand as Record<string, string>)?.[500]).toBe(
+      '#0055ff',
+    );
   });
 
   it('merges nested scales containing keys named "theme" or "_config" without re-normalizing', () => {
@@ -24,16 +26,22 @@ describe('theme utilities', () => {
       },
     });
 
-    expect((theme.colors?.theme as Record<string, string>)?.[500]).toBe('#111111');
-    expect((theme.colors?.brand as Record<string, string>)?.[500]).toBe('#222222');
-    expect((theme.colors?._config as Record<string, string>)?.[500]).toBe('#333333');
+    expect((theme.colors?.theme as Record<string, string>)?.[500]).toBe(
+      '#111111',
+    );
+    expect((theme.colors?.brand as Record<string, string>)?.[500]).toBe(
+      '#222222',
+    );
+    expect((theme.colors?._config as Record<string, string>)?.[500]).toBe(
+      '#333333',
+    );
     expect((theme.colors as Record<string, unknown>)?.[500]).toBeUndefined();
     expect(theme.colors?.white).toBe('#ffffff');
   });
 
   it('does not attach attacker-controlled prototypes from JSON-sourced themes', () => {
     const jsonTheme = JSON.parse(
-      '{"__proto__": {"polluted": true}, "constructor": {"bad": true}, "prototype": {"bad": true}, "colors": {"__proto__": {"polluted": true}, "brand": {"500": "#0055ff"}}}'
+      '{"__proto__": {"polluted": true}, "constructor": {"bad": true}, "prototype": {"bad": true}, "colors": {"__proto__": {"polluted": true}, "brand": {"500": "#0055ff"}}}',
     );
 
     const theme = mergeTheme(jsonTheme);
@@ -45,7 +53,9 @@ describe('theme utilities', () => {
     expect(Object.keys(theme.colors as object)).not.toContain('__proto__');
     expect((theme as Record<string, unknown>).polluted).toBeUndefined();
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
-    expect((theme.colors?.brand as Record<string, string>)?.[500]).toBe('#0055ff');
+    expect((theme.colors?.brand as Record<string, string>)?.[500]).toBe(
+      '#0055ff',
+    );
   });
 
   it('normalizes plain, config, and system-like theme inputs', () => {
@@ -62,9 +72,12 @@ describe('theme utilities', () => {
     const systemTheme = { colors: { brand: { 500: '#222222' } } };
     const directTheme = { colors: { brand: { 500: '#111111' } } };
 
-    expect(normalizeThemeInput({ theme: directTheme, _config: { theme: systemTheme } })).toBe(
-      systemTheme
-    );
+    expect(
+      normalizeThemeInput({
+        theme: directTheme,
+        _config: { theme: systemTheme },
+      }),
+    ).toBe(systemTheme);
   });
 
   it('returns the provided theme from defineTheme', () => {

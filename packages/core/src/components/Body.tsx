@@ -1,4 +1,8 @@
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 
 export type BodyProps = BaseChakraEmailProps;
 

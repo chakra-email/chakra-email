@@ -6,7 +6,8 @@ import {
 } from '../system/index.js';
 
 export interface PreProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<HTMLAttributes<HTMLPreElement>, keyof BaseChakraEmailProps> {}
 
 export function Pre({ children, ...props }: PreProps) {

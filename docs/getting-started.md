@@ -47,7 +47,11 @@ export function WelcomeEmail() {
             <Text color="gray.700" mb={6}>
               Thanks for joining us. Your account is ready.
             </Text>
-            <Button href="https://example.com/get-started" bg="brand.500" color="white">
+            <Button
+              href="https://example.com/get-started"
+              bg="brand.500"
+              color="white"
+            >
               Get Started
             </Button>
           </Container>

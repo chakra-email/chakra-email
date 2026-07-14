@@ -1,9 +1,17 @@
 import type { ImgHTMLAttributes } from 'react';
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 
 export interface ImgProps
-  extends BaseChakraEmailProps,
-    Omit<ImgHTMLAttributes<HTMLImageElement>, keyof BaseChakraEmailProps | 'src' | 'alt'> {
+  extends
+    BaseChakraEmailProps,
+    Omit<
+      ImgHTMLAttributes<HTMLImageElement>,
+      keyof BaseChakraEmailProps | 'src' | 'alt'
+    > {
   src: string;
   alt: string;
   width?: string | number;

@@ -29,7 +29,11 @@ function WelcomeEmail() {
             <Text fontSize="md" color="gray.700" mb={6}>
               Thanks for joining us.
             </Text>
-            <Button href="https://example.com/get-started" bg="brand.500" color="white">
+            <Button
+              href="https://example.com/get-started"
+              bg="brand.500"
+              color="white"
+            >
               Get Started
             </Button>
           </Container>

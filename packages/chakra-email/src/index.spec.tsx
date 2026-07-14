@@ -19,7 +19,7 @@ describe('chakra-email', () => {
             <Text>Default package adapter.</Text>
           </Container>
         </Body>
-      </Html>
+      </Html>,
     );
 
     expect(html).toContain('Default package adapter.');
@@ -51,7 +51,7 @@ describe('chakra-email', () => {
             <Text px={4}>Theme provider adapter.</Text>
           </Body>
         </Html>
-      </ChakraEmailProvider>
+      </ChakraEmailProvider>,
     );
 
     expect(html).toContain('background-color:#0055ff');

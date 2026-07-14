@@ -1,5 +1,9 @@
 import type { CSSProperties } from 'react';
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 
 export interface HtmlProps extends BaseChakraEmailProps {
   lang?: string;
@@ -11,7 +15,12 @@ export function Html({ lang = 'en', dir, children, ...props }: HtmlProps) {
   const styles = useChakraStyles(styleProps);
 
   return (
-    <html {...elementProps} lang={lang} dir={dir} style={styles as CSSProperties}>
+    <html
+      {...elementProps}
+      lang={lang}
+      dir={dir}
+      style={styles as CSSProperties}
+    >
       {children}
     </html>
   );

@@ -1,6 +1,6 @@
 name: Feature request
 description: Suggest a component, renderer behavior, docs improvement, or package enhancement.
-title: "Feature: "
+title: 'Feature: '
 labels:
   - enhancement
 body:

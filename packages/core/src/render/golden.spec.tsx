@@ -61,12 +61,17 @@ function WelcomeEmail() {
             <Text fontSize="md" color="gray.700" mb={6}>
               Thanks for joining us. Your account is ready.
             </Text>
-            <Button href="https://example.com/get-started" bg="brand.500" color="white">
+            <Button
+              href="https://example.com/get-started"
+              bg="brand.500"
+              color="white"
+            >
               Get Started
             </Button>
             <Hr my={6} />
             <Text fontSize="sm" color="gray.500">
-              Questions? Visit our <Link href="https://example.com/help">help center</Link>.
+              Questions? Visit our{' '}
+              <Link href="https://example.com/help">help center</Link>.
             </Text>
           </Container>
         </Body>

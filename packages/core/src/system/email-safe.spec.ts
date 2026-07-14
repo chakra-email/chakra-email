@@ -10,7 +10,7 @@ describe('email-safe style utilities', () => {
         boxShadow: '0 1px 2px black',
         display: 'grid',
         color: '#111111',
-      })
+      }),
     ).toEqual({
       display: 'block',
       color: '#111111',
@@ -22,7 +22,7 @@ describe('email-safe style utilities', () => {
       filterEmailUnsafeStyles({
         opacity: 0.5,
         boxShadow: '0 1px 2px black',
-      })
+      }),
     ).toEqual({
       opacity: 0.5,
     });
@@ -59,7 +59,7 @@ describe('email-safe style utilities', () => {
         backgroundColor: '#ffffff',
         color: undefined,
         marginTop: 8,
-      })
+      }),
     ).toBe('background-color: #ffffff; margin-top: 8px');
   });
 
@@ -72,9 +72,9 @@ describe('email-safe style utilities', () => {
         opacity: 0.8,
         fontWeight: 600,
         zIndex: 10,
-      })
+      }),
     ).toBe(
-      'margin-top: 8px; padding: 0; line-height: 1.5; opacity: 0.8; font-weight: 600; z-index: 10'
+      'margin-top: 8px; padding: 0; line-height: 1.5; opacity: 0.8; font-weight: 600; z-index: 10',
     );
   });
 });

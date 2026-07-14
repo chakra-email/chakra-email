@@ -27,7 +27,7 @@ describe('rendering without a ThemeProvider', () => {
       <Stack spacing={2}>
         <Text>First</Text>
         <Text>Second</Text>
-      </Stack>
+      </Stack>,
     );
 
     // spacing={2} -> 8px spacer between items, not a raw 2px

@@ -59,7 +59,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function convertRelativeUnits(value: string): string {
   return value.replace(relativeUnitPattern, (_match, amount: string) => {
-    const px = Math.round(parseFloat(amount) * ROOT_FONT_SIZE_PX * 10000) / 10000;
+    const px =
+      Math.round(parseFloat(amount) * ROOT_FONT_SIZE_PX * 10000) / 10000;
     return `${px}px`;
   });
 }
@@ -108,7 +109,7 @@ function adaptSemanticTokenLeaf(
   value: unknown,
   category: string,
   scale: Record<string, unknown>,
-  seen: Set<string>
+  seen: Set<string>,
 ): string | number | undefined {
   if (typeof value === 'number') {
     return value;
@@ -138,14 +139,16 @@ function adaptSemanticTokenLeaf(
     return `{${category}.${value}}`;
   }
 
-  return lengthScaleKeys.includes(category) ? convertRelativeUnits(value) : value;
+  return lengthScaleKeys.includes(category)
+    ? convertRelativeUnits(value)
+    : value;
 }
 
 function resolveSemanticTokenTarget(
   target: unknown,
   category: string,
   scale: Record<string, unknown>,
-  seen: Set<string>
+  seen: Set<string>,
 ): string | number | undefined {
   if (isRecord(target)) {
     if ('value' in target) {
@@ -161,7 +164,7 @@ function resolveSemanticTokenTarget(
         target.default ?? target.base ?? target._light,
         category,
         scale,
-        seen
+        seen,
       );
     }
 
@@ -175,7 +178,7 @@ function resolveSemanticTokenTarget(
 function adaptSemanticTokenValue(
   value: unknown,
   category: string,
-  scale: Record<string, unknown>
+  scale: Record<string, unknown>,
 ): unknown {
   if (isRecord(value)) {
     if ('value' in value) {
@@ -192,7 +195,7 @@ function adaptSemanticTokenValue(
         value.default ?? value.base ?? value._light,
         category,
         scale,
-        new Set<string>()
+        new Set<string>(),
       );
 
       return { value: leaf ?? '' };
@@ -212,13 +215,18 @@ function adaptSemanticTokenValue(
     return output;
   }
 
-  const leaf = adaptSemanticTokenLeaf(value, category, scale, new Set<string>());
+  const leaf = adaptSemanticTokenLeaf(
+    value,
+    category,
+    scale,
+    new Set<string>(),
+  );
 
   return { value: leaf ?? '' };
 }
 
 function adaptSemanticTokens(
-  semanticTokens: Record<string, unknown>
+  semanticTokens: Record<string, unknown>,
 ): Record<string, unknown> {
   const output: Record<string, unknown> = {};
 

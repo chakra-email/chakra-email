@@ -116,7 +116,7 @@ export const chakraStylePropNames = new Set<keyof ChakraEmailStyleProps>([
 ]);
 
 export function splitStyleProps<T extends Record<string, unknown>>(
-  props: T
+  props: T,
 ): [ChakraEmailStyleProps, Omit<T, keyof ChakraEmailStyleProps>] {
   const styleProps: Record<string, unknown> = {};
   const elementProps: Record<string, unknown> = {};
@@ -137,7 +137,7 @@ export function splitStyleProps<T extends Record<string, unknown>>(
 
 export function mapChakraPropsToStyles(
   props: ChakraEmailStyleProps,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): CSSProperties {
   const styles: CSSProperties = {};
 
@@ -263,7 +263,10 @@ export function mapChakraPropsToStyles(
     styles.borderWidth = resolveBorderWidth(props.borderWidth, theme);
   }
   if (props.borderRadius !== undefined || props.rounded !== undefined) {
-    styles.borderRadius = resolveRadius(props.borderRadius ?? props.rounded, theme);
+    styles.borderRadius = resolveRadius(
+      props.borderRadius ?? props.rounded,
+      theme,
+    );
   }
   if (props.borderTop) {
     styles.borderTop = props.borderTop;

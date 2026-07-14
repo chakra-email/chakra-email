@@ -1,8 +1,13 @@
 import type { AnchorHTMLAttributes } from 'react';
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 
 export interface LinkProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof BaseChakraEmailProps> {
   href: string;
 }
@@ -23,7 +28,8 @@ export function sanitizeHref(href: string | undefined): string | undefined {
   // parsing protocols) before checking case-insensitively.
   // eslint-disable-next-line no-control-regex -- control characters are matched intentionally
   const normalizedHref = href.replace(/[\u0000-\u0020\u007f-\u009f]/g, '');
-  const protocol = HREF_PROTOCOL_PATTERN.exec(normalizedHref)?.[1]?.toLowerCase();
+  const protocol =
+    HREF_PROTOCOL_PATTERN.exec(normalizedHref)?.[1]?.toLowerCase();
 
   if (protocol !== undefined && !SAFE_HREF_PROTOCOLS.has(protocol)) {
     return undefined;

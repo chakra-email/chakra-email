@@ -57,7 +57,11 @@ describe('email components', () => {
                         </Box>
                       </Column>
                       <Column width="50%">
-                        <Img src="https://example.com/logo.png" alt="Logo" width={120} />
+                        <Img
+                          src="https://example.com/logo.png"
+                          alt="Logo"
+                          width={120}
+                        />
                       </Column>
                     </Row>
                   </tbody>
@@ -80,7 +84,7 @@ describe('email components', () => {
             </Container>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     expect(html).toContain('<html lang="fr">');
@@ -115,7 +119,7 @@ describe('email components', () => {
             <Spacer size={3} />
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     expect(html).toContain('height:16px');
@@ -132,7 +136,11 @@ describe('email components', () => {
             <Button href="https://example.com/solid" size="sm" align="center">
               Solid
             </Button>
-            <Button href="https://example.com/outline" variant="outline" borderColor="brand.500">
+            <Button
+              href="https://example.com/outline"
+              variant="outline"
+              borderColor="brand.500"
+            >
               Outline
             </Button>
             <Button href="https://example.com/ghost" variant="ghost" size="lg">
@@ -143,7 +151,7 @@ describe('email components', () => {
             </Button>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     expect(html).toContain('align="center"');
@@ -167,7 +175,7 @@ describe('email components', () => {
             </Button>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     expect(html.match(/margin-bottom:16px/g)).toHaveLength(1);
@@ -188,7 +196,7 @@ describe('email components', () => {
             <Button href="javascript:alert(1)">Script button</Button>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     expect(html).not.toContain('javascript:');
@@ -214,7 +222,7 @@ describe('email components', () => {
             <Button href="https://example.com/cta">Button</Button>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     expect(html).toContain('href="https://example.com/docs"');
@@ -267,13 +275,15 @@ describe('email components', () => {
             </Container>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     expect(html).toContain('<blockquote');
     expect(html).toContain('border-left:4px solid #E2E8F0');
     expect(html).toContain('<code');
-    expect(html).toContain('font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace');
+    expect(html).toContain(
+      'font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace',
+    );
     expect(html).toContain('<pre');
     expect(html).toContain('white-space:pre-wrap');
     expect(html).toContain('<table');
@@ -309,7 +319,7 @@ describe('email components', () => {
             </Table>
           </Body>
         </Html>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     expect(html).toContain('border-top:1px solid #ff00aa');
@@ -321,10 +331,12 @@ describe('email components', () => {
   it('falls back to #E2E8F0 only when the gray.200 token is missing', () => {
     expect(resolveBorderColor(undefined, {})).toBe('#E2E8F0');
     expect(
-      resolveBorderColor(undefined, { colors: { gray: { 200: '#123456' } } })
+      resolveBorderColor(undefined, { colors: { gray: { 200: '#123456' } } }),
     ).toBe('#123456');
     expect(
-      resolveBorderColor('brand.500', { colors: { brand: { 500: '#6366f1' } } })
+      resolveBorderColor('brand.500', {
+        colors: { brand: { 500: '#6366f1' } },
+      }),
     ).toBe('#6366f1');
     expect(resolveBorderColor('#0000ff', {})).toBe('#0000ff');
   });
@@ -338,7 +350,7 @@ describe('email components', () => {
           </Preview>
           <Text>Visible</Text>
         </Body>
-      </Html>
+      </Html>,
     );
 
     expect(html).toContain('Hidden');

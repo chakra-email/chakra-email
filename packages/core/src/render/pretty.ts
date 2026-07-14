@@ -55,14 +55,17 @@ export function pretty(html: string): string {
     .replace(/></g, (boundary, offset: number, source: string) => {
       const closing = tagNameEndingAt(source, offset);
       const opening = tagNameAt(source, offset + 1);
-      return BLOCK_TAGS.has(closing) || BLOCK_TAGS.has(opening) ? '>\n<' : boundary;
+      return BLOCK_TAGS.has(closing) || BLOCK_TAGS.has(opening)
+        ? '>\n<'
+        : boundary;
     })
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
     .join('\n');
 
-  return formatted.replace(/\uE000(\d+)\uE000/g, (_match, index) =>
-    preservedBlocks[Number(index)]
+  return formatted.replace(
+    /\uE000(\d+)\uE000/g,
+    (_match, index) => preservedBlocks[Number(index)],
   );
 }

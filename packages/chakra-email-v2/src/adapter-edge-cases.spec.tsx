@@ -41,7 +41,7 @@ describe('@chakra-email/chakra-v2 adapter edge cases', () => {
               <Text color="nightOnly">Night only.</Text>
             </Body>
           </Html>
-        </ChakraEmailV2Provider>
+        </ChakraEmailV2Provider>,
       );
 
       expect(html).toContain('Night only.');
@@ -80,7 +80,7 @@ describe('@chakra-email/chakra-v2 adapter edge cases', () => {
               <Text color="danger">Chained.</Text>
             </Body>
           </Html>
-        </ChakraEmailV2Provider>
+        </ChakraEmailV2Provider>,
       );
 
       expect(html).toContain('color:#e53e3e');
@@ -126,7 +126,7 @@ describe('@chakra-email/chakra-v2 adapter edge cases', () => {
               </Container>
             </Body>
           </Html>
-        </ChakraEmailV2Provider>
+        </ChakraEmailV2Provider>,
       );
 
       expect(html).toContain('padding:16px');

@@ -99,22 +99,25 @@ export function toPlainText(html: string): string {
       .replace(/<!--[\s\S]*?-->/g, '')
       .replace(/<head[\s\S]*?<\/head>/gi, '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, ''),
   )
     .replace(/[\u200B\u200C\uFEFF]/g, '')
     .replace(/\u00A0/g, ' ')
     .replace(/\s+/g, ' ')
     .replace(/<img\b[^>]*\balt=["']([^"']*)["'][^>]*\/?>/gi, ' $1 ')
-    .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_match, href, label) => {
-      const text = label.replace(/<[^>]+>/g, '').trim();
-      return text ? `${text} [${href}]` : href;
-    })
+    .replace(
+      /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi,
+      (_match, href, label) => {
+        const text = label.replace(/<[^>]+>/g, '').trim();
+        return text ? `${text} [${href}]` : href;
+      },
+    )
     .replace(/<hr\b[^>]*\/?>/gi, '\n\n---\n\n')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(td|th)>/gi, '\t')
     .replace(
       /<\/(p|div|h[1-6]|li|ul|ol|tr|table|thead|tbody|tfoot|section|blockquote|pre)>/gi,
-      '\n\n'
+      '\n\n',
     )
     .replace(/<[^>]+>/g, '');
 

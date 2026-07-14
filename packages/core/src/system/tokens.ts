@@ -21,9 +21,14 @@ function getPath(source: unknown, path: string): unknown {
     }
 
     const record = value as Record<string, unknown>;
-    const segmentValue = Object.hasOwn(record, segment) ? record[segment] : undefined;
+    const segmentValue = Object.hasOwn(record, segment)
+      ? record[segment]
+      : undefined;
 
-    return segmentValue ?? (Object.hasOwn(record, 'DEFAULT') ? record.DEFAULT : undefined);
+    return (
+      segmentValue ??
+      (Object.hasOwn(record, 'DEFAULT') ? record.DEFAULT : undefined)
+    );
   }, source);
 }
 
@@ -32,15 +37,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function getScaleValue(scale: ThemeScale, token: string | number): unknown {
-  const directValue = Object.hasOwn(scale, String(token)) ? scale[String(token)] : undefined;
+  const directValue = Object.hasOwn(scale, String(token))
+    ? scale[String(token)]
+    : undefined;
 
   return (
     directValue ??
-    (typeof token === 'string' && token.includes('.') ? getPath(scale, token) : undefined)
+    (typeof token === 'string' && token.includes('.')
+      ? getPath(scale, token)
+      : undefined)
   );
 }
 
-function hasScaleToken(scale: ResolvableScale, token: string | number): boolean {
+function hasScaleToken(
+  scale: ResolvableScale,
+  token: string | number,
+): boolean {
   if (Array.isArray(scale)) {
     return typeof token === 'number' && Object.hasOwn(scale, token);
   }
@@ -49,7 +61,10 @@ function hasScaleToken(scale: ResolvableScale, token: string | number): boolean 
     return false;
   }
 
-  return Object.hasOwn(scale, String(token)) || getScaleValue(scale, token) !== undefined;
+  return (
+    Object.hasOwn(scale, String(token)) ||
+    getScaleValue(scale, token) !== undefined
+  );
 }
 
 /**
@@ -58,7 +73,10 @@ function hasScaleToken(scale: ResolvableScale, token: string | number): boolean 
  * base value, numeric strings are treated as numbers, and anything unusable
  * resolves to undefined instead of throwing.
  */
-function normalizeStyleValue(value: unknown, depth = 0): ResolvedTokenValue | undefined {
+function normalizeStyleValue(
+  value: unknown,
+  depth = 0,
+): ResolvedTokenValue | undefined {
   if (depth > maxResponsiveDepth) {
     return undefined;
   }
@@ -68,7 +86,9 @@ function normalizeStyleValue(value: unknown, depth = 0): ResolvedTokenValue | un
   }
 
   if (isRecord(value)) {
-    const baseValue = Object.hasOwn(value, 'base') ? value.base : Object.values(value)[0];
+    const baseValue = Object.hasOwn(value, 'base')
+      ? value.base
+      : Object.values(value)[0];
     return normalizeStyleValue(baseValue, depth + 1);
   }
 
@@ -83,7 +103,9 @@ function normalizeStyleValue(value: unknown, depth = 0): ResolvedTokenValue | un
   return undefined;
 }
 
-function serializeCompositeTokenValue(value: Record<string, unknown>): string | undefined {
+function serializeCompositeTokenValue(
+  value: Record<string, unknown>,
+): string | undefined {
   if (
     typeof value.width === 'string' &&
     typeof value.style === 'string' &&
@@ -120,7 +142,8 @@ function unwrapTokenValue(value: unknown): ResolvedTokenValue | undefined {
     }
 
     if (isRecord(tokenValue)) {
-      const conditionalValue = tokenValue.base ?? tokenValue._light ?? tokenValue.default;
+      const conditionalValue =
+        tokenValue.base ?? tokenValue._light ?? tokenValue.default;
       const conditional = unwrapTokenValue(conditionalValue);
 
       if (conditional !== undefined) {
@@ -137,7 +160,7 @@ function unwrapTokenValue(value: unknown): ResolvedTokenValue | undefined {
 function resolveTokenReferences(
   value: ResolvedTokenValue,
   theme: EmailTheme,
-  seen: Set<string>
+  seen: Set<string>,
 ): ResolvedTokenValue | undefined {
   if (typeof value === 'number') {
     return value;
@@ -145,16 +168,19 @@ function resolveTokenReferences(
 
   let unresolved = false;
 
-  const resolved = value.replace(tokenReferencePattern, (_match, path: string) => {
-    const reference = resolveThemeReference(path.trim(), theme, seen);
+  const resolved = value.replace(
+    tokenReferencePattern,
+    (_match, path: string) => {
+      const reference = resolveThemeReference(path.trim(), theme, seen);
 
-    if (reference === undefined) {
-      unresolved = true;
-      return '';
-    }
+      if (reference === undefined) {
+        unresolved = true;
+        return '';
+      }
 
-    return String(reference);
-  });
+      return String(reference);
+    },
+  );
 
   return unresolved ? undefined : resolved;
 }
@@ -163,11 +189,13 @@ function resolveFromScale(
   scale: ResolvableScale,
   token: string | number,
   theme: EmailTheme,
-  seen: Set<string>
+  seen: Set<string>,
 ): ResolvedTokenValue | undefined {
   if (Array.isArray(scale) && typeof token === 'number') {
     const value = unwrapTokenValue(scale[token]);
-    return value === undefined ? undefined : resolveTokenReferences(value, theme, seen);
+    return value === undefined
+      ? undefined
+      : resolveTokenReferences(value, theme, seen);
   }
 
   if (!scale || Array.isArray(scale)) {
@@ -187,7 +215,7 @@ function resolveScaleCandidates(
   scales: readonly ResolvableScale[],
   token: string | number,
   theme: EmailTheme,
-  seen: Set<string>
+  seen: Set<string>,
 ): ScaleResolution {
   let matched = false;
 
@@ -206,7 +234,7 @@ function resolveScaleCandidates(
 function resolveThemeReference(
   path: string,
   theme: EmailTheme,
-  seen: Set<string>
+  seen: Set<string>,
 ): ResolvedTokenValue | undefined {
   if (seen.has(path)) {
     return undefined;
@@ -232,47 +260,71 @@ function resolveByScaleName(
   scaleName: string,
   token: string | number,
   theme: EmailTheme,
-  seen: Set<string>
+  seen: Set<string>,
 ): ResolvedTokenValue | undefined {
   switch (scaleName) {
     case 'colors':
-      return resolveFromScale(theme.tokens?.colors, token, theme, seen) ??
-        resolveFromScale(theme.colors, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.colors, token, theme, seen) ??
+        resolveFromScale(theme.colors, token, theme, seen)
+      );
     case 'space':
-      return resolveFromScale(theme.tokens?.space, token, theme, seen) ??
-        resolveFromScale(theme.space, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.space, token, theme, seen) ??
+        resolveFromScale(theme.space, token, theme, seen)
+      );
     case 'spacing':
-      return resolveFromScale(theme.tokens?.spacing, token, theme, seen) ??
+      return (
+        resolveFromScale(theme.tokens?.spacing, token, theme, seen) ??
         resolveFromScale(theme.tokens?.space, token, theme, seen) ??
         resolveFromScale(theme.spacing, token, theme, seen) ??
-        resolveFromScale(theme.space, token, theme, seen);
+        resolveFromScale(theme.space, token, theme, seen)
+      );
     case 'sizes':
-      return resolveFromScale(theme.tokens?.sizes, token, theme, seen) ??
-        resolveFromScale(theme.sizes, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.sizes, token, theme, seen) ??
+        resolveFromScale(theme.sizes, token, theme, seen)
+      );
     case 'fontSizes':
-      return resolveFromScale(theme.tokens?.fontSizes, token, theme, seen) ??
-        resolveFromScale(theme.fontSizes, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.fontSizes, token, theme, seen) ??
+        resolveFromScale(theme.fontSizes, token, theme, seen)
+      );
     case 'fontWeights':
-      return resolveFromScale(theme.tokens?.fontWeights, token, theme, seen) ??
-        resolveFromScale(theme.fontWeights, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.fontWeights, token, theme, seen) ??
+        resolveFromScale(theme.fontWeights, token, theme, seen)
+      );
     case 'fonts':
-      return resolveFromScale(theme.tokens?.fonts, token, theme, seen) ??
-        resolveFromScale(theme.fonts, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.fonts, token, theme, seen) ??
+        resolveFromScale(theme.fonts, token, theme, seen)
+      );
     case 'lineHeights':
-      return resolveFromScale(theme.tokens?.lineHeights, token, theme, seen) ??
-        resolveFromScale(theme.lineHeights, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.lineHeights, token, theme, seen) ??
+        resolveFromScale(theme.lineHeights, token, theme, seen)
+      );
     case 'radii':
-      return resolveFromScale(theme.tokens?.radii, token, theme, seen) ??
-        resolveFromScale(theme.radii, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.radii, token, theme, seen) ??
+        resolveFromScale(theme.radii, token, theme, seen)
+      );
     case 'borders':
-      return resolveFromScale(theme.tokens?.borders, token, theme, seen) ??
-        resolveFromScale(theme.borders, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.borders, token, theme, seen) ??
+        resolveFromScale(theme.borders, token, theme, seen)
+      );
     case 'borderWidths':
-      return resolveFromScale(theme.tokens?.borderWidths, token, theme, seen) ??
-        resolveFromScale(theme.borderWidths, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.borderWidths, token, theme, seen) ??
+        resolveFromScale(theme.borderWidths, token, theme, seen)
+      );
     case 'letterSpacings':
-      return resolveFromScale(theme.tokens?.letterSpacings, token, theme, seen) ??
-        resolveFromScale(theme.letterSpacings, token, theme, seen);
+      return (
+        resolveFromScale(theme.tokens?.letterSpacings, token, theme, seen) ??
+        resolveFromScale(theme.letterSpacings, token, theme, seen)
+      );
     default:
       return undefined;
   }
@@ -286,13 +338,15 @@ function toPx(value: ResolvedTokenValue | undefined): string | undefined {
   return typeof value === 'number' ? `${value}px` : value;
 }
 
-function toCssString(value: ResolvedTokenValue | undefined): string | undefined {
+function toCssString(
+  value: ResolvedTokenValue | undefined,
+): string | undefined {
   return value === undefined ? undefined : String(value);
 }
 
 export function resolveColor(
   value: string | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -305,7 +359,7 @@ export function resolveColor(
     [theme.semanticTokens?.colors, theme.tokens?.colors, theme.colors],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {
@@ -321,7 +375,7 @@ export function resolveColor(
 
 export function resolveSpacing(
   value: string | number | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -334,7 +388,7 @@ export function resolveSpacing(
     [theme.tokens?.spacing, theme.tokens?.space, theme.spacing, theme.space],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {
@@ -352,7 +406,7 @@ export function resolveSpacing(
 
 export function resolveSize(
   value: string | number | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -365,7 +419,7 @@ export function resolveSize(
     [theme.tokens?.sizes, theme.sizes],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {
@@ -383,7 +437,7 @@ export function resolveSize(
 
 export function resolveFontSize(
   value: string | number | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -396,7 +450,7 @@ export function resolveFontSize(
     [theme.tokens?.fontSizes, theme.fontSizes],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {
@@ -414,7 +468,7 @@ export function resolveFontSize(
 
 export function resolveFontWeight(
   value: string | number | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | number | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -427,7 +481,7 @@ export function resolveFontWeight(
     [theme.tokens?.fontWeights, theme.fontWeights],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {
@@ -445,7 +499,7 @@ export function resolveFontWeight(
 
 export function resolveFontFamily(
   value: string | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -458,7 +512,7 @@ export function resolveFontFamily(
     [theme.tokens?.fonts, theme.fonts],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {
@@ -474,7 +528,7 @@ export function resolveFontFamily(
 
 export function resolveLineHeight(
   value: string | number | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | number | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -487,7 +541,7 @@ export function resolveLineHeight(
     [theme.tokens?.lineHeights, theme.lineHeights],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {
@@ -505,7 +559,7 @@ export function resolveLineHeight(
 
 export function resolveRadius(
   value: string | number | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -518,7 +572,7 @@ export function resolveRadius(
     [theme.tokens?.radii, theme.radii],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {
@@ -536,7 +590,7 @@ export function resolveRadius(
 
 export function resolveBorder(
   value: string | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -549,7 +603,7 @@ export function resolveBorder(
     [theme.tokens?.borders, theme.borders],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {
@@ -565,7 +619,7 @@ export function resolveBorder(
 
 export function resolveBorderWidth(
   value: string | number | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -578,7 +632,7 @@ export function resolveBorderWidth(
     [theme.tokens?.borderWidths, theme.borderWidths],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {
@@ -596,7 +650,7 @@ export function resolveBorderWidth(
 
 export function resolveLetterSpacing(
   value: string | number | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string | undefined {
   const normalized = normalizeStyleValue(value);
 
@@ -609,7 +663,7 @@ export function resolveLetterSpacing(
     [theme.tokens?.letterSpacings, theme.letterSpacings],
     normalized,
     theme,
-    seen
+    seen,
   );
 
   if (resolution.value !== undefined) {

@@ -20,7 +20,13 @@ Most applications should install `chakra-email` for current Chakra UI v3-style t
 ## Exports
 
 ```ts
-import { Blockquote, Button, Code, Table, Text } from '@chakra-email/core/components';
+import {
+  Blockquote,
+  Button,
+  Code,
+  Table,
+  Text,
+} from '@chakra-email/core/components';
 import { render, renderPlainText } from '@chakra-email/core/render';
 import { ThemeProvider } from '@chakra-email/core/theme';
 ```

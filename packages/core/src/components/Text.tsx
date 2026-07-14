@@ -1,5 +1,9 @@
 import type { ElementType } from 'react';
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 
 export interface TextProps extends BaseChakraEmailProps {
   as?: 'p' | 'span' | 'div';

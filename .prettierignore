@@ -4,3 +4,12 @@
 /.nx/cache
 /.nx/workspace-data
 .nx/self-healing
+
+# Workspace-agent metadata is generated and mirrored by Nx tooling.
+/.agents
+/.claude
+/.codex
+/.cursor
+/.gemini
+/.github/skills
+/.opencode

@@ -82,9 +82,7 @@ describe('@chakra-email/chakra-v2', () => {
     });
 
     const html = await render(
-      <ChakraEmailV2Provider
-        theme={theme}
-      >
+      <ChakraEmailV2Provider theme={theme}>
         <Html>
           <Body bg="gray.50">
             <Container p={6}>
@@ -95,7 +93,7 @@ describe('@chakra-email/chakra-v2', () => {
             </Container>
           </Body>
         </Html>
-      </ChakraEmailV2Provider>
+      </ChakraEmailV2Provider>,
     );
 
     expect(html).toContain('background-color:#f8fafc');
@@ -192,7 +190,7 @@ describe('@chakra-email/chakra-v2', () => {
             </Container>
           </Body>
         </Html>
-      </ChakraEmailV2Provider>
+      </ChakraEmailV2Provider>,
     );
 
     expect(html).toContain('background-color:#f7fafc');

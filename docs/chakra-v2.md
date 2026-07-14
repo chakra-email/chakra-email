@@ -51,7 +51,7 @@ export async function renderLegacyEmail(chakraV2Theme) {
           </Container>
         </Body>
       </Html>
-    </ChakraEmailV2Provider>
+    </ChakraEmailV2Provider>,
   );
 }
 ```

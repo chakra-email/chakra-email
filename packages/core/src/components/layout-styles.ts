@@ -10,7 +10,7 @@ export const paddingStyleKeys = [
 
 export function splitStyles(
   styles: CSSProperties,
-  extractedKeys: ReadonlyArray<keyof CSSProperties>
+  extractedKeys: ReadonlyArray<keyof CSSProperties>,
 ): [CSSProperties, CSSProperties] {
   const retainedStyles = { ...styles };
   const extractedStyles: CSSProperties = {};
@@ -35,7 +35,7 @@ export function splitStyles(
  * only accept pixels or percentages.
  */
 export function getLegacyWidthAttribute(
-  width: CSSProperties['width']
+  width: CSSProperties['width'],
 ): string | number | undefined {
   if (typeof width === 'number') {
     return Number.isFinite(width) && width >= 0 ? Math.round(width) : undefined;
@@ -97,8 +97,10 @@ export function getMsoPaddingAlt(styles: CSSProperties): string | undefined {
 }
 
 function expandPadding(
-  value: unknown
-): [string | number, string | number, string | number, string | number] | undefined {
+  value: unknown,
+):
+  | [string | number, string | number, string | number, string | number]
+  | undefined {
   if (typeof value === 'number') {
     return [value, value, value, value];
   }
@@ -126,5 +128,7 @@ function expandPadding(
 }
 
 function serializeLength(value: string | number): string {
-  return typeof value === 'number' && value !== 0 ? `${value}px` : String(value);
+  return typeof value === 'number' && value !== 0
+    ? `${value}px`
+    : String(value);
 }

@@ -3,11 +3,16 @@ import { escapeHtml, renderMarkdown } from './markdown';
 
 describe('documentation markdown rendering', () => {
   it('escapes raw markup and prefixes heading ids per page', () => {
-    const html = renderMarkdown('# Getting Started\n\nHello <script>alert(1)</script>.', {
-      headingIdPrefix: 'getting-started',
-    });
+    const html = renderMarkdown(
+      '# Getting Started\n\nHello <script>alert(1)</script>.',
+      {
+        headingIdPrefix: 'getting-started',
+      },
+    );
 
-    expect(html).toContain('<h1 id="getting-started-getting-started">Getting Started</h1>');
+    expect(html).toContain(
+      '<h1 id="getting-started-getting-started">Getting Started</h1>',
+    );
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).not.toContain('<script>');
   });
@@ -96,9 +101,7 @@ continued on the next line.
     expect(html).toContain(
       '<blockquote>quoted line with <strong>emphasis</strong></blockquote>',
     );
-    expect(html).toContain(
-      '<p>A paragraph continued on the next line.</p>',
-    );
+    expect(html).toContain('<p>A paragraph continued on the next line.</p>');
   });
 
   it('renders markdown tables and inline formatting safely', () => {

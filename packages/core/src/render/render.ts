@@ -21,7 +21,7 @@ function withEmailDoctype(html: string): string {
 
 export async function render(
   element: ReactElement,
-  options: RenderOptions = {}
+  options: RenderOptions = {},
 ): Promise<string> {
   const html = withEmailDoctype(renderToStaticMarkup(element));
   const output = options.pretty ? prettyHtml(html) : html;

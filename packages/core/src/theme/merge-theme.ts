@@ -9,7 +9,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function deepMerge(
   override: Record<string, unknown>,
-  base: Record<string, unknown>
+  base: Record<string, unknown>,
 ): Record<string, unknown> {
   const output: Record<string, unknown> = {};
 
@@ -39,7 +39,7 @@ function deepMerge(
 
 export function mergeTheme(
   theme: ThemeInput | null | undefined,
-  baseTheme: EmailTheme = defaultTheme
+  baseTheme: EmailTheme = defaultTheme,
 ): EmailTheme {
   const themeSource = normalizeThemeInput(theme);
 
@@ -49,11 +49,13 @@ export function mergeTheme(
 
   return deepMerge(
     themeSource as Record<string, unknown>,
-    baseTheme as Record<string, unknown>
+    baseTheme as Record<string, unknown>,
   ) as EmailTheme;
 }
 
-export function normalizeThemeInput(theme: ThemeInput | null | undefined): ThemeOverride | undefined {
+export function normalizeThemeInput(
+  theme: ThemeInput | null | undefined,
+): ThemeOverride | undefined {
   if (!theme || typeof theme !== 'object') {
     return undefined;
   }
@@ -65,7 +67,9 @@ export function normalizeThemeInput(theme: ThemeInput | null | undefined): Theme
     };
   };
 
-  return candidate._config?.theme ?? candidate.theme ?? (theme as ThemeOverride);
+  return (
+    candidate._config?.theme ?? candidate.theme ?? (theme as ThemeOverride)
+  );
 }
 
 export function defineTheme(theme: ThemeOverride): ThemeOverride {

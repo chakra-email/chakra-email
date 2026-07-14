@@ -1,14 +1,23 @@
 import type { HTMLAttributes, LiHTMLAttributes } from 'react';
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 
 export interface ListProps
-  extends BaseChakraEmailProps,
-    Omit<HTMLAttributes<HTMLUListElement | HTMLOListElement>, keyof BaseChakraEmailProps> {
+  extends
+    BaseChakraEmailProps,
+    Omit<
+      HTMLAttributes<HTMLUListElement | HTMLOListElement>,
+      keyof BaseChakraEmailProps
+    > {
   as?: 'ul' | 'ol';
 }
 
 export interface ListItemProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<LiHTMLAttributes<HTMLLIElement>, keyof BaseChakraEmailProps> {}
 
 export function List({ as: Component = 'ul', children, ...props }: ListProps) {

@@ -37,7 +37,7 @@ describe('render utilities', () => {
           <Text>Pretty</Text>
         </Body>
       </Html>,
-      { pretty: true }
+      { pretty: true },
     );
 
     expect(html).toContain('\n<html');
@@ -52,7 +52,7 @@ describe('render utilities', () => {
             Read <Link href="https://example.com">more</Link>.
           </Text>
         </Body>
-      </Html>
+      </Html>,
     );
 
     expect(text).toContain('Read more [https://example.com].');
@@ -65,7 +65,7 @@ describe('render utilities', () => {
           <Text>Plain option</Text>
         </Body>
       </Html>,
-      { plainText: true }
+      { plainText: true },
     );
 
     expect(text).toBe('Plain option');
@@ -81,17 +81,19 @@ describe('render utilities', () => {
         <p>Copy &amp; details<br>More</p>
         <a href="https://example.com"></a>
         <hr>
-      `)
+      `),
     ).toContain('Title Here');
     expect(toPlainText('<a href="https://example.com">Example</a>')).toBe(
-      'Example [https://example.com]'
+      'Example [https://example.com]',
     );
-    expect(toPlainText('<a href="https://example.com"></a>')).toBe('https://example.com');
+    expect(toPlainText('<a href="https://example.com"></a>')).toBe(
+      'https://example.com',
+    );
   });
 
   it('formats a compact HTML string', () => {
     expect(pretty('<html><body><p>Hi</p></body></html>')).toBe(
-      '<html>\n<body>\n<p>Hi</p>\n</body>\n</html>'
+      '<html>\n<body>\n<p>Hi</p>\n</body>\n</html>',
     );
   });
 
@@ -118,24 +120,30 @@ describe('render utilities', () => {
       toPlainText(
         '<html><head><title>Page title</title></head><body>' +
           '<div style="display:none">hidden<div>nested hidden</div></div>' +
-          '<p>Visible</p></body></html>'
-      )
+          '<p>Visible</p></body></html>',
+      ),
     ).toBe('Visible');
   });
 
   it('keeps br as a single line break and block boundaries as paragraph breaks', () => {
-    expect(toPlainText('<p>Line one<br>Line two</p><p>Next paragraph</p>')).toBe(
-      'Line one\nLine two\n\nNext paragraph'
-    );
+    expect(
+      toPlainText('<p>Line one<br>Line two</p><p>Next paragraph</p>'),
+    ).toBe('Line one\nLine two\n\nNext paragraph');
   });
 
   it('emits image alt text and separates table cells', () => {
-    expect(toPlainText('<p><img src="/logo.png" alt="Logo"/></p>')).toBe('Logo');
-    expect(toPlainText('<table><tr><td>One</td><td>Two</td></tr></table>')).toBe('One Two');
+    expect(toPlainText('<p><img src="/logo.png" alt="Logo"/></p>')).toBe(
+      'Logo',
+    );
+    expect(
+      toPlainText('<table><tr><td>One</td><td>Two</td></tr></table>'),
+    ).toBe('One Two');
   });
 
   it('does not double-decode HTML entities', () => {
-    expect(toPlainText('<p>&amp;lt;not a tag&amp;gt;</p>')).toBe('&lt;not a tag&gt;');
+    expect(toPlainText('<p>&amp;lt;not a tag&amp;gt;</p>')).toBe(
+      '&lt;not a tag&gt;',
+    );
     expect(toPlainText('<p>Fish &amp; Chips</p>')).toBe('Fish & Chips');
   });
 
@@ -154,10 +162,15 @@ describe('render utilities', () => {
             </Text>
             <Button href="https://example.com/cta">Call to action</Button>
             <Hr />
-            <Img src="https://example.com/logo.png" alt="Logo" width={100} height={30} />
+            <Img
+              src="https://example.com/logo.png"
+              alt="Logo"
+              width={100}
+              height={30}
+            />
           </Container>
         </Body>
-      </Html>
+      </Html>,
     );
 
     const once = pretty(html);
@@ -190,7 +203,7 @@ describe('render utilities', () => {
             </TableBody>
           </Table>
         </Body>
-      </Html>
+      </Html>,
     );
 
     const once = pretty(html);
@@ -199,7 +212,9 @@ describe('render utilities', () => {
 
   it('separates list items with paragraph breaks in plain text', () => {
     expect(toPlainText('<ul><li>One</li><li>Two</li></ul>')).toBe('One\n\nTwo');
-    expect(toPlainText('<ol><li>First</li><li>Second</li></ol>')).toBe('First\n\nSecond');
+    expect(toPlainText('<ol><li>First</li><li>Second</li></ol>')).toBe(
+      'First\n\nSecond',
+    );
   });
 
   it('pins plain text output for every markdown primitive', async () => {
@@ -233,7 +248,7 @@ describe('render utilities', () => {
             </TableBody>
           </Table>
         </Body>
-      </Html>
+      </Html>,
     );
 
     // List items are separated by blank lines (no bullet characters).
@@ -265,7 +280,9 @@ describe('render utilities', () => {
         <Body>
           <Text>First paragraph.</Text>
           <Text>
-            Line one<br />Line two
+            Line one
+            <br />
+            Line two
           </Text>
           <Img src="https://example.com/logo.png" alt="Logo" />
           <Row>
@@ -273,7 +290,7 @@ describe('render utilities', () => {
             <Column>Cell two</Column>
           </Row>
         </Body>
-      </Html>
+      </Html>,
     );
 
     expect(text).not.toContain('Email title');

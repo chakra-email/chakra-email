@@ -8,7 +8,11 @@ function ColorProbe({ token }: { token: string }) {
   const accent = theme.colors?.accent as Record<string, string> | undefined;
 
   return (
-    <span data-brand={brand?.[token]} data-accent={accent?.[token]} data-white={theme.colors?.white as string} />
+    <span
+      data-brand={brand?.[token]}
+      data-accent={accent?.[token]}
+      data-white={theme.colors?.white as string}
+    />
   );
 }
 
@@ -17,7 +21,7 @@ describe('ThemeProvider', () => {
     const html = renderToStaticMarkup(
       <ThemeProvider theme={{ colors: { brand: { 500: '#111111' } } }}>
         <ColorProbe token="500" />
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     expect(html).toContain('data-brand="#111111"');
@@ -26,11 +30,15 @@ describe('ThemeProvider', () => {
 
   it('composes nested provider themes over the parent theme instead of resetting', () => {
     const html = renderToStaticMarkup(
-      <ThemeProvider theme={{ colors: { brand: { 500: '#111111' }, accent: { 500: '#222222' } } }}>
+      <ThemeProvider
+        theme={{
+          colors: { brand: { 500: '#111111' }, accent: { 500: '#222222' } },
+        }}
+      >
         <ThemeProvider theme={{ colors: { brand: { 500: '#333333' } } }}>
           <ColorProbe token="500" />
         </ThemeProvider>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     // Inner override wins, parent-only customization survives, defaults remain.
@@ -45,7 +53,7 @@ describe('ThemeProvider', () => {
         <ThemeProvider>
           <ColorProbe token="500" />
         </ThemeProvider>
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     expect(html).toContain('data-brand="#111111"');

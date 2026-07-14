@@ -48,7 +48,9 @@ const markdownComponents: Components = {
 };
 
 function MarkdownBody({ markdown }: { markdown: string }) {
-  return <ReactMarkdown components={markdownComponents}>{markdown}</ReactMarkdown>;
+  return (
+    <ReactMarkdown components={markdownComponents}>{markdown}</ReactMarkdown>
+  );
 }
 
 export async function renderMarkdownEmail(markdown: string) {
@@ -64,6 +66,6 @@ export async function renderMarkdownEmail(markdown: string) {
         </Body>
       </Html>
     </ChakraEmailProvider>,
-    { pretty: true }
+    { pretty: true },
   );
 }

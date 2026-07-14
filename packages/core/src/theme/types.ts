@@ -3,7 +3,11 @@ export type ThemeScaleValue =
   | number
   | Array<string | number>
   | {
-      value?: string | number | Array<string | number> | Record<string, unknown>;
+      value?:
+        | string
+        | number
+        | Array<string | number>
+        | Record<string, unknown>;
       [key: string]: unknown;
     };
 

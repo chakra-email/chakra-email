@@ -48,7 +48,9 @@ function HostileEmail() {
               src={`https://example.com/logo.png?q=${payload('imgsrc')}`}
               alt={payload('imgalt')}
             />
-            <Link href={`https://example.com/?q=${payload('link')}`}>Click here</Link>
+            <Link href={`https://example.com/?q=${payload('link')}`}>
+              Click here
+            </Link>
           </Container>
         </Body>
       </Html>
@@ -56,7 +58,15 @@ function HostileEmail() {
   );
 }
 
-const injectionIds = ['theme', 'preview', 'style', 'children', 'imgsrc', 'imgalt', 'link'];
+const injectionIds = [
+  'theme',
+  'preview',
+  'style',
+  'children',
+  'imgsrc',
+  'imgalt',
+  'link',
+];
 
 function expectEscapedEverywhere(html: string) {
   // No payload may materialize as a real script element or break out of its
@@ -69,7 +79,9 @@ function expectEscapedEverywhere(html: string) {
     expect(html).not.toContain(payload(id));
     // It must appear in fully escaped form (quotes and angle brackets encoded),
     // proving the value survived rather than being dropped.
-    expect(html).toContain(`&quot;&gt;&lt;script&gt;alert(${id})&lt;/script&gt;`);
+    expect(html).toContain(
+      `&quot;&gt;&lt;script&gt;alert(${id})&lt;/script&gt;`,
+    );
   }
 
   // The only raw double quotes allowed are structural (attribute delimiters):
@@ -108,7 +120,10 @@ describe('render escaping (XSS regression)', () => {
   });
 
   it('does not reintroduce structure when plain-texting pretty output', async () => {
-    const prettyHtml = await render(<HostileEmail />, { pretty: true, plainText: true });
+    const prettyHtml = await render(<HostileEmail />, {
+      pretty: true,
+      plainText: true,
+    });
     expect(prettyHtml).toContain('alert(children)');
     expect(prettyHtml).not.toContain('alert(preview)');
     expect(prettyHtml).not.toMatch(/<html|<body|<head/i);
@@ -126,7 +141,7 @@ describe('pretty placeholder collision safety', () => {
           <Pre>{'UNIQUE_PRE_CONTENT'}</Pre>
         </Body>
       </Html>,
-      { pretty: true }
+      { pretty: true },
     );
 
     // Surrounding content survives, the private-use marker is neutralized,

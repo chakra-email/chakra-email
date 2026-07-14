@@ -50,7 +50,7 @@ const html = await render(
         </Container>
       </Body>
     </Html>
-  </ChakraEmailV2Provider>
+  </ChakraEmailV2Provider>,
 );
 ```
 

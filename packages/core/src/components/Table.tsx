@@ -13,35 +13,43 @@ import { useTheme } from '../theme/index.js';
 import { resolveBorderColor } from './Hr.js';
 
 export interface TableProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<TableHTMLAttributes<HTMLTableElement>, keyof BaseChakraEmailProps> {}
 
 export interface TableHeadProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<HTMLAttributes<HTMLTableSectionElement>, keyof BaseChakraEmailProps> {}
 
 export interface TableBodyProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<HTMLAttributes<HTMLTableSectionElement>, keyof BaseChakraEmailProps> {}
 
 export interface TableFootProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<HTMLAttributes<HTMLTableSectionElement>, keyof BaseChakraEmailProps> {}
 
 export interface TableRowProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<HTMLAttributes<HTMLTableRowElement>, keyof BaseChakraEmailProps> {}
 
 export interface TableHeaderProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<ThHTMLAttributes<HTMLTableCellElement>, keyof BaseChakraEmailProps> {}
 
 export interface TableCellProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<TdHTMLAttributes<HTMLTableCellElement>, keyof BaseChakraEmailProps> {}
 
 export interface TableCaptionProps
-  extends BaseChakraEmailProps,
+  extends
+    BaseChakraEmailProps,
     Omit<HTMLAttributes<HTMLTableCaptionElement>, keyof BaseChakraEmailProps> {}
 
 export function Table({ children, ...props }: TableProps) {
@@ -116,7 +124,11 @@ export function TableRow({ children, ...props }: TableRowProps) {
   );
 }
 
-export function TableHeader({ borderColor, children, ...props }: TableHeaderProps) {
+export function TableHeader({
+  borderColor,
+  children,
+  ...props
+}: TableHeaderProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
   const styles = useChakraStyles({
     p: 3,

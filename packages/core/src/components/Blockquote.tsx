@@ -8,10 +8,18 @@ import { useTheme } from '../theme/index.js';
 import { resolveBorderColor } from './Hr.js';
 
 export interface BlockquoteProps
-  extends BaseChakraEmailProps,
-    Omit<BlockquoteHTMLAttributes<HTMLQuoteElement>, keyof BaseChakraEmailProps> {}
+  extends
+    BaseChakraEmailProps,
+    Omit<
+      BlockquoteHTMLAttributes<HTMLQuoteElement>,
+      keyof BaseChakraEmailProps
+    > {}
 
-export function Blockquote({ borderColor, children, ...props }: BlockquoteProps) {
+export function Blockquote({
+  borderColor,
+  children,
+  ...props
+}: BlockquoteProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
   const borderLeftColor = resolveBorderColor(borderColor, useTheme());
   const styles = useChakraStyles({

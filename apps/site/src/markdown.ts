@@ -232,7 +232,10 @@ function parseTableCells(line: string): string[] {
     .map((cell) => cell.trim());
 }
 
-function renderInline(value: string, headingIdPrefix: string | undefined): string {
+function renderInline(
+  value: string,
+  headingIdPrefix: string | undefined,
+): string {
   return escapeHtml(value)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -245,14 +248,21 @@ function renderInline(value: string, headingIdPrefix: string | undefined): strin
     );
 }
 
-function resolveHref(href: string, headingIdPrefix: string | undefined): string {
+function resolveHref(
+  href: string,
+  headingIdPrefix: string | undefined,
+): string {
   const normalized = href.trim();
   // eslint-disable-next-line no-control-regex -- URL controls are stripped intentionally.
   const protocolInput = normalized.replace(/[\u0000-\u0020\u007f-\u009f]/g, '');
-  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(protocolInput)?.[1]?.toLowerCase();
+  const scheme = /^([a-z][a-z0-9+.-]*):/i
+    .exec(protocolInput)?.[1]
+    ?.toLowerCase();
 
   if (scheme) {
-    return ['http', 'https', 'mailto', 'tel'].includes(scheme) ? normalized : '#';
+    return ['http', 'https', 'mailto', 'tel'].includes(scheme)
+      ? normalized
+      : '#';
   }
 
   if (normalized.startsWith('//')) {

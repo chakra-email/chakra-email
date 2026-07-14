@@ -216,9 +216,11 @@ describe('email-safe output sweep', () => {
   });
 
   it('prefixes the XHTML 1.0 Transitional doctype', () => {
-    expect(html.startsWith('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"')).toBe(
-      true
-    );
+    expect(
+      html.startsWith(
+        '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"',
+      ),
+    ).toBe(true);
   });
 
   it('marks every layout table with role="presentation"', () => {

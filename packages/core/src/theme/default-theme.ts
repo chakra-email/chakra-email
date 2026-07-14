@@ -107,7 +107,8 @@ export const defaultTheme: EmailTheme = {
   },
   fonts: {
     body: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
-    heading: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+    heading:
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
     mono: 'Menlo, Monaco, Consolas, "Courier New", monospace',
   },
   lineHeights: {

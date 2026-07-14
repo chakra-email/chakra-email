@@ -62,6 +62,6 @@ export async function renderLegacyThemeEmail() {
         </Body>
       </Html>
     </ChakraEmailV2Provider>,
-    { pretty: true }
+    { pretty: true },
   );
 }

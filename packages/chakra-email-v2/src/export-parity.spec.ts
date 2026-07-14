@@ -32,12 +32,16 @@ function runtimeExports(mod: object): string[] {
     .sort();
 }
 
-function missingExports(coreModule: object, wrapperModule: object, entry: string): string[] {
+function missingExports(
+  coreModule: object,
+  wrapperModule: object,
+  entry: string,
+): string[] {
   const wrapperNames = new Set(runtimeExports(wrapperModule));
   const omissions = allowedOmissions[entry] ?? [];
 
   return runtimeExports(coreModule).filter(
-    (name) => !wrapperNames.has(name) && !omissions.includes(name)
+    (name) => !wrapperNames.has(name) && !omissions.includes(name),
   );
 }
 
@@ -47,7 +51,9 @@ describe('@chakra-email/chakra-v2 export parity with @chakra-email/core', () => 
   });
 
   it('re-exports every runtime export of core/components', () => {
-    expect(missingExports(coreComponents, wrapperComponents, './components')).toEqual([]);
+    expect(
+      missingExports(coreComponents, wrapperComponents, './components'),
+    ).toEqual([]);
   });
 
   it('re-exports every runtime export of core/render', () => {
@@ -70,7 +76,11 @@ describe('@chakra-email/chakra-v2 export parity with @chakra-email/core', () => 
       'createChakraV2EmailTheme',
     ];
 
-    expect(runtimeExports(wrapperRoot)).toEqual(expect.arrayContaining(expectedExtras));
-    expect(runtimeExports(wrapperTheme)).toEqual(expect.arrayContaining(expectedExtras));
+    expect(runtimeExports(wrapperRoot)).toEqual(
+      expect.arrayContaining(expectedExtras),
+    );
+    expect(runtimeExports(wrapperTheme)).toEqual(
+      expect.arrayContaining(expectedExtras),
+    );
   });
 });

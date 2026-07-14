@@ -1,5 +1,9 @@
 import type { ElementType } from 'react';
-import { splitStyleProps, useChakraStyles, type BaseChakraEmailProps } from '../system/index.js';
+import {
+  splitStyleProps,
+  useChakraStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
 
 export interface HeadingProps extends BaseChakraEmailProps {
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
@@ -14,7 +18,11 @@ const defaultFontSizes: Record<NonNullable<HeadingProps['as']>, string> = {
   h6: 'sm',
 };
 
-export function Heading({ as: Component = 'h1', children, ...props }: HeadingProps) {
+export function Heading({
+  as: Component = 'h1',
+  children,
+  ...props
+}: HeadingProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
   const styles = useChakraStyles({
     m: '0 0 16px',

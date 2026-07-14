@@ -15,7 +15,7 @@ const fallbackBorderColor = '#E2E8F0';
  */
 export function resolveBorderColor(
   borderColor: string | undefined,
-  theme: EmailTheme
+  theme: EmailTheme,
 ): string {
   if (borderColor) {
     return resolveColor(borderColor, theme) ?? borderColor;

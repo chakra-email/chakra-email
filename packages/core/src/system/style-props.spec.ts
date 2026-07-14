@@ -14,8 +14,8 @@ describe('mapChakraPropsToStyles', () => {
           fontWeight: 'semibold',
           borderRadius: 'md',
         },
-        defaultTheme
-      )
+        defaultTheme,
+      ),
     ).toMatchObject({
       backgroundColor: '#6366f1',
       color: '#2D3748',
@@ -35,8 +35,8 @@ describe('mapChakraPropsToStyles', () => {
             boxShadow: '0 4px 12px black',
           },
         },
-        defaultTheme
-      )
+        defaultTheme,
+      ),
     ).toEqual({
       display: 'block',
     });
@@ -50,8 +50,8 @@ describe('mapChakraPropsToStyles', () => {
           fontSize: { base: 'sm', md: 'md' } as unknown as string,
           m: { md: 4 } as unknown as number,
         },
-        defaultTheme
-      )
+        defaultTheme,
+      ),
     ).toMatchObject({
       padding: '8px',
       fontSize: '14px',
@@ -60,7 +60,9 @@ describe('mapChakraPropsToStyles', () => {
   });
 
   it('matches the Chakra spacing scale and falls back to raw px off scale', () => {
-    expect(mapChakraPropsToStyles({ p: 14, m: 20, pt: 0.5, pb: 15 }, defaultTheme)).toMatchObject({
+    expect(
+      mapChakraPropsToStyles({ p: 14, m: 20, pt: 0.5, pb: 15 }, defaultTheme),
+    ).toMatchObject({
       padding: '56px',
       margin: '80px',
       paddingTop: '2px',
@@ -69,7 +71,9 @@ describe('mapChakraPropsToStyles', () => {
   });
 
   it('treats numeric strings like numbers', () => {
-    expect(mapChakraPropsToStyles({ p: '4', mt: '15' }, defaultTheme)).toMatchObject({
+    expect(
+      mapChakraPropsToStyles({ p: '4', mt: '15' }, defaultTheme),
+    ).toMatchObject({
       padding: '16px',
       marginTop: '15px',
     });
@@ -78,7 +82,7 @@ describe('mapChakraPropsToStyles', () => {
   it('maps background to the CSS background shorthand', () => {
     const styles = mapChakraPropsToStyles(
       { background: 'url(x.png) no-repeat' },
-      defaultTheme
+      defaultTheme,
     );
 
     expect(styles.background).toBe('url(x.png) no-repeat');
@@ -94,7 +98,7 @@ describe('mapChakraPropsToStyles', () => {
             danger: { value: '{colors.missing}' },
           },
         },
-      }
+      },
     );
 
     expect(styles.backgroundColor).toBeUndefined();
@@ -137,11 +141,13 @@ describe('mapChakraPropsToStyles', () => {
           semanticTokens: {
             colors: {
               danger: { value: '{colors.red.500}' },
-              surface: { value: { base: '{colors.gray.50}', _dark: '{colors.red.500}' } },
+              surface: {
+                value: { base: '{colors.gray.50}', _dark: '{colors.red.500}' },
+              },
             },
           },
-        }
-      )
+        },
+      ),
     ).toMatchObject({
       backgroundColor: '#f7fafc',
       color: '#e53e3e',
