@@ -1,23 +1,30 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const shouldPush = process.argv.includes('--push');
 const yalcCommand = shouldPush ? 'push' : 'publish';
-const yalcBin = process.platform === 'win32' ? 'yalc.cmd' : 'yalc';
+const workspaceRoot = fileURLToPath(new URL('..', import.meta.url));
+const yalcBin = join(
+  workspaceRoot,
+  'node_modules',
+  '.bin',
+  process.platform === 'win32' ? 'yalc.cmd' : 'yalc',
+);
 
 const packages = [
   {
     name: '@chakra-email/core',
-    root: join('packages', 'core'),
+    root: join(workspaceRoot, 'packages', 'core'),
   },
   {
     name: 'chakra-email',
-    root: join('packages', 'chakra-email'),
+    root: join(workspaceRoot, 'packages', 'chakra-email'),
   },
   {
     name: '@chakra-email/chakra-v2',
-    root: join('packages', 'chakra-email-v2'),
+    root: join(workspaceRoot, 'packages', 'chakra-email-v2'),
   },
 ];
 
@@ -37,7 +44,7 @@ for (const packageConfig of packages) {
 
   if (result.error?.code === 'ENOENT') {
     console.error(
-      'Could not find yalc on PATH. Install it with `npm install -g yalc` or provide a local yalc binary before running this target.',
+      'Could not find the workspace yalc binary. Run `npm ci` before invoking this target.',
     );
     process.exit(1);
   }

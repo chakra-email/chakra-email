@@ -5,13 +5,15 @@ Thanks for helping improve Chakra Email.
 ## Development
 
 ```bash
+nvm use
 npm install
 npm run check
 ```
 
 This is an Nx workspace. Prefer running tasks through the npm scripts or `npm exec nx --`.
 Use an active Node.js release (22 or 24). Node 20.19 is tested only as the
-published package compatibility floor.
+published package compatibility floor. The repository defaults to Node 24 in
+`.nvmrc` and pins the npm CLI through the root `packageManager` field.
 
 `npm run check` is the canonical CI and release gate. It includes the dependency
 audit, lint, coverage, clean build, typecheck, examples, export checks, dry package
