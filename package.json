@@ -40,7 +40,7 @@
     "lint": "npm exec nx -- run-many -t lint",
     "pack:dry": "npm run build && npm run smoke:exports && npm run pack:inspect",
     "pack:inspect": "npm pack --workspace @chakra-email/core --workspace chakra-email --workspace @chakra-email/chakra-v2 --dry-run --cache ./.npm-cache",
-    "release:check": "npm run audit:ci && npm run lint && npm run build && npm run typecheck && npm run examples:check && npm run test:coverage && npm run smoke:exports && npm run pack:inspect && npm run smoke:consumer",
+    "release:check": "npm run audit:ci && npm run lint && npm run test:release && npm run build && npm run typecheck && npm run examples:check && npm run test:coverage && npm run smoke:exports && npm run pack:inspect && npm run smoke:consumer",
     "site:build": "npm exec nx -- build site",
     "site:dev": "npm exec nx -- serve site",
     "site:preview": "npm exec nx -- preview site",
@@ -48,6 +48,7 @@
     "smoke:exports": "node scripts/smoke-built-exports.mjs",
     "test": "npm exec nx -- run-many -t test",
     "test:coverage": "npm exec nx -- run-many -t test -- --coverage",
+    "test:release": "npm exec nx -- run chakra-email-monorepo:release-validation",
     "typecheck": "npm exec nx -- run-many -t typecheck",
     "yalc:publish": "npm exec nx -- run chakra-email-monorepo:yalc-publish",
     "yalc:push": "npm exec nx -- run chakra-email-monorepo:yalc-push"
@@ -118,6 +119,12 @@
             }
           ],
           "parallel": false
+        }
+      },
+      "release-validation": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node --test scripts/run-release.spec.mjs"
         }
       },
       "yalc-publish": {
