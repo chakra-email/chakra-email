@@ -9,6 +9,8 @@ export function escapeHtml(value: string): string {
 
 export interface RenderMarkdownOptions {
   headingIdPrefix?: string;
+  headingLevelOffset?: number;
+  omitLeadingTitle?: boolean;
 }
 
 export function renderMarkdown(
@@ -18,6 +20,7 @@ export function renderMarkdown(
   const lines = markdown.trim().split(/\r?\n/);
   const blocks: string[] = [];
   let index = 0;
+  let omittedLeadingTitle = false;
 
   while (index < lines.length) {
     const line = lines[index] ?? '';
@@ -36,8 +39,23 @@ export function renderMarkdown(
 
     const heading = line.match(/^(#{1,4})\s+(.+)$/);
     if (heading) {
-      const level = heading[1].length;
+      const sourceLevel = heading[1].length;
       const text = heading[2];
+
+      if (
+        options.omitLeadingTitle &&
+        !omittedLeadingTitle &&
+        sourceLevel === 1
+      ) {
+        omittedLeadingTitle = true;
+        index += 1;
+        continue;
+      }
+
+      const level = Math.min(
+        6,
+        sourceLevel + Math.max(0, options.headingLevelOffset ?? 0),
+      );
       blocks.push(
         `<h${level} id="${headingId(text, options.headingIdPrefix)}">${renderInline(text, options.headingIdPrefix)}</h${level}>`,
       );

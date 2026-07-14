@@ -46,7 +46,11 @@ function renderDocs() {
             <span>${escapeHtml(page.description)}</span>
           </div>
           <div class="markdown-body">
-            ${renderMarkdown(page.source, { headingIdPrefix: page.id })}
+            ${renderMarkdown(page.source, {
+              headingIdPrefix: page.id,
+              headingLevelOffset: 1,
+              omitLeadingTitle: true,
+            })}
           </div>
           <a class="source-link" href="${page.sourceHref}">
             Edit this page on GitHub

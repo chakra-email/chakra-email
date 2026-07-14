@@ -35,6 +35,18 @@ describe('documentation markdown rendering', () => {
     expect(html).toContain('href="#getting-started-install"');
   });
 
+  it('omits a source title and nests its remaining headings under the page heading', () => {
+    const html = renderMarkdown('# Components\n\n## Layout\n\n### Container', {
+      headingIdPrefix: 'components',
+      headingLevelOffset: 1,
+      omitLeadingTitle: true,
+    });
+
+    expect(html).not.toContain('>Components</h');
+    expect(html).toContain('<h3 id="components-layout">Layout</h3>');
+    expect(html).toContain('<h4 id="components-container">Container</h4>');
+  });
+
   it('does not rewrite absolute or protocol-relative markdown URLs', () => {
     const html = renderMarkdown(
       '[web](https://example.com/guide.md) [cdn](//example.com/guide.md) [mail](mailto:guide.md)',

@@ -57,7 +57,7 @@
   "private": true,
   "packageManager": "npm@11.16.0",
   "engines": {
-    "node": "^20.19.0 || ^22.12.0 || ^24.0.0"
+    "node": "^20.19.0 || ^22.13.0 || ^24.0.0"
   },
   "devDependencies": {
     "@chakra-ui/react": "3.36.0",
@@ -76,9 +76,11 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitest/coverage-v8": "4.1.10",
+    "axe-core": "4.12.1",
     "eslint": "~8.57.0",
     "fast-check": "^4.8.0",
     "jiti": "2.4.2",
+    "jsdom": "29.1.1",
     "jsonc-eslint-parser": "^2.1.0",
     "nx": "22.7.7",
     "prettier": "^3.8.1",

@@ -4,6 +4,7 @@ import gettingStartedDocs from '../../../docs/getting-started.md?raw';
 import markdownDocs from '../../../docs/markdown.md?raw';
 import architectureDocs from '../../../docs/package-architecture.md?raw';
 import renderingDocs from '../../../docs/rendering.md?raw';
+import siteDocs from '../../../docs/site.md?raw';
 import themingDocs from '../../../docs/theming.md?raw';
 import chakraV2Example from '../../../examples/chakra-v2/legacy-theme-email.tsx?raw';
 import basicExample from '../../../examples/basic/welcome-email.tsx?raw';
@@ -111,6 +112,15 @@ export const docPages: DocPage[] = [
       'Understand package boundaries and what belongs in each entrypoint.',
     source: architectureDocs,
     sourceHref: `${repo}/blob/main/docs/package-architecture.md`,
+  },
+  {
+    id: 'documentation-site',
+    title: 'Documentation Site',
+    eyebrow: 'Site operations',
+    description:
+      'Build, preview, deploy, and extend the canonical documentation site.',
+    source: siteDocs,
+    sourceHref: `${repo}/blob/main/docs/site.md`,
   },
 ];
 
