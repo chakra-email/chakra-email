@@ -4,16 +4,16 @@
   "files": [],
   "references": [
     {
-      "path": "./packages/strings"
+      "path": "./packages/core"
     },
     {
-      "path": "./packages/colors"
+      "path": "./packages/chakra-email"
     },
     {
-      "path": "./packages/async"
+      "path": "./packages/chakra-email-v2"
     },
     {
-      "path": "./packages/utils"
+      "path": "./apps/site"
     }
   ]
 }

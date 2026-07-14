@@ -13,7 +13,7 @@ export default [
     ],
   },
   {
-    files: ['**/*.ts', '**/*.js'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     rules: {
       '@nx/enforce-module-boundaries': [
         'error',
@@ -22,20 +22,22 @@ export default [
           allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
           depConstraints: [
             {
-              sourceTag: 'scope:shared',
-              onlyDependOnLibsWithTags: ['scope:shared'],
+              sourceTag: 'scope:chakra-email-core',
+              onlyDependOnLibsWithTags: ['scope:chakra-email-core'],
             },
             {
-              sourceTag: 'scope:async',
-              onlyDependOnLibsWithTags: ['scope:shared', 'scope:async'],
+              sourceTag: 'scope:chakra-email',
+              onlyDependOnLibsWithTags: [
+                'scope:chakra-email-core',
+                'scope:chakra-email',
+              ],
             },
             {
-              sourceTag: 'scope:colors',
-              onlyDependOnLibsWithTags: ['scope:shared', 'scope:colors'],
-            },
-            {
-              sourceTag: 'scope:strings',
-              onlyDependOnLibsWithTags: ['scope:shared', 'scope:strings'],
+              sourceTag: 'scope:chakra-email-v2',
+              onlyDependOnLibsWithTags: [
+                'scope:chakra-email-core',
+                'scope:chakra-email-v2',
+              ],
             },
           ],
         },

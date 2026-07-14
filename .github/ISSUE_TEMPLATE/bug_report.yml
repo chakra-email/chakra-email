@@ -1,0 +1,45 @@
+name: Bug report
+description: Report incorrect rendering, typing, packaging, or runtime behavior.
+title: "Bug: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide a minimal email component, rendered HTML, or repository link.
+      render: tsx
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - chakra-email
+        - "@chakra-email/chakra-v2"
+        - "@chakra-email/core"
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Node version, React version, package manager, and email client if relevant.
+      render: text

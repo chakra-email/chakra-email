@@ -1,0 +1,130 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden output snapshots > release notes email plain text 1`] = `
+"Release notes
+
+Highlights from this release:
+
+Faster rendering pipeline
+
+New render() options
+
+Improved plain-text output
+
+Upgrade the package
+
+Run your test suite
+
+Email rendering should be boring and predictable.
+
+npm install chakra-email@latest npm test
+
+Feature Status
+
+Pretty output Stable
+
+Plain text Stable"
+`;
+
+exports[`golden output snapshots > release notes email pretty HTML 1`] = `
+"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<title>Release notes</title>
+</head>
+<body bgcolor="#ffffff" style="background-color:#ffffff;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif">
+<div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden">What changed in version 2.0.<span style="display:none"> ‌ ‌ ‌ ‌ ‌ </span>
+</div>
+<table role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;max-width:600px">
+<tbody>
+<tr>
+<td style="padding:24px">
+<h1 style="margin:0 0 16px;margin-bottom:16px;font-size:20px;font-weight:700;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375">Release notes</h1>
+<p style="margin:0 0 16px;margin-bottom:16px;font-size:16px;line-height:1.5">Highlights from this release:</p>
+<ul style="padding-left:24px;margin:0 0 16px">
+<li style="margin-bottom:8px">Faster rendering pipeline</li>
+<li style="margin-bottom:8px">New <code style="background-color:#EDF2F7;color:#1A202C;padding-left:4px;padding-right:4px;padding-top:0px;padding-bottom:0px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:2px;white-space:pre-wrap;word-break:break-word">render()</code> options</li>
+<li style="margin-bottom:8px">Improved plain-text output</li>
+</ul>
+<ol style="padding-left:24px;margin:0 0 16px">
+<li style="margin-bottom:8px">Upgrade the package</li>
+<li style="margin-bottom:8px">Run your test suite</li>
+</ol>
+<blockquote style="color:#2D3748;padding-left:16px;margin:0 0 16px;border-left:4px solid #E2E8F0">Email rendering should be boring and predictable.</blockquote><pre style="background-color:#EDF2F7;color:#1A202C;padding:16px;margin:0 0 16px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.5;border-radius:6px;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word">npm install chakra-email@latest
+npm test</pre><table cellPadding="0" cellSpacing="0" border="0" width="100%" style="margin:0 0 16px;width:100%;border-collapse:collapse;border-spacing:0">
+<thead>
+<tr>
+<th style="background-color:#F7FAFC;color:#2D3748;padding:12px;font-weight:600;text-align:left;border:1px solid #E2E8F0;vertical-align:top">Feature</th>
+<th style="background-color:#F7FAFC;color:#2D3748;padding:12px;font-weight:600;text-align:left;border:1px solid #E2E8F0;vertical-align:top">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Pretty output</td>
+<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Stable</td>
+</tr>
+<tr>
+<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Plain text</td>
+<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Stable</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>"
+`;
+
+exports[`golden output snapshots > welcome email plain text 1`] = `
+"Acme logo Welcome!
+
+Thanks for joining us. Your account is ready.
+
+Get Started [https://example.com/get-started]
+
+---
+
+Questions? Visit our help center [https://example.com/help]."
+`;
+
+exports[`golden output snapshots > welcome email pretty HTML 1`] = `
+"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="preload" as="image" href="https://example.com/logo.png"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<title>Welcome to Acme</title>
+</head>
+<body bgcolor="#F7FAFC" style="background-color:#F7FAFC;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif">
+<div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden">Your Acme account is ready.<span style="display:none"> ‌ ‌ ‌ ‌ ‌ </span>
+</div>
+<table bgcolor="#ffffff" role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="background-color:#ffffff;width:100%;max-width:600px">
+<tbody>
+<tr>
+<td style="padding:24px">
+<img src="https://example.com/logo.png" alt="Acme logo" width="120" height="40" style="margin-bottom:24px;width:120px;height:40px;border:none;display:block"/>
+<h1 style="margin:0 0 16px;margin-bottom:16px;font-size:24px;font-weight:700;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375">Welcome!</h1>
+<p style="color:#2D3748;margin:0 0 16px;margin-bottom:24px;font-size:16px;line-height:1.5">Thanks for joining us. Your account is ready.</p>
+<table role="presentation" cellSpacing="0" cellPadding="0" border="0" align="left" style="border-collapse:separate">
+<tbody>
+<tr>
+<td bgcolor="#2563eb" align="center" style="background-color:#2563eb;border-radius:6px;mso-padding-alt:12px 24px 12px 24px">
+<a href="https://example.com/get-started" style="color:#ffffff;padding-left:24px;padding-right:24px;padding-top:12px;padding-bottom:12px;font-size:16px;font-weight:600;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1;text-align:center;text-decoration:none;display:inline-block">Get Started</a>
+</td>
+</tr>
+</tbody>
+</table>
+<hr style="margin:16px 0;margin-top:24px;margin-bottom:24px;width:100%;border:none;border-top:1px solid #E2E8F0"/>
+<p style="color:#718096;margin:0 0 16px;font-size:14px;line-height:1.5">Questions? Visit our <a href="https://example.com/help" style="color:#2563eb;text-decoration:underline">help center</a>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>"
+`;

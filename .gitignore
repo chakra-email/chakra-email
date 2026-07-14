@@ -4,9 +4,11 @@
 dist
 tmp
 out-tsc
+*.tsbuildinfo
 
 # dependencies
 node_modules
+.npm-cache
 
 # IDEs and editors
 /.idea
@@ -28,6 +30,7 @@ node_modules
 /.sass-cache
 /connect.lock
 /coverage
+test-output
 /libpeerconnection.log
 npm-debug.log
 yarn-error.log

@@ -1,0 +1,148 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version specifier (patch, minor, major, prerelease, or an explicit semantic version)'
+        type: string
+        required: true
+        default: 'patch'
+      dry_run:
+        description: 'Preview version, changelog, and publish output without pushing or publishing'
+        type: boolean
+        required: true
+        default: true
+      first_release:
+        description: 'Use when no release tag or published package exists yet'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  require-main:
+    name: Require main branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject non-main dispatches
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo 'Releases must be dispatched from the main branch.' >&2
+          exit 1
+      - run: echo 'Release is pinned to main at ${{ github.sha }}.'
+
+  verify:
+    name: Verify release candidate
+    needs: require-main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source without credentials
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run release:check
+
+  dry-run:
+    name: Preview release
+    if: inputs.dry_run
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source without credentials
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Preview release
+        run: node scripts/run-release.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_DRY_RUN: 'true'
+          RELEASE_FIRST_RELEASE: ${{ inputs.first_release }}
+          RELEASE_VERSION: ${{ inputs.version }}
+
+  publish:
+    name: Publish release
+    if: ${{ !inputs.dry_run }}
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Check out source without credentials
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      # Install before adding push credentials so dependency lifecycle scripts
+      # cannot read a write-capable GitHub token from the repository config.
+      - run: npm ci
+
+      - name: Enable push credentials for the verified commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          clean: false
+          fetch-depth: 0
+          persist-credentials: true
+          ref: ${{ github.sha }}
+
+      - name: Configure git user
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Require the one-time bootstrap token
+        if: inputs.first_release
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo 'NPM_BOOTSTRAP_TOKEN is required for the first publish.' >&2
+            exit 1
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
+
+      - name: Publish release
+        run: node scripts/run-release.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # Existing packages authenticate with npm trusted publishing (OIDC).
+          # A token is exposed only for the one-time package bootstrap.
+          NODE_AUTH_TOKEN: ${{ inputs.first_release && secrets.NPM_BOOTSTRAP_TOKEN || '' }}
+          NPM_CONFIG_PROVENANCE: 'true'
+          RELEASE_DRY_RUN: 'false'
+          RELEASE_FIRST_RELEASE: ${{ inputs.first_release }}
+          RELEASE_VERSION: ${{ inputs.version }}

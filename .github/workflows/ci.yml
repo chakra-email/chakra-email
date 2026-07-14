@@ -7,34 +7,62 @@ on:
   pull_request:
 
 permissions:
-  actions: read
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  main:
+  verify:
+    name: Verify (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version:
+          - 22
+          - 24
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          filter: tree:0
-          fetch-depth: 0
+          persist-credentials: false
 
-      # This enables task distribution via Nx Cloud
-      # Run this command as early as possible, before dependencies are installed
-      # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
-      - run: npx nx start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="typecheck"
-
-      # Cache node_modules
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: ${{ matrix.node-version }}
+          cache: npm
 
       - run: npm ci
+      - run: npm run release:check
 
-      # Prepend any command with "nx record --" to record its logs to Nx Cloud
-      - run: npx nx record -- npx nx format:check --base="remotes/origin/main"
-      - run: npx nx run-many -t lint test build typecheck
-      # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
-      - run: npx nx fix-ci
-        if: always()
+      - name: Upload coverage to Codecov
+        if: matrix.node-version == 24
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: packages/core/test-output/vitest/coverage/lcov.info,packages/chakra-email/test-output/vitest/coverage/lcov.info,packages/chakra-email-v2/test-output/vitest/coverage/lcov.info,apps/site/test-output/vitest/coverage/lcov.info
+          fail_ci_if_error: false
+
+  # Node 20 is EOL, but the published packages retain a documented >=20.19
+  # compatibility floor for Node's unflagged require(esm) support.
+  minimum-node-compatibility:
+    name: Compatibility floor (Node 20.19 / React 18)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20.19.0
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run smoke:consumer

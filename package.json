@@ -1,50 +1,154 @@
 {
-  "name": "@org/source",
+  "name": "chakra-email-monorepo",
   "version": "0.0.0",
+  "description": "React email primitives with Chakra-style props, theme token resolution, and email-safe rendering.",
   "license": "MIT",
-  "scripts": {},
+  "author": "Ryan Hefner",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/ryanhefner"
+  },
+  "keywords": [
+    "chakra",
+    "chakra-ui",
+    "chakra-theme",
+    "email",
+    "email-components",
+    "email-templates",
+    "html-email",
+    "jsx-email",
+    "markdown-email",
+    "react",
+    "react-email",
+    "server-rendered",
+    "transactional-email"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryanhefner/chakra-email.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ryanhefner/chakra-email/issues"
+  },
+  "homepage": "https://github.com/ryanhefner/chakra-email#readme",
+  "scripts": {
+    "audit:ci": "npm audit --audit-level=high",
+    "build": "npm run clean && npm exec nx -- run-many -t build --skip-nx-cache",
+    "check": "npm run release:check",
+    "clean": "node scripts/clean-dist.mjs",
+    "examples:check": "npm exec nx -- run chakra-email-monorepo:examples-check",
+    "lint": "npm exec nx -- run-many -t lint",
+    "pack:dry": "npm run build && npm run smoke:exports && npm run pack:inspect",
+    "pack:inspect": "npm pack --workspace @chakra-email/core --workspace chakra-email --workspace @chakra-email/chakra-v2 --dry-run --cache ./.npm-cache",
+    "release:check": "npm run audit:ci && npm run lint && npm run build && npm run typecheck && npm run examples:check && npm run test:coverage && npm run smoke:exports && npm run pack:inspect && npm run smoke:consumer",
+    "site:build": "npm exec nx -- build site",
+    "site:dev": "npm exec nx -- serve site",
+    "site:preview": "npm exec nx -- preview site",
+    "smoke:consumer": "node scripts/smoke-packed-consumer.mjs",
+    "smoke:exports": "node scripts/smoke-built-exports.mjs",
+    "test": "npm exec nx -- run-many -t test",
+    "test:coverage": "npm exec nx -- run-many -t test -- --coverage",
+    "typecheck": "npm exec nx -- run-many -t typecheck",
+    "yalc:publish": "npm exec nx -- run chakra-email-monorepo:yalc-publish",
+    "yalc:push": "npm exec nx -- run chakra-email-monorepo:yalc-push"
+  },
   "private": true,
   "devDependencies": {
     "@eslint/js": "^9.8.0",
-    "@nx/eslint": "22.7.0",
-    "@nx/eslint-plugin": "22.7.0",
-    "@nx/js": "22.7.0",
-    "@nx/vite": "22.7.0",
-    "@nx/vitest": "22.7.0",
-    "@nx/web": "22.7.0",
+    "@nx/eslint": "22.7.7",
+    "@nx/eslint-plugin": "22.7.7",
+    "@nx/js": "22.7.7",
+    "@nx/vite": "22.7.7",
+    "@nx/vitest": "22.7.7",
+    "@nx/web": "22.7.7",
     "@swc-node/register": "1.11.1",
     "@swc/core": "1.15.8",
     "@swc/helpers": "0.5.18",
     "@types/node": "20.19.9",
-    "@vitest/coverage-v8": "4.0.9",
-    "@vitest/ui": "4.0.9",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitest/coverage-v8": "4.1.10",
     "eslint": "~8.57.0",
+    "fast-check": "^4.8.0",
     "jiti": "2.4.2",
     "jsonc-eslint-parser": "^2.1.0",
-    "nx": "22.7.0",
+    "nx": "22.7.7",
     "prettier": "^3.8.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
     "tslib": "^2.3.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.40.0",
-    "verdaccio": "6.4.0",
-    "vite": "^8.0.0",
-    "vitest": "4.0.9"
+    "vite": "^8.1.4",
+    "vitest": "4.1.10"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "nx": {
     "includedScripts": [],
     "targets": {
-      "local-registry": {
-        "executor": "@nx/js:verdaccio",
+      "examples-check": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          {
+            "projects": [
+              "@chakra-email/core",
+              "chakra-email",
+              "@chakra-email/chakra-v2"
+            ],
+            "target": "build",
+            "params": "ignore"
+          }
+        ],
         "options": {
-          "port": 4873,
-          "config": ".verdaccio/config.yml",
-          "storage": "tmp/local-registry/storage"
+          "commands": [
+            {
+              "command": "tsc -p examples/tsconfig.json"
+            },
+            {
+              "command": "vitest run --config examples/vitest.smoke.config.mts"
+            }
+          ],
+          "parallel": false
+        }
+      },
+      "yalc-publish": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          {
+            "projects": [
+              "@chakra-email/core",
+              "chakra-email",
+              "@chakra-email/chakra-v2"
+            ],
+            "target": "build",
+            "params": "ignore"
+          }
+        ],
+        "options": {
+          "command": "node scripts/yalc-publish.mjs"
+        }
+      },
+      "yalc-push": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          {
+            "projects": [
+              "@chakra-email/core",
+              "chakra-email",
+              "@chakra-email/chakra-v2"
+            ],
+            "target": "build",
+            "params": "ignore"
+          }
+        ],
+        "options": {
+          "command": "node scripts/yalc-publish.mjs --push"
         }
       }
     }
-  },
-  "dependencies": {}
+  }
 }

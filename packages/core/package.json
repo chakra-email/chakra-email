@@ -1,0 +1,97 @@
+{
+  "name": "@chakra-email/core",
+  "version": "0.1.0",
+  "description": "Shared Chakra Email primitives, markdown-body components, renderer, and Chakra-style theme resolver.",
+  "license": "MIT",
+  "author": "Ryan Hefner",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/ryanhefner"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryanhefner/chakra-email.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/ryanhefner/chakra-email/issues"
+  },
+  "homepage": "https://github.com/ryanhefner/chakra-email/tree/main/packages/core#readme",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js",
+      "default": "./dist/components/index.js"
+    },
+    "./components/*": {
+      "types": "./dist/components/*.d.ts",
+      "import": "./dist/components/*.js",
+      "default": "./dist/components/*.js"
+    },
+    "./render": {
+      "types": "./dist/render/index.d.ts",
+      "import": "./dist/render/index.js",
+      "default": "./dist/render/index.js"
+    },
+    "./system": {
+      "types": "./dist/system/index.d.ts",
+      "import": "./dist/system/index.js",
+      "default": "./dist/system/index.js"
+    },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "import": "./dist/theme/index.js",
+      "default": "./dist/theme/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "!**/*.tsbuildinfo"
+  ],
+  "keywords": [
+    "chakra",
+    "chakra-ui",
+    "chakra-theme",
+    "email",
+    "email-components",
+    "email-templates",
+    "html-email",
+    "jsx-email",
+    "markdown-email",
+    "react",
+    "react-email",
+    "server-rendered",
+    "transactional-email"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "nx": {
+    "tags": [
+      "scope:chakra-email-core"
+    ]
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

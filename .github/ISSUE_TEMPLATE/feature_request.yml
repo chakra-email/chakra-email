@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest a component, renderer behavior, docs improvement, or package enhancement.
+title: "Feature: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to build or improve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behavior
+      description: Show the API or workflow you would like to use.
+      render: tsx
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Components
+        - Markdown
+        - Rendering
+        - Theming
+        - Package metadata
+        - Documentation
+        - Other
+    validations:
+      required: true
