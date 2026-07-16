@@ -53,6 +53,9 @@ You can preview the initial release locally with
 `npm exec nx -- release 0.1.0 --dry-run --first-release`, or a later release
 with `npm exec nx -- release patch --dry-run` (no credentials needed).
 
+Before the initial publish, and whenever release ownership or credentials
+change, complete the [production release checklist](docs/production-release-checklist.md).
+
 Repository administrators must configure the following controls in GitHub; files
 in the repository cannot enforce them by themselves:
 
