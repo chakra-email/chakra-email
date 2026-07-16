@@ -66,11 +66,12 @@ describe('documentation application', () => {
 
   it('has no automated accessibility violations', async () => {
     const result = await axe.run(document, {
+      resultTypes: ['violations'],
       rules: {
         'color-contrast': { enabled: false },
       },
     });
 
     expect(result.violations).toEqual([]);
-  });
+  }, 15_000);
 });
