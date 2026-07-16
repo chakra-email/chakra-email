@@ -91,7 +91,7 @@ try {
     `import React from 'react';
 import { ThemeProvider } from '@chakra-email/core';
 import { ChakraEmailV2Provider } from '@chakra-email/chakra-v2';
-import { Body, Html, Text, render } from 'chakra-email';
+import { Body, Head, Html, Preview, Text, render } from 'chakra-email';
 
 if (!React.version.startsWith('18.')) {
   throw new Error('The packed consumer must resolve React 18.');
@@ -106,6 +106,8 @@ const email = React.createElement(
     React.createElement(
       Html,
       null,
+      React.createElement(Head),
+      React.createElement(Preview, null, 'Packed consumer preview'),
       React.createElement(
         Body,
         null,
@@ -118,6 +120,20 @@ const html = await render(email);
 
 if (!html.includes('Packed consumer smoke') || !html.startsWith('<!DOCTYPE')) {
   throw new Error('The packed ESM consumer did not render the expected email.');
+}
+
+const bodyStart = html.indexOf('<body');
+const preview = html.indexOf('Packed consumer preview');
+const bodyEnd = html.indexOf('</body>');
+
+if (
+  bodyStart === -1 ||
+  preview === -1 ||
+  bodyEnd === -1 ||
+  preview <= bodyStart ||
+  preview >= bodyEnd
+) {
+  throw new Error('The packed React 18 preview must render inside the body.');
 }
 
 const packageSubpaths = [
