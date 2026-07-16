@@ -149,13 +149,14 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-      - name: Require the one-time bootstrap token
+      - name: Validate the one-time bootstrap token
         if: inputs.first_release
         run: |
           if [ -z "$NODE_AUTH_TOKEN" ]; then
             echo 'NPM_BOOTSTRAP_TOKEN is required for the first publish.' >&2
             exit 1
           fi
+          npm whoami >/dev/null
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
 

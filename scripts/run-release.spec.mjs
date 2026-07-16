@@ -14,6 +14,10 @@ const releaseWorkflowSource = readFileSync(
   new URL('../.github/workflows/release.yml', import.meta.url),
   'utf8',
 );
+const contributingSource = readFileSync(
+  new URL('../CONTRIBUTING.md', import.meta.url),
+  'utf8',
+);
 
 function validateReleaseInput(version, overrides = {}) {
   const env = {
@@ -164,4 +168,26 @@ test('publish checks out the verified commit on main before Nx pushes', () => {
     /ref: \$\{\{ github\.sha \}\}/,
     'checking out a commit SHA would leave Nx release on detached HEAD',
   );
+});
+
+test('first publish authenticates the bootstrap token before releasing', () => {
+  const publishJob = releaseWorkflowSource.slice(
+    releaseWorkflowSource.indexOf('\n  publish:'),
+  );
+  const tokenCheck = publishJob.indexOf('if [ -z "$NODE_AUTH_TOKEN" ]; then');
+  const authentication = publishJob.indexOf('          npm whoami >/dev/null');
+  const publish = publishJob.indexOf('      - name: Publish release');
+
+  assert.ok(tokenCheck >= 0, 'first publish must require the bootstrap token');
+  assert.ok(
+    authentication > tokenCheck && publish > authentication,
+    'the bootstrap token must authenticate before Nx release runs',
+  );
+});
+
+test('bootstrap documentation uses current granular token guidance', () => {
+  assert.doesNotMatch(contributingSource, /npm automation token/i);
+  assert.match(contributingSource, /granular access token/);
+  assert.match(contributingSource, /Bypass 2FA/);
+  assert.match(contributingSource, /allowed action `npm publish`/);
 });

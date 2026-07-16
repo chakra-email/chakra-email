@@ -64,13 +64,20 @@ in the repository cannot enforce them by themselves:
   scoped to this repository instead; do not weaken the rule for all writers.
 - Protect the `npm-publish` environment with required reviewers and restrict it
   to `main`.
-- For the first publish only, store a least-privilege npm automation token as
-  the environment secret `NPM_BOOTSTRAP_TOKEN`. After all three packages exist,
-  configure each package's npm trusted publisher for this repository,
-  `release.yml`, and the `npm-publish` environment. Then revoke and delete the
-  bootstrap token; normal releases authenticate with short-lived OIDC credentials.
-- After trusted publishing succeeds, configure npm publishing access to require
-  2FA and disallow traditional tokens. Keep provenance enabled.
+- For the first publish only, create a short-lived
+  [granular access token](https://docs.npmjs.com/about-access-tokens/) with the
+  narrowest read/write package access that covers all three package names and
+  **Bypass 2FA** enabled. Store it as the protected environment secret
+  `NPM_BOOTSTRAP_TOKEN`; the workflow validates it with `npm whoami` before Nx
+  creates a release commit or tag.
+- After all three packages exist, configure each package's
+  [trusted publisher](https://docs.npmjs.com/trusted-publishers/) with GitHub
+  owner `ryanhefner`, repository `chakra-email`, workflow `release.yml`,
+  environment `npm-publish`, and allowed action `npm publish`. Then revoke the
+  granular token and delete `NPM_BOOTSTRAP_TOKEN`; normal releases authenticate
+  with short-lived OIDC credentials.
+- After a tokenless trusted publish succeeds, configure npm publishing access to
+  require 2FA and disallow traditional tokens. Keep provenance enabled.
 - Configure GitHub Pages to use GitHub Actions as its source. Documentation is
   deployed only from the exact `main` commit that completed CI successfully.
 
