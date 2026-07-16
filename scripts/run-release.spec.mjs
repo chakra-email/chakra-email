@@ -10,6 +10,10 @@ const releaseScript = fileURLToPath(
 const packageManifest = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
 );
+const releaseWorkflowSource = readFileSync(
+  new URL('../.github/workflows/release.yml', import.meta.url),
+  'utf8',
+);
 
 function validateReleaseInput(version, overrides = {}) {
   const env = {
@@ -107,4 +111,37 @@ test('workflows install the npm version declared by packageManager', () => {
       `${workflow} must install the pinned npm after every setup-node step`,
     );
   }
+});
+
+test('publish checks out the verified commit on main before Nx pushes', () => {
+  const publishJob = releaseWorkflowSource.slice(
+    releaseWorkflowSource.indexOf('\n  publish:'),
+  );
+  const branchCheckout = publishJob.indexOf('          ref: main');
+  const verifiedSha = publishJob.indexOf(
+    '          VERIFIED_SHA: ${{ github.sha }}',
+  );
+  const branchAssertion = publishJob.indexOf(
+    `if [ "$current_branch" != 'main' ]; then`,
+  );
+  const shaAssertion = publishJob.indexOf(
+    'if [ "$current_sha" != "$VERIFIED_SHA" ]; then',
+  );
+  const publish = publishJob.indexOf('      - name: Publish release');
+
+  assert.ok(branchCheckout >= 0, 'publish must check out the main branch');
+  assert.ok(
+    verifiedSha > branchCheckout,
+    'publish must retain the SHA that passed verification',
+  );
+  assert.ok(
+    branchAssertion > verifiedSha && shaAssertion > branchAssertion,
+    'publish must verify both the branch and commit before releasing',
+  );
+  assert.ok(publish > shaAssertion, 'Nx release must run after verification');
+  assert.doesNotMatch(
+    publishJob,
+    /ref: \$\{\{ github\.sha \}\}/,
+    'checking out a commit SHA would leave Nx release on detached HEAD',
+  );
 });

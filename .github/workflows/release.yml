@@ -121,13 +121,28 @@ jobs:
       # cannot read a write-capable GitHub token from the repository config.
       - run: npm ci
 
-      - name: Enable push credentials for the verified commit
+      - name: Enable push credentials on main
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           clean: false
           fetch-depth: 0
           persist-credentials: true
-          ref: ${{ github.sha }}
+          ref: main
+
+      - name: Require the verified main commit
+        env:
+          VERIFIED_SHA: ${{ github.sha }}
+        run: |
+          current_branch="$(git branch --show-current)"
+          current_sha="$(git rev-parse HEAD)"
+          if [ "$current_branch" != 'main' ]; then
+            echo "Expected main, checked out $current_branch instead." >&2
+            exit 1
+          fi
+          if [ "$current_sha" != "$VERIFIED_SHA" ]; then
+            echo 'main advanced after release verification; dispatch a new release.' >&2
+            exit 1
+          fi
 
       - name: Configure git user
         run: |
