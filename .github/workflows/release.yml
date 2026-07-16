@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version specifier (patch, minor, major, prerelease, or an explicit semantic version)'
+        description: 'Version specifier; first releases require an explicit semantic version such as 0.1.0'
         type: string
         required: true
         default: 'patch'
@@ -14,7 +14,7 @@ on:
         required: true
         default: true
       first_release:
-        description: 'Use when no release tag or published package exists yet'
+        description: 'Use with an explicit version when no release tag or published package exists yet'
         type: boolean
         required: false
         default: false

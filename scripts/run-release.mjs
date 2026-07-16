@@ -35,6 +35,13 @@ if (
 
 const dryRun = readBoolean('RELEASE_DRY_RUN');
 const firstRelease = readBoolean('RELEASE_FIRST_RELEASE');
+
+if (firstRelease && releaseKeywords.has(version)) {
+  throw new Error(
+    'RELEASE_VERSION must be an explicit semantic version when RELEASE_FIRST_RELEASE is true; relative keywords bump the version already on disk.',
+  );
+}
+
 const args = ['exec', 'nx', '--', 'release', version, '--yes'];
 
 if (dryRun) {

@@ -40,13 +40,18 @@ Releases are versioned and published with [Nx release](https://nx.dev/features/m
 To publish:
 
 1. Go to Actions → Release → "Run workflow".
-2. Choose a version specifier (`patch`, `minor`, `major`, `prerelease`, or an explicit version like `0.2.0`).
+2. Choose a version specifier (`patch`, `minor`, `major`, `prerelease`, or an explicit version like `0.2.0`). For the initial release, choose the explicit version `0.1.0`.
 3. Leave **dry run** enabled for the first run and review the output (version bumps, changelog, publish preview). Nothing is pushed or published in a dry run.
 4. Re-run the workflow with dry run disabled. Approval from the protected `npm-publish` environment is required before the workflow can commit, tag, push, and publish to npm with provenance.
 
-For the very first release (no `v*` tag or published package yet), enable the **first release** input.
+For the very first release (no `v*` tag or published package yet), set the
+version to `0.1.0` and enable the **first release** input. Relative keywords are
+rejected for first releases because Nx applies them to the version already in
+the package manifests; `patch` would otherwise turn `0.1.0` into `0.1.1`.
 
-You can preview a release locally with `npm exec nx -- release patch --dry-run` (no credentials needed).
+You can preview the initial release locally with
+`npm exec nx -- release 0.1.0 --dry-run --first-release`, or a later release
+with `npm exec nx -- release patch --dry-run` (no credentials needed).
 
 Repository administrators must configure the following controls in GitHub; files
 in the repository cannot enforce them by themselves:

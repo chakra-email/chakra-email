@@ -85,6 +85,26 @@ test('rejects non-boolean workflow flags', () => {
   );
 });
 
+for (const version of ['major', 'minor', 'patch', 'prerelease']) {
+  test(`rejects relative version ${version} for a first release`, () => {
+    const result = validateReleaseInput(version, {
+      RELEASE_FIRST_RELEASE: 'true',
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /must be an explicit semantic version/);
+  });
+}
+
+test('accepts an explicit semantic version for a first release', () => {
+  const result = validateReleaseInput('0.1.0', {
+    RELEASE_FIRST_RELEASE: 'true',
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), 'Validated release version: 0.1.0');
+});
+
 test('workflows install the npm version declared by packageManager', () => {
   const packageManagerMatch = /^npm@(\d+\.\d+\.\d+)$/.exec(
     packageManifest.packageManager,
