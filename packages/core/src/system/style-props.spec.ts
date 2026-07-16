@@ -89,6 +89,36 @@ describe('mapChakraPropsToStyles', () => {
     expect(styles.backgroundColor).toBeUndefined();
   });
 
+  it('gives canonical style prop names precedence over aliases', () => {
+    const styles = mapChakraPropsToStyles(
+      {
+        bg: 'gray.100',
+        bgColor: 'gray.700',
+        backgroundColor: 'brand.500',
+        w: 320,
+        width: 480,
+        h: 20,
+        height: 40,
+        maxW: 500,
+        maxWidth: 600,
+        minW: 100,
+        minWidth: 200,
+        rounded: 'sm',
+        borderRadius: 'full',
+      },
+      defaultTheme,
+    );
+
+    expect(styles).toMatchObject({
+      backgroundColor: '#6366f1',
+      width: '480px',
+      height: '40px',
+      maxWidth: '600px',
+      minWidth: '200px',
+      borderRadius: '9999px',
+    });
+  });
+
   it('drops declarations with unresolved token references', () => {
     const styles = mapChakraPropsToStyles(
       { bg: '{colors.missing}' },

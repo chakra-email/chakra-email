@@ -18,7 +18,7 @@ export interface SectionProps
 export function Section({ children, ...props }: SectionProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
   const resolvedStyles = useChakraStyles({
-    width: 'full',
+    w: 'full',
     ...styleProps,
   });
   const [tableStyles, cellStyles] = splitStyles(

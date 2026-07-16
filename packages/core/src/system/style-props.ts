@@ -141,7 +141,7 @@ export function mapChakraPropsToStyles(
 ): CSSProperties {
   const styles: CSSProperties = {};
 
-  const backgroundColor = props.bg ?? props.bgColor ?? props.backgroundColor;
+  const backgroundColor = props.backgroundColor ?? props.bgColor ?? props.bg;
   if (backgroundColor) {
     styles.backgroundColor = resolveColor(backgroundColor, theme);
   }

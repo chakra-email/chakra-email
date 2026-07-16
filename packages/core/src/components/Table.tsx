@@ -11,6 +11,7 @@ import {
 } from '../system/index.js';
 import { useTheme } from '../theme/index.js';
 import { resolveBorderColor } from './Hr.js';
+import { getLegacyWidthAttribute } from './layout-styles.js';
 
 export interface TableProps
   extends
@@ -57,7 +58,7 @@ export function Table({ children, ...props }: TableProps) {
   const { style, ...chakraStyleProps } = styleProps;
   const styles = useChakraStyles({
     m: '0 0 16px',
-    width: 'full',
+    w: 'full',
     ...chakraStyleProps,
     style: {
       borderCollapse: 'collapse',
@@ -65,6 +66,7 @@ export function Table({ children, ...props }: TableProps) {
       ...style,
     },
   });
+  const legacyWidth = getLegacyWidthAttribute(styles.width) ?? '100%';
 
   return (
     <table
@@ -72,7 +74,7 @@ export function Table({ children, ...props }: TableProps) {
       cellPadding={0}
       cellSpacing={0}
       border={0}
-      width="100%"
+      width={legacyWidth}
       style={styles}
     >
       {children}

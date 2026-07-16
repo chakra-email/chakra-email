@@ -4,6 +4,7 @@ import {
   useChakraStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { getLegacyWidthAttribute } from './layout-styles.js';
 import { Spacer } from './Spacer.js';
 
 export interface StackProps
@@ -22,10 +23,11 @@ export function Stack({
 }: StackProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
   const styles = useChakraStyles({
-    width: 'full',
+    w: 'full',
     ...styleProps,
   });
   const items = Children.toArray(children).filter((item) => item !== '');
+  const legacyWidth = getLegacyWidthAttribute(styles.width) ?? '100%';
 
   return (
     <table
@@ -34,7 +36,7 @@ export function Stack({
       cellSpacing={0}
       cellPadding={0}
       border={0}
-      width="100%"
+      width={legacyWidth}
       style={styles}
     >
       <tbody>

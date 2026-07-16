@@ -29,7 +29,7 @@ export function Container({
 }: ContainerProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
   const resolvedStyles = useChakraStyles({
-    width: 'full',
+    w: 'full',
     maxW,
     ...styleProps,
   });

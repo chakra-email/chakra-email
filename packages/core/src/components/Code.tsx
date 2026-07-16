@@ -18,7 +18,7 @@ export function Code({ children, ...props }: CodeProps) {
     color: 'gray.800',
     px: 1,
     py: 0,
-    borderRadius: 'sm',
+    rounded: 'sm',
     fontFamily: 'mono',
     fontSize: 'sm',
     ...chakraStyleProps,

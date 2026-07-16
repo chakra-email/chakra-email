@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render } from '../render';
 import { ThemeProvider } from '../theme';
 import {
+  Badge,
   Body,
   Box,
   Button,
@@ -12,6 +13,7 @@ import {
   Row,
   Section,
   Stack,
+  Table,
 } from './index';
 
 function openingTags(html: string, tagName: string): string[] {
@@ -91,6 +93,59 @@ describe('Outlook-compatible layout markup', () => {
     expect(fluidColumn).toContain('width:50%');
     expect(fixedColumn).toContain('width="240"');
     expect(fixedColumn).toContain('width:240px');
+  });
+
+  it('lets style aliases override component defaults', async () => {
+    const html = await render(
+      <ThemeProvider>
+        <Html>
+          <Body>
+            <Container w={320}>
+              <Badge backgroundColor="brand.500" rounded="full">
+                Alias badge
+              </Badge>
+              <Button
+                href="https://example.com/alias"
+                bgColor="gray.700"
+                rounded="full"
+              >
+                Alias button
+              </Button>
+            </Container>
+          </Body>
+        </Html>
+      </ThemeProvider>,
+    );
+    const [container, button] = openingTags(html, 'table');
+    const [badge] = openingTags(html, 'span');
+    const [, buttonCell] = openingTags(html, 'td');
+
+    expect(container).toContain('width="320"');
+    expect(container).toContain('width:320px');
+    expect(badge).toContain('background-color:#6366f1');
+    expect(badge).toContain('border-radius:9999px');
+    expect(button).toContain('role="presentation"');
+    expect(buttonCell).toContain('bgcolor="#2D3748"');
+    expect(buttonCell).toContain('border-radius:9999px');
+  });
+
+  it('keeps legacy Stack and Table widths aligned with their CSS', async () => {
+    const html = await render(
+      <ThemeProvider>
+        <Html>
+          <Body>
+            <Stack w={320}>Stack content</Stack>
+            <Table w={240} aria-label="Fixed table" />
+          </Body>
+        </Html>
+      </ThemeProvider>,
+    );
+    const [stack, table] = openingTags(html, 'table');
+
+    expect(stack).toContain('width="320"');
+    expect(stack).toContain('width:320px');
+    expect(table).toContain('width="240"');
+    expect(table).toContain('width:240px');
   });
 
   it('keeps modern button padding clickable and adds an Outlook cell fallback', async () => {

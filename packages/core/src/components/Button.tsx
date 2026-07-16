@@ -51,7 +51,7 @@ export function Button({
   const styles = useChakraStyles({
     bg: variant === 'solid' ? 'brand.500' : 'transparent',
     color: variant === 'solid' ? 'white' : 'brand.500',
-    borderRadius: 'md',
+    rounded: 'md',
     fontFamily: 'body',
     fontWeight: 'semibold',
     lineHeight: 'none',

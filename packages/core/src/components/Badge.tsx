@@ -13,7 +13,7 @@ export function Badge({ children, ...props }: BadgeProps) {
     color: 'gray.700',
     px: 2,
     py: 1,
-    borderRadius: 'sm',
+    rounded: 'sm',
     fontSize: 'xs',
     fontWeight: 'semibold',
     lineHeight: 'none',

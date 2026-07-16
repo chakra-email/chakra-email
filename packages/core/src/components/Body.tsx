@@ -12,7 +12,7 @@ export function Body({ children, ...props }: BodyProps) {
     m: 0,
     p: 0,
     fontFamily: 'body',
-    width: 'full',
+    w: 'full',
     ...styleProps,
   });
 

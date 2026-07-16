@@ -34,7 +34,7 @@ export function Hr({ borderColor, ...props }: HrProps) {
     m: '16px 0',
     border: 'none',
     borderTop: `1px solid ${borderTopColor}`,
-    width: 'full',
+    w: 'full',
     ...styleProps,
   });
 

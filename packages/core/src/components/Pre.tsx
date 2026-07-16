@@ -18,7 +18,7 @@ export function Pre({ children, ...props }: PreProps) {
     p: 4,
     bg: 'gray.100',
     color: 'gray.800',
-    borderRadius: 'md',
+    rounded: 'md',
     fontFamily: 'mono',
     fontSize: 'sm',
     lineHeight: 'base',
