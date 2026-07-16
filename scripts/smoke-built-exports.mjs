@@ -51,6 +51,7 @@ const exportChecks = new Map([
     ['ChakraEmailV2Provider', 'createChakraV2EmailTheme'],
   ],
 ]);
+const blockedExportChecks = ['@chakra-email/core/components/layout-styles'];
 
 const failures = [];
 
@@ -69,6 +70,22 @@ for (const [specifier, expectedExports] of exportChecks) {
     console.log(`ok ${specifier}`);
   } catch (error) {
     failures.push(`${specifier}: ${error.code ?? error.name} ${error.message}`);
+  }
+}
+
+for (const specifier of blockedExportChecks) {
+  try {
+    await import(specifier);
+    failures.push(`${specifier}: unexpectedly importable`);
+  } catch (error) {
+    if (error.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
+      failures.push(
+        `${specifier}: ${error.code ?? error.name} ${error.message}`,
+      );
+      continue;
+    }
+
+    console.log(`ok blocked ${specifier}`);
   }
 }
 
