@@ -87,7 +87,7 @@
     "fast-check": "^4.8.0",
     "jiti": "2.4.2",
     "jsdom": "29.1.1",
-    "jsonc-eslint-parser": "^2.1.0",
+    "jsonc-eslint-parser": "^3.1.0",
     "nx": "22.7.7",
     "prettier": "^3.8.1",
     "react": "^19.0.0",
