@@ -25,12 +25,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ryanhefner/chakra-email.git"
+    "url": "git+https://github.com/chakra-email/chakra-email.git"
   },
   "bugs": {
-    "url": "https://github.com/ryanhefner/chakra-email/issues"
+    "url": "https://github.com/chakra-email/chakra-email/issues"
   },
-  "homepage": "https://github.com/ryanhefner/chakra-email#readme",
+  "homepage": "https://github.com/chakra-email/chakra-email#readme",
   "scripts": {
     "audit:ci": "npm audit --audit-level=high",
     "build": "npm run clean && npm exec nx -- run-many -t build --skip-nx-cache",
@@ -58,8 +58,8 @@
   "private": true,
   "overrides": {
     "axios": "^1.18.1",
-    "brace-expansion": "^5.0.8",
-    "fast-uri": "^3.1.4"
+    "brace-expansion": "^5.0.9",
+    "fast-uri": "^3.1.5"
   },
   "packageManager": "npm@11.16.0",
   "engines": {

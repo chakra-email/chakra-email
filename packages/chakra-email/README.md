@@ -1,7 +1,7 @@
 # chakra-email
 
 [![npm](https://img.shields.io/npm/v/chakra-email?style=flat-square)](https://www.pkgstats.com/pkg:chakra-email)
-[![NPM](https://img.shields.io/npm/l/chakra-email?style=flat-square)](https://github.com/ryanhefner/chakra-email/blob/main/LICENSE)
+[![NPM](https://img.shields.io/npm/l/chakra-email?style=flat-square)](https://github.com/chakra-email/chakra-email/blob/main/LICENSE)
 [![npm](https://img.shields.io/npm/dt/chakra-email?style=flat-square)](https://www.pkgstats.com/pkg:chakra-email)
 
 React email components with Chakra-style props, theme tokens, markdown-body primitives, and email-safe rendering.
@@ -106,7 +106,7 @@ Keep raw HTML disabled in your markdown parser unless you sanitize it first.
 
 ## More Docs
 
-- [Getting started](https://github.com/ryanhefner/chakra-email/blob/main/docs/getting-started.md)
-- [Components](https://github.com/ryanhefner/chakra-email/blob/main/docs/components.md)
-- [Markdown](https://github.com/ryanhefner/chakra-email/blob/main/docs/markdown.md)
-- [Theming](https://github.com/ryanhefner/chakra-email/blob/main/docs/theming.md)
+- [Getting started](https://github.com/chakra-email/chakra-email/blob/main/docs/getting-started.md)
+- [Components](https://github.com/chakra-email/chakra-email/blob/main/docs/components.md)
+- [Markdown](https://github.com/chakra-email/chakra-email/blob/main/docs/markdown.md)
+- [Theming](https://github.com/chakra-email/chakra-email/blob/main/docs/theming.md)

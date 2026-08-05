@@ -3,8 +3,8 @@
 [![npm](https://img.shields.io/npm/v/chakra-email?style=flat-square)](https://www.pkgstats.com/pkg:chakra-email)
 [![NPM](https://img.shields.io/npm/l/chakra-email?style=flat-square)](LICENSE)
 [![npm](https://img.shields.io/npm/dt/chakra-email?style=flat-square)](https://www.pkgstats.com/pkg:chakra-email)
-[![CI](https://img.shields.io/github/actions/workflow/status/ryanhefner/chakra-email/ci.yml?style=flat-square&label=CI)](https://github.com/ryanhefner/chakra-email/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/ryanhefner/chakra-email/branch/main/graph/badge.svg)](https://codecov.io/gh/ryanhefner/chakra-email)
+[![CI](https://img.shields.io/github/actions/workflow/status/chakra-email/chakra-email/ci.yml?style=flat-square&label=CI)](https://github.com/chakra-email/chakra-email/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/chakra-email/chakra-email/branch/main/graph/badge.svg)](https://codecov.io/gh/chakra-email/chakra-email)
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/ryanhefner?style=flat-square&label=sponsors)](https://github.com/sponsors/ryanhefner)
 
 Build React email templates with Chakra-style props, theme tokens, markdown-body primitives, and email-safe inline HTML.

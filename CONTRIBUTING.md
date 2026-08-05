@@ -62,10 +62,11 @@ in the repository cannot enforce them by themselves:
 
 - Protect `main`, require pull requests and CODEOWNER review, dismiss stale
   approvals, prevent force pushes/deletion, and require the Node 22/24 CI checks.
-- Give only the environment-approved release actor a ruleset bypass for its
-  generated version commit and tag. If the repository does not permit the
-  built-in Actions token to bypass the pull-request rule, use a GitHub App token
-  scoped to this repository instead; do not weaken the rule for all writers.
+- Create a dedicated release GitHub App with only repository **Contents: read
+  and write** permission, install it only on `chakra-email/chakra-email`, and
+  make it the sole ruleset bypass actor for the generated version commit and
+  tag. Store its client ID as `RELEASE_APP_CLIENT_ID` and private key as
+  `RELEASE_APP_PRIVATE_KEY` on the protected `npm-publish` environment.
 - Protect the `npm-publish` environment with required reviewers and restrict it
   to `main`.
 - For the first publish only, create a short-lived
@@ -76,7 +77,7 @@ in the repository cannot enforce them by themselves:
   creates a release commit or tag.
 - After all four packages exist, configure each package's
   [trusted publisher](https://docs.npmjs.com/trusted-publishers/) with GitHub
-  owner `ryanhefner`, repository `chakra-email`, workflow `release.yml`,
+  owner `chakra-email`, repository `chakra-email`, workflow `release.yml`,
   environment `npm-publish`, and allowed action `npm publish`. Then revoke the
   granular token and delete `NPM_BOOTSTRAP_TOKEN`; normal releases authenticate
   with short-lived OIDC credentials.

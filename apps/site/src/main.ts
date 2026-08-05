@@ -124,7 +124,7 @@ function renderApp() {
         <a href="#docs">Docs</a>
         <a href="#examples">Examples</a>
         <a href="#packages">Packages</a>
-        <a href="https://github.com/ryanhefner/chakra-email">GitHub</a>
+        <a href="https://github.com/chakra-email/chakra-email">GitHub</a>
       </nav>
     </header>
 
@@ -221,10 +221,10 @@ function renderApp() {
 
     <footer class="site-footer">
       <span>MIT licensed.</span>
-      <a href="https://github.com/ryanhefner/chakra-email/blob/main/CHANGELOG.md">
+      <a href="https://github.com/chakra-email/chakra-email/blob/main/CHANGELOG.md">
         Changelog
       </a>
-      <a href="https://github.com/ryanhefner/chakra-email/security/policy">
+      <a href="https://github.com/chakra-email/chakra-email/security/policy">
         Security
       </a>
     </footer>

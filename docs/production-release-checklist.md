@@ -8,7 +8,7 @@ this repository alone.
 ## Repository and GitHub
 
 - [ ] The canonical repository is public at
-      `https://github.com/ryanhefner/chakra-email`, and local release checkouts
+      `https://github.com/chakra-email/chakra-email`, and local release checkouts
       use that repository as `origin` with `main` as their upstream branch.
 - [ ] `main` requires pull requests, CODEOWNER approval, stale-review dismissal,
       and the following status checks:
@@ -16,10 +16,14 @@ this repository alone.
   - `Verify (Node 24)`
   - `Compatibility floor (Node 20.19 / React 18)`
 - [ ] Force pushes and branch deletion are disabled for `main`.
-- [ ] `v*` tags cannot be updated or deleted, and only the approved release
-      actor can create them.
-- [ ] Only the release actor or its narrowly scoped GitHub App can bypass the
-      pull-request rule for the Nx-generated release commit and tag.
+- [ ] `v*` tags cannot be updated or deleted, and only the dedicated release
+      GitHub App can create them.
+- [ ] A dedicated release GitHub App has only repository **Contents: read and
+      write** permission, is installed only on `chakra-email/chakra-email`, and
+      is the sole bypass actor for the Nx-generated release commit and tag.
+- [ ] The app's client ID is stored as the `RELEASE_APP_CLIENT_ID` secret and
+      its complete PEM private key is stored as `RELEASE_APP_PRIVATE_KEY` on the
+      protected `npm-publish` environment.
 - [ ] The `npm-publish` environment requires reviewer approval, prevents
       self-review where available, restricts deployment to `main`, and does not
       permit unreviewed protection-rule bypasses.
@@ -52,7 +56,7 @@ this repository alone.
 After the bootstrap publish, configure each package with the same trusted
 publisher values:
 
-- GitHub owner: `ryanhefner`
+- GitHub owner: `chakra-email`
 - Repository: `chakra-email`
 - Workflow filename: `release.yml`
 - Environment: `npm-publish`

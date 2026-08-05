@@ -10,13 +10,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ryanhefner/chakra-email.git",
+    "url": "git+https://github.com/chakra-email/chakra-email.git",
     "directory": "packages/chakra-email"
   },
   "bugs": {
-    "url": "https://github.com/ryanhefner/chakra-email/issues"
+    "url": "https://github.com/chakra-email/chakra-email/issues"
   },
-  "homepage": "https://github.com/ryanhefner/chakra-email/tree/main/packages/chakra-email#readme",
+  "homepage": "https://github.com/chakra-email/chakra-email/tree/main/packages/chakra-email#readme",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

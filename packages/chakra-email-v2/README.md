@@ -1,7 +1,7 @@
 # @chakra-email/chakra-v2
 
 [![npm](https://img.shields.io/npm/v/%40chakra-email%2Fchakra-v2?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/chakra-v2)
-[![NPM](https://img.shields.io/npm/l/%40chakra-email%2Fchakra-v2?style=flat-square)](https://github.com/ryanhefner/chakra-email/blob/main/LICENSE)
+[![NPM](https://img.shields.io/npm/l/%40chakra-email%2Fchakra-v2?style=flat-square)](https://github.com/chakra-email/chakra-email/blob/main/LICENSE)
 [![npm](https://img.shields.io/npm/dt/%40chakra-email%2Fchakra-v2?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/chakra-v2)
 
 Legacy Chakra UI v2-compatible adapter for Chakra Email.
@@ -64,6 +64,6 @@ The shared email renderer, primitives, and markdown-body components come from `@
 
 ## More Docs
 
-- [Chakra UI v2 guide](https://github.com/ryanhefner/chakra-email/blob/main/docs/chakra-v2.md)
-- [Components](https://github.com/ryanhefner/chakra-email/blob/main/docs/components.md)
-- [Markdown](https://github.com/ryanhefner/chakra-email/blob/main/docs/markdown.md)
+- [Chakra UI v2 guide](https://github.com/chakra-email/chakra-email/blob/main/docs/chakra-v2.md)
+- [Components](https://github.com/chakra-email/chakra-email/blob/main/docs/components.md)
+- [Markdown](https://github.com/chakra-email/chakra-email/blob/main/docs/markdown.md)

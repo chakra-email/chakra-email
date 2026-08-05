@@ -240,6 +240,44 @@ test('publish checks out the verified commit on main before Nx pushes', () => {
   );
 });
 
+test('publish uses the repository-scoped release app for Git writes', () => {
+  const publishJob = releaseWorkflowSource.slice(
+    releaseWorkflowSource.indexOf('\n  publish:'),
+  );
+  const dependencyInstall = publishJob.indexOf('      - run: npm ci');
+  const appToken = publishJob.indexOf('      - name: Create release app token');
+  const credentialedCheckout = publishJob.indexOf(
+    '      - name: Enable release app push credentials on main',
+  );
+
+  assert.ok(
+    appToken > dependencyInstall,
+    'the write-capable app token must not exist during dependency installation',
+  );
+  assert.ok(
+    credentialedCheckout > appToken,
+    'the release checkout must be authenticated after creating the app token',
+  );
+  assert.match(
+    publishJob,
+    /client-id: \$\{\{ secrets\.RELEASE_APP_CLIENT_ID \}\}/,
+  );
+  assert.match(
+    publishJob,
+    /private-key: \$\{\{ secrets\.RELEASE_APP_PRIVATE_KEY \}\}/,
+  );
+  assert.match(publishJob, /permission-contents: write/);
+  assert.match(
+    publishJob,
+    /token: \$\{\{ steps\.release-app\.outputs\.token \}\}/,
+  );
+  assert.match(
+    publishJob,
+    /GITHUB_TOKEN: \$\{\{ steps\.release-app\.outputs\.token \}\}/,
+  );
+  assert.doesNotMatch(publishJob, /GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
+});
+
 test('release publication requires successful CI for the exact commit', () => {
   const ciGateJob = releaseWorkflowSource.slice(
     releaseWorkflowSource.indexOf('\n  require-ci:'),

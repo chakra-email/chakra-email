@@ -1,7 +1,7 @@
 # @chakra-email/core
 
 [![npm](https://img.shields.io/npm/v/%40chakra-email%2Fcore?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/core)
-[![NPM](https://img.shields.io/npm/l/%40chakra-email%2Fcore?style=flat-square)](https://github.com/ryanhefner/chakra-email/blob/main/LICENSE)
+[![NPM](https://img.shields.io/npm/l/%40chakra-email%2Fcore?style=flat-square)](https://github.com/chakra-email/chakra-email/blob/main/LICENSE)
 [![npm](https://img.shields.io/npm/dt/%40chakra-email%2Fcore?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/core)
 
 Shared implementation for Chakra Email packages.
@@ -37,6 +37,6 @@ import { ThemeProvider } from '@chakra-email/core/theme';
 
 ## More Docs
 
-- [Package architecture](https://github.com/ryanhefner/chakra-email/blob/main/docs/package-architecture.md)
-- [Components](https://github.com/ryanhefner/chakra-email/blob/main/docs/components.md)
-- [Rendering](https://github.com/ryanhefner/chakra-email/blob/main/docs/rendering.md)
+- [Package architecture](https://github.com/chakra-email/chakra-email/blob/main/docs/package-architecture.md)
+- [Components](https://github.com/chakra-email/chakra-email/blob/main/docs/components.md)
+- [Rendering](https://github.com/chakra-email/chakra-email/blob/main/docs/rendering.md)

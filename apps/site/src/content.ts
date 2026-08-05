@@ -12,7 +12,7 @@ import basicExample from '../../../examples/basic/welcome-email.tsx?raw';
 import markdownExample from '../../../examples/markdown-body/markdown-email.tsx?raw';
 import previewExample from '../../../examples/preview/emails/welcome.email.tsx?raw';
 
-const repo = 'https://github.com/ryanhefner/chakra-email';
+const repo = 'https://github.com/chakra-email/chakra-email';
 
 export type DocPage = {
   id: string;
