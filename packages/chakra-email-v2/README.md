@@ -6,6 +6,8 @@
 
 Legacy Chakra UI v2-compatible adapter for Chakra Email.
 
+Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
+
 Use this package when an existing codebase still uses Chakra UI v2-style theme scales such as `colors`, `space`, `fontSizes`, `fontWeights`, `fonts`, and `radii` directly on the theme object.
 
 ## What The Adapter Converts

@@ -6,6 +6,8 @@
 
 React email components with Chakra-style props, theme tokens, markdown-body primitives, and email-safe rendering.
 
+Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
+
 This is the main package for current Chakra UI v3-style token objects. It re-exports shared components and render utilities from `@chakra-email/core`.
 
 ## Install

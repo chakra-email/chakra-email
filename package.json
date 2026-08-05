@@ -3,7 +3,17 @@
   "version": "0.0.0",
   "description": "React email primitives with Chakra-style props, theme token resolution, and email-safe rendering.",
   "license": "MIT",
-  "author": "Ryan Hefner",
+  "author": {
+    "name": "Ryan Hefner",
+    "email": "hi@ryanhefner.com",
+    "url": "https://www.ryanhefner.com"
+  },
+  "contributors": [
+    {
+      "name": "Commune Software",
+      "url": "https://commune.software"
+    }
+  ],
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/ryanhefner"

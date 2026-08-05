@@ -6,6 +6,8 @@
 
 Shared implementation for Chakra Email packages.
 
+Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
+
 Most applications should install `chakra-email` for current Chakra UI v3-style themes or `@chakra-email/chakra-v2` for legacy Chakra UI v2 themes. Install `@chakra-email/core` directly when you are building an adapter package or integrating the renderer into custom tooling.
 
 ## Includes

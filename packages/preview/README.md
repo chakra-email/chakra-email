@@ -2,6 +2,8 @@
 
 Local development server and browser preview for Chakra Email templates.
 
+Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
+
 `@chakra-email/preview` discovers template modules in your repository, renders
 their default exports, and lets you exercise representative props without
 adding preview code to your production application. Version `0.1.0` provides

@@ -3,7 +3,17 @@
   "version": "0.1.0",
   "description": "Local template discovery, live rendering, and browser preview tooling for Chakra Email.",
   "license": "MIT",
-  "author": "Ryan Hefner",
+  "author": {
+    "name": "Ryan Hefner",
+    "email": "hi@ryanhefner.com",
+    "url": "https://www.ryanhefner.com"
+  },
+  "contributors": [
+    {
+      "name": "Commune Software",
+      "url": "https://commune.software"
+    }
+  ],
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/ryanhefner"

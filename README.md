@@ -9,6 +9,8 @@
 
 Build React email templates with Chakra-style props, theme tokens, markdown-body primitives, and email-safe inline HTML.
 
+Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
+
 `chakra-email` is for teams that like Chakra UI's styling model and want email templates that can be rendered on the server with React. It provides email-safe components, Chakra-style theme resolution, HTML rendering, and plain-text rendering.
 
 ## Install

@@ -221,6 +221,10 @@ function renderApp() {
 
     <footer class="site-footer">
       <span>MIT licensed.</span>
+      <span>
+        Created by <a href="https://www.ryanhefner.com">Ryan Hefner</a> and
+        <a href="https://commune.software">Commune Software</a>.
+      </span>
       <a href="https://github.com/chakra-email/chakra-email/blob/main/CHANGELOG.md">
         Changelog
       </a>
