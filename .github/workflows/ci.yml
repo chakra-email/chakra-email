@@ -15,14 +15,16 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify (Node ${{ matrix.node-version }})
+    name: Verify (Node ${{ matrix.node-label }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node-version:
-          - 22
-          - 24
+        include:
+          - node-label: 22
+            node-version: 22
+          - node-label: 24
+            node-version: 24.18.0
     steps:
       - name: Check out source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -42,11 +44,11 @@ jobs:
       - run: npm run release:check
 
       - name: Upload coverage to Codecov
-        if: matrix.node-version == 24
+        if: matrix.node-label == 24
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: packages/core/test-output/vitest/coverage/lcov.info,packages/chakra-email/test-output/vitest/coverage/lcov.info,packages/chakra-email-v2/test-output/vitest/coverage/lcov.info,apps/site/test-output/vitest/coverage/lcov.info
+          files: packages/core/test-output/vitest/coverage/lcov.info,packages/chakra-email/test-output/vitest/coverage/lcov.info,packages/chakra-email-v2/test-output/vitest/coverage/lcov.info,packages/preview/test-output/vitest/coverage/lcov.info,apps/preview-ui/test-output/vitest/coverage/lcov.info,apps/site/test-output/vitest/coverage/lcov.info
           fail_ci_if_error: false
 
   # Node 20 is EOL, but the published packages retain a documented >=20.19

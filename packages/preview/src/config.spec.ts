@@ -1,0 +1,85 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import {
+  defineConfig,
+  findConfigFile,
+  loadPreviewConfig,
+  normalizeConfig,
+} from './config.js';
+
+describe('preview config', () => {
+  const temporaryDirectories: string[] = [];
+
+  afterEach(async () => {
+    await Promise.all(
+      temporaryDirectories
+        .splice(0)
+        .map((path) => rm(path, { force: true, recursive: true })),
+    );
+  });
+
+  it('keeps defineConfig as a typed identity helper', () => {
+    const config = { port: 4400 } as const;
+    expect(defineConfig(config)).toBe(config);
+  });
+
+  it('resolves all paths from the config file and applies safe defaults', () => {
+    const configFile = '/workspace/libs/emails/chakra-email.config.ts';
+    const config = normalizeConfig({ root: '.', templates: 'src' }, configFile);
+
+    expect(config).toMatchObject({
+      assets: '/workspace/libs/emails/public',
+      host: '127.0.0.1',
+      port: 4100,
+      root: '/workspace/libs/emails',
+      templateRoots: ['/workspace/libs/emails/src'],
+    });
+    expect(config.include).toContain('**/*.{ts,tsx,mts,js,jsx,mjs}');
+    expect(config.exclude).toContain('**/__tests__/**');
+  });
+
+  it('uses root-relative include patterns when templates is omitted', () => {
+    const config = normalizeConfig(
+      { include: ['src/**/*.email.tsx'] },
+      '/workspace/chakra-email.config.ts',
+    );
+    expect(config.templateRoots).toEqual(['/workspace']);
+    expect(config.include).toEqual(['src/**/*.email.tsx']);
+  });
+
+  it.each([
+    [{ templates: '../private' }, 'templates directory'],
+    [{ assets: '../private' }, 'assets'],
+    [{ host: 'http://localhost' }, 'hostname'],
+    [{ port: 65_536 }, 'integer'],
+    [{ include: [] }, 'include'],
+  ] as const)('rejects invalid config %#', (input, message) => {
+    expect(() =>
+      normalizeConfig(input, '/workspace/chakra-email.config.ts'),
+    ).toThrow(message);
+  });
+
+  it('finds and loads a TypeScript config without caching its module', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'chakra-email-config-'));
+    temporaryDirectories.push(directory);
+    const configPath = join(directory, 'chakra-email.config.ts');
+    await writeFile(
+      configPath,
+      'export default () => ({ root: "./mail", templates: "templates", port: 0 });\n',
+    );
+
+    await expect(findConfigFile(directory)).resolves.toBe(configPath);
+    await expect(loadPreviewConfig({ cwd: directory })).resolves.toMatchObject({
+      port: 0,
+      root: resolve(directory, 'mail'),
+      templateRoots: [resolve(directory, 'mail/templates')],
+    });
+  });
+
+  it('reports a missing explicit config path', async () => {
+    await expect(
+      loadPreviewConfig({ configFile: 'missing.config.ts', cwd: '/workspace' }),
+    ).rejects.toThrow('Preview config was not found');
+  });
+});

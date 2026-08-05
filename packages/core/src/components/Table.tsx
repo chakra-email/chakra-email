@@ -55,15 +55,12 @@ export interface TableCaptionProps
 
 export function Table({ children, ...props }: TableProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const { style, ...chakraStyleProps } = styleProps;
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     m: '0 0 16px',
     w: 'full',
-    ...chakraStyleProps,
     style: {
       borderCollapse: 'collapse',
       borderSpacing: 0,
-      ...style,
     },
   });
   const legacyWidth = getLegacyWidthAttribute(styles.width) ?? '100%';
@@ -132,7 +129,7 @@ export function TableHeader({
   ...props
 }: TableHeaderProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     p: 3,
     bg: 'gray.50',
     color: 'gray.700',
@@ -140,7 +137,6 @@ export function TableHeader({
     fontWeight: 'semibold',
     textAlign: 'left',
     verticalAlign: 'top',
-    ...styleProps,
   });
 
   return (
@@ -152,11 +148,10 @@ export function TableHeader({
 
 export function TableCell({ borderColor, children, ...props }: TableCellProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     p: 3,
     border: `1px solid ${resolveBorderColor(borderColor, useTheme())}`,
     verticalAlign: 'top',
-    ...styleProps,
   });
 
   return (
@@ -168,12 +163,11 @@ export function TableCell({ borderColor, children, ...props }: TableCellProps) {
 
 export function TableCaption({ children, ...props }: TableCaptionProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     color: 'gray.600',
     fontSize: 'sm',
     textAlign: 'left',
     mb: 2,
-    ...styleProps,
   });
 
   return (

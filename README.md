@@ -78,6 +78,39 @@ export async function renderWelcomeEmail() {
 }
 ```
 
+## Preview Templates Locally
+
+Install the reusable preview development tool alongside your email library:
+
+```bash
+npm install --save-dev @chakra-email/preview
+```
+
+```ts
+// chakra-email.config.ts
+import { defineConfig } from '@chakra-email/preview';
+
+export default defineConfig({
+  root: '.',
+  templates: './src/emails',
+  assets: './public',
+});
+```
+
+```json
+{
+  "scripts": {
+    "email:dev": "chakra-email-preview --config chakra-email.config.ts"
+  }
+}
+```
+
+The local app discovers default-exported TS/TSX templates, watches their
+dependencies, renders HTML and plain text, supports JSON props and named
+variants, and keeps rendered output inside a scriptless sandboxed iframe. See
+the [preview guide](docs/preview.md) for the template contract, privacy controls,
+programmatic API, and Nx target configuration.
+
 ## Markdown Bodies
 
 Markdown rendering is easiest when your markdown parser maps elements to Chakra Email components. This keeps the rendered HTML email-safe while letting the email body come from a markdown document.
@@ -109,18 +142,52 @@ import {
   Text,
 } from 'chakra-email';
 
+// Replace this with the stable public directory that hosts the linked pages
+// and images referenced by your Markdown content.
+const markdownPublicBaseUrl = new URL('https://example.com/content/');
+
+function resolveMarkdownUrl(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized.startsWith('#')) {
+    return normalized;
+  }
+
+  try {
+    return new URL(normalized, markdownPublicBaseUrl).href;
+  } catch {
+    return undefined;
+  }
+}
+
 const markdownComponents: Components = {
   p: ({ children }) => <Text>{children}</Text>,
   h1: ({ children }) => <Heading as="h1">{children}</Heading>,
   h2: ({ children }) => <Heading as="h2">{children}</Heading>,
-  a: ({ href, children }) => <Link href={href ?? '#'}>{children}</Link>,
+  a: ({ href, children }) => {
+    const resolvedHref = resolveMarkdownUrl(href);
+
+    return resolvedHref ? (
+      <Link href={resolvedHref}>{children}</Link>
+    ) : (
+      <>{children}</>
+    );
+  },
   blockquote: ({ children }) => <Blockquote>{children}</Blockquote>,
   code: ({ children }) => <Code>{children}</Code>,
   pre: ({ children }) => <Pre>{children}</Pre>,
   ul: ({ children }) => <List>{children}</List>,
   ol: ({ children }) => <List as="ol">{children}</List>,
   li: ({ children }) => <ListItem>{children}</ListItem>,
-  img: ({ src, alt }) => <Img src={src ?? ''} alt={alt ?? ''} />,
+  img: ({ src, alt }) => {
+    const resolvedSrc = resolveMarkdownUrl(src);
+
+    return resolvedSrc ? <Img src={resolvedSrc} alt={alt ?? ''} /> : null;
+  },
   hr: () => <Hr />,
   table: ({ children }) => <Table>{children}</Table>,
   thead: ({ children }) => <TableHead>{children}</TableHead>,
@@ -138,6 +205,15 @@ export function MarkdownBody({ markdown }: { markdown: string }) {
 ```
 
 If you enable raw HTML in your markdown parser, sanitize it first. Raw HTML can bypass the email-safe component layer.
+
+Email clients do not share a dependable base URL for resolving relative paths.
+Resolve relative Markdown links and images against a deliberate public base, as
+shown above, before passing them to Chakra Email components. `Link` and
+`Button` keep `http:`, `https:`, `mailto:`, `tel:`, and fragment destinations;
+`Img` keeps `http:`, `https:`, and `cid:` sources. Unsupported or relative
+component URLs are omitted from the rendered markup rather than guessed. URL
+resolution establishes an origin for relative content; the component protocol
+allowlists still provide the final output safeguard.
 
 ## Components
 
@@ -167,6 +243,7 @@ const text = await renderPlainText(<Email />);
 - `chakra-email` - main package for current Chakra UI v3-style token objects.
 - `@chakra-email/chakra-v2` - adapter for Chakra UI v2-style theme objects.
 - `@chakra-email/core` - shared implementation for adapter authors and custom tooling.
+- `@chakra-email/preview` - local template discovery, live rendering, and browser preview tooling.
 
 Most applications should start with `chakra-email`.
 
@@ -178,14 +255,17 @@ Most applications should start with `chakra-email`.
 - [Theming](docs/theming.md)
 - [Markdown](docs/markdown.md)
 - [Rendering](docs/rendering.md)
+- [Email preview](docs/preview.md)
 - [Chakra UI v2](docs/chakra-v2.md)
 - [Package architecture](docs/package-architecture.md)
+- [Email-client test matrix](docs/email-client-test-matrix.md)
 
 ## Examples
 
 - [Basic email](examples/basic)
 - [Markdown body](examples/markdown-body)
 - [Chakra UI v2 adapter](examples/chakra-v2)
+- [Preview workspace](examples/preview)
 
 ## FAQ
 
@@ -195,7 +275,7 @@ It uses a Chakra-style prop and theme model, but it renders email-safe HTML. Bro
 
 ### How does this relate to React Email?
 
-It has a similar React-first email workflow, but the component styling model is Chakra-oriented and theme-token aware.
+It has a similar React-first email workflow, but the component styling model is Chakra-oriented and theme-token aware. `@chakra-email/preview` provides the corresponding local template browser without coupling the tool to Nx.
 
 ### Can I render a whole email body from markdown?
 
@@ -210,6 +290,7 @@ The renderer is shared by the public packages and exposed as a subpath. A standa
 ```bash
 npm install
 npm run site:dev
+npm run email:dev
 npm run check
 npm exec nx -- run chakra-email-monorepo:yalc-publish
 ```

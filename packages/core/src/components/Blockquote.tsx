@@ -22,12 +22,11 @@ export function Blockquote({
 }: BlockquoteProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
   const borderLeftColor = resolveBorderColor(borderColor, useTheme());
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     m: '0 0 16px',
     pl: 4,
     color: 'gray.700',
     borderLeft: `4px solid ${borderLeftColor}`,
-    ...styleProps,
   });
 
   return (

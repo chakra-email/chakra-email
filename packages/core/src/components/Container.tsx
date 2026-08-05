@@ -28,10 +28,9 @@ export function Container({
   ...props
 }: ContainerProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const resolvedStyles = useChakraStyles({
+  const resolvedStyles = useChakraStyles(styleProps, {
     w: 'full',
     maxW,
-    ...styleProps,
   });
   const [tableStyles, cellStyles] = splitStyles(
     resolvedStyles,

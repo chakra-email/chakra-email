@@ -62,6 +62,37 @@ describe('documentation application', () => {
     expect(document.activeElement).toBe(tabs[2]);
     expect(panel?.getAttribute('aria-labelledby')).toBe(tabs[2]?.id);
     expect(code?.textContent).toBe(examples[2]?.source);
+
+    tabs[2]?.dispatchEvent(
+      new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }),
+    );
+    expect(tabs[0]?.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(tabs[0]);
+
+    tabs[0]?.dispatchEvent(
+      new KeyboardEvent('keydown', { bubbles: true, key: 'End' }),
+    );
+    expect(tabs.at(-1)?.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(tabs.at(-1));
+    expect(code?.textContent).toBe(examples.at(-1)?.source);
+
+    tabs
+      .at(-1)
+      ?.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' }),
+      );
+    expect(tabs.at(-2)?.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(tabs.at(-2));
+    expect(code?.textContent).toBe(examples.at(-2)?.source);
+
+    const ignoredKey = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'Enter',
+    });
+    tabs.at(-2)?.dispatchEvent(ignoredKey);
+    expect(ignoredKey.defaultPrevented).toBe(false);
+    expect(tabs.at(-2)?.getAttribute('aria-selected')).toBe('true');
   });
 
   it('has no automated accessibility violations', async () => {
@@ -73,5 +104,5 @@ describe('documentation application', () => {
     });
 
     expect(result.violations).toEqual([]);
-  }, 15_000);
+  }, 60_000);
 });

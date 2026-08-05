@@ -55,7 +55,8 @@
     "projects": [
       "@chakra-email/core",
       "chakra-email",
-      "@chakra-email/chakra-v2"
+      "@chakra-email/chakra-v2",
+      "@chakra-email/preview"
     ],
     "releaseTagPattern": "v{version}",
     "version": {

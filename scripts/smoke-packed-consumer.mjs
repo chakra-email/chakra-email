@@ -13,6 +13,7 @@ const packageNames = [
   '@chakra-email/core',
   'chakra-email',
   '@chakra-email/chakra-v2',
+  '@chakra-email/preview',
 ];
 const commandEnvironment = {
   ...process.env,
@@ -71,6 +72,7 @@ try {
         dependencies: {
           '@chakra-email/chakra-v2': tarballs.get('@chakra-email/chakra-v2'),
           '@chakra-email/core': tarballs.get('@chakra-email/core'),
+          '@chakra-email/preview': tarballs.get('@chakra-email/preview'),
           'chakra-email': tarballs.get('chakra-email'),
           react: '18.3.1',
           'react-dom': '18.3.1',
@@ -91,10 +93,25 @@ try {
     `import React from 'react';
 import { ThemeProvider } from '@chakra-email/core';
 import { ChakraEmailV2Provider } from '@chakra-email/chakra-v2';
+import {
+  createPreviewServer,
+  defineConfig,
+  lintRenderedEmail,
+} from '@chakra-email/preview';
 import { Body, Head, Html, Preview, Text, render } from 'chakra-email';
 
 if (!React.version.startsWith('18.')) {
   throw new Error('The packed consumer must resolve React 18.');
+}
+
+if (
+  typeof createPreviewServer !== 'function' ||
+  defineConfig({ port: 0 }).port !== 0 ||
+  !lintRenderedEmail('<img src="https://example.com/logo.png">').some(
+    (finding) => finding.ruleId === 'image-alt'
+  )
+) {
+  throw new Error('The packed preview package did not expose its public API.');
 }
 
 const email = React.createElement(
@@ -177,6 +194,15 @@ for (const packageName of packageNames) {
   }
 }
 
+const previewExports = require('@chakra-email/preview');
+if (
+  typeof previewExports.createPreviewServer !== 'function' ||
+  typeof previewExports.defineConfig !== 'function' ||
+  typeof previewExports.lintRenderedEmail !== 'function'
+) {
+  throw new Error('@chakra-email/preview did not expose its require(esm) API.');
+}
+
 const packageSubpaths = [
   '@chakra-email/core/components',
   '@chakra-email/core/render',
@@ -215,6 +241,13 @@ import {
   ChakraEmailV2Provider,
   type ChakraEmailV2ProviderProps,
 } from '@chakra-email/chakra-v2';
+import {
+  createPreviewServer,
+  defineConfig,
+  lintRenderedEmail,
+  type PreviewLintFinding,
+  type PreviewConfig,
+} from '@chakra-email/preview';
 import * as V2Components from '@chakra-email/chakra-v2/components';
 import * as V2Render from '@chakra-email/chakra-v2/render';
 import * as V2System from '@chakra-email/chakra-v2/system';
@@ -241,6 +274,14 @@ const email: ReactElement = (
 );
 
 void render(email);
+const previewConfig: PreviewConfig = defineConfig({
+  root: '.',
+  templates: 'emails',
+  port: 0,
+});
+void createPreviewServer({ config: previewConfig, port: 0 });
+const lintFindings: PreviewLintFinding[] = lintRenderedEmail('<main>Test</main>');
+void lintFindings;
 void [
   CoreComponents,
   CoreRender,
@@ -255,6 +296,124 @@ void [
   V2System,
   V2Theme,
 ];
+`,
+  );
+
+  writeFileSync(
+    join(consumerDirectory, 'preview-template.mjs'),
+    `import React from 'react';
+import { Body, Html, Text } from 'chakra-email';
+
+export const previewProps = { name: 'Packed preview' };
+
+export default function PackedPreviewEmail({ name }) {
+  return React.createElement(
+    Html,
+    null,
+    React.createElement(
+      Body,
+      null,
+      React.createElement(Text, null, 'Hello ' + name)
+    )
+  );
+}
+`,
+  );
+
+  writeFileSync(
+    join(consumerDirectory, 'chakra-email.config.mjs'),
+    `export default {
+  root: '.',
+  templates: '.',
+  include: ['preview-template.mjs'],
+  assets: 'public',
+  port: 0,
+};
+`,
+  );
+
+  writeFileSync(
+    join(consumerDirectory, 'preview-smoke.mjs'),
+    `import { spawn } from 'node:child_process';
+import { join } from 'node:path';
+
+const cli = join(
+  process.cwd(),
+  'node_modules',
+  '@chakra-email',
+  'preview',
+  'dist',
+  'cli.js'
+);
+const child = spawn(
+  process.execPath,
+  [cli, '--config', 'chakra-email.config.mjs', '--port', '0'],
+  { cwd: process.cwd(), stdio: ['ignore', 'pipe', 'pipe'] }
+);
+let stderr = '';
+child.stderr.setEncoding('utf8');
+child.stderr.on('data', (chunk) => {
+  stderr += chunk;
+});
+
+const exit = new Promise((resolve) => child.once('exit', resolve));
+const previewUrl = await new Promise((resolve, reject) => {
+  const timeout = setTimeout(() => {
+    reject(new Error('Packed preview CLI did not start in time. ' + stderr));
+  }, 20_000);
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => {
+    const match = /Chakra Email preview: (http:\\/\\/\\S+)/.exec(chunk);
+    if (match) {
+      clearTimeout(timeout);
+      resolve(match[1]);
+    }
+  });
+  child.once('exit', (code) => {
+    clearTimeout(timeout);
+    reject(new Error('Packed preview CLI exited early with ' + code + '. ' + stderr));
+  });
+});
+
+try {
+  const health = await fetch(previewUrl + '/api/health');
+  if (!health.ok) {
+    throw new Error('Packed preview health endpoint failed.');
+  }
+
+  const index = await fetch(previewUrl);
+  const indexHtml = await index.text();
+  const token = /name="chakra-email-preview-token"[^>]*content="([^"]+)"/.exec(indexHtml)?.[1];
+  if (!index.ok || !token) {
+    throw new Error('Packed preview UI or token injection is missing.');
+  }
+
+  const headers = { 'x-chakra-email-preview-token': token };
+  const templatesResponse = await fetch(previewUrl + '/api/templates', { headers });
+  const templates = await templatesResponse.json();
+  const id = templates.templates?.[0]?.id;
+  if (!templatesResponse.ok || !id) {
+    throw new Error('Packed preview did not discover its fixture.');
+  }
+
+  const renderResponse = await fetch(previewUrl + '/api/render', {
+    method: 'POST',
+    headers: { ...headers, 'content-type': 'application/json' },
+    body: JSON.stringify({ id }),
+  });
+  const rendered = await renderResponse.json();
+  if (!renderResponse.ok || !rendered.html?.includes('Hello Packed preview')) {
+    throw new Error('Packed preview did not render its fixture.');
+  }
+
+  console.log('ok packed preview CLI, UI assets, discovery, and rendering');
+} finally {
+  child.kill('SIGTERM');
+  await Promise.race([
+    exit,
+    new Promise((resolve) => setTimeout(resolve, 5_000)),
+  ]);
+}
 `,
   );
 
@@ -288,11 +447,43 @@ void [
     ],
     consumerDirectory,
   );
+  const previewBin = join(
+    consumerDirectory,
+    'node_modules',
+    '.bin',
+    process.platform === 'win32'
+      ? 'chakra-email-preview.cmd'
+      : 'chakra-email-preview',
+  );
+  const previewHelp = execFileSync(previewBin, ['--help'], {
+    cwd: consumerDirectory,
+    encoding: 'utf8',
+  });
+  const previewVersion = execFileSync(previewBin, ['--version'], {
+    cwd: consumerDirectory,
+    encoding: 'utf8',
+  });
+  if (
+    !previewHelp.includes('Chakra Email Preview') ||
+    previewVersion.trim() !== '0.1.0'
+  ) {
+    throw new Error(
+      `Packed preview binary metadata check failed: ${JSON.stringify({
+        help: previewHelp,
+        version: previewVersion,
+      })}`,
+    );
+  }
+  console.log('ok packed preview binary help and version');
   execFileSync(process.execPath, ['smoke.mjs'], {
     cwd: consumerDirectory,
     stdio: 'inherit',
   });
   execFileSync(process.execPath, ['smoke.cjs'], {
+    cwd: consumerDirectory,
+    stdio: 'inherit',
+  });
+  execFileSync(process.execPath, ['preview-smoke.mjs'], {
     cwd: consumerDirectory,
     stdio: 'inherit',
   });

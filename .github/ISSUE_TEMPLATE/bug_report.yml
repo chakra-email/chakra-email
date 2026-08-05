@@ -27,6 +27,7 @@ body:
         - chakra-email
         - '@chakra-email/chakra-v2'
         - '@chakra-email/core'
+        - '@chakra-email/preview'
         - Not sure
     validations:
       required: true

@@ -12,8 +12,7 @@ export interface CodeProps
 
 export function Code({ children, ...props }: CodeProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const { style, ...chakraStyleProps } = styleProps;
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     bg: 'gray.100',
     color: 'gray.800',
     px: 1,
@@ -21,11 +20,9 @@ export function Code({ children, ...props }: CodeProps) {
     rounded: 'sm',
     fontFamily: 'mono',
     fontSize: 'sm',
-    ...chakraStyleProps,
     style: {
       whiteSpace: 'pre-wrap',
       wordBreak: 'break-word',
-      ...style,
     },
   });
 

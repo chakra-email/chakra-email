@@ -19,11 +19,12 @@ export interface ColumnProps
 
 export function Column({ width, align, children, ...props }: ColumnProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
-    width,
-    verticalAlign: 'top',
-    ...styleProps,
-  });
+  const styles = useChakraStyles(
+    { width, ...styleProps },
+    {
+      verticalAlign: 'top',
+    },
+  );
   const legacyWidth = getLegacyWidthAttribute(styles.width);
 
   return (

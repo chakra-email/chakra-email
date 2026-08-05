@@ -20,6 +20,7 @@ on:
         default: false
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -38,33 +39,39 @@ jobs:
           exit 1
       - run: echo 'Release is pinned to main at ${{ github.sha }}.'
 
-  verify:
-    name: Verify release candidate
+  require-ci:
+    name: Require successful CI for release commit
     needs: require-main
     runs-on: ubuntu-latest
     steps:
-      - name: Check out source without credentials
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Install pinned npm
-        run: npm install --global npm@11.16.0
-
-      - run: npm ci
-      - run: npm run release:check
+      - name: Require successful CI for the exact main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFIED_SHA: ${{ github.sha }}
+        run: |
+          ci_run_id="$(
+            gh api \
+              --method GET \
+              -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
+              -f branch=main \
+              -f event=push \
+              -f head_sha="$VERIFIED_SHA" \
+              -f status=success \
+              -f per_page=1 \
+              --jq '.workflow_runs[0].id // empty'
+          )"
+          if [ -z "$ci_run_id" ]; then
+            echo "No successful CI push run exists for $VERIFIED_SHA." >&2
+            echo 'Wait for CI to complete successfully, then dispatch Release again.' >&2
+            exit 1
+          fi
+          echo "CI run $ci_run_id successfully verified $VERIFIED_SHA."
 
   dry-run:
     name: Preview release
     if: inputs.dry_run
-    needs: verify
+    needs: require-ci
     runs-on: ubuntu-latest
     steps:
       - name: Check out source without credentials
@@ -76,7 +83,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 24
+          node-version-file: '.nvmrc'
           cache: npm
 
       - name: Install pinned npm
@@ -95,7 +102,7 @@ jobs:
   publish:
     name: Publish release
     if: ${{ !inputs.dry_run }}
-    needs: verify
+    needs: require-ci
     runs-on: ubuntu-latest
     environment: npm-publish
     permissions:
@@ -111,7 +118,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 24
+          node-version-file: '.nvmrc'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install pinned npm

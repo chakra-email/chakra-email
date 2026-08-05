@@ -36,10 +36,11 @@ this repository alone.
   npm view @chakra-email/core@0.1.0 version
   npm view chakra-email@0.1.0 version
   npm view @chakra-email/chakra-v2@0.1.0 version
+  npm view @chakra-email/preview@0.1.0 version
   ```
 
 - [ ] A short-lived granular access token has the narrowest package read/write
-      access that covers all three names, has **Bypass 2FA** enabled, and is
+      access that covers all four names, has **Bypass 2FA** enabled, and is
       stored only as the protected `npm-publish` environment secret
       `NPM_BOOTSTRAP_TOKEN`.
 - [ ] The first-release workflow uses the explicit version `0.1.0`, has
@@ -72,18 +73,41 @@ See npm's documentation for
 [trusted publishers](https://docs.npmjs.com/trusted-publishers/), and
 [provenance](https://docs.npmjs.com/generating-provenance-statements/).
 
+## Mailbox Client Verification
+
+Complete the [email-client test matrix](email-client-test-matrix.md) using
+messages sent by the production delivery path, not HTML pasted directly into a
+preview tool.
+
+- [ ] The matrix records the release version, exact commit SHA, send date,
+      delivery provider, screenshot service, fixtures, and evidence links.
+- [ ] Every client and version in the documented compatibility baseline has a
+      result for each applicable fixture and display mode.
+- [ ] CTA click targets, multi-column layout, preview text, remote and CID
+      images, Markdown tables, long content, and fallback typography are
+      represented across the fixtures.
+- [ ] All content links and images use deliberate absolute public URLs or valid
+      `cid:` attachments; no relative URL relies on mailbox-client resolution.
+- [ ] Failures are fixed and rerun, or accepted limitations are documented with
+      an owner and product approval before publishing.
+
 ## Release Verification
 
 - [ ] `npm run release:check` passes on the exact release commit under Node 22
       and Node 24.
-- [ ] The workflow dry run reports the intended fixed version for all three
+- [ ] The Node 20.19 / React 18 compatibility job passes on that same commit.
+- [ ] The successful CI run was triggered by a push to `main`, and the Release
+      workflow's `Require successful CI for release commit` job accepts its
+      exact commit SHA.
+- [ ] The workflow dry run reports the intended fixed version for all four
       packages and only the expected changelog changes.
 - [ ] The publish job runs from the reviewed `main` SHA without a newer commit
       landing between verification and publication.
-- [ ] The GitHub release, `v{version}` tag, changelog, and all three npm package
+- [ ] The GitHub release, `v{version}` tag, changelog, and all four npm package
       versions agree.
-- [ ] A clean consumer can install the published packages and run the documented
-      React 18 and React 19 examples.
+- [ ] A clean consumer can install the published packages, run the documented
+      React 18 and React 19 examples, and launch the installed preview CLI with
+      its bundled browser assets.
 
 If npm publication fails after Nx has pushed the release commit or tag, stop and
 record which package versions became public before retrying. Never overwrite or

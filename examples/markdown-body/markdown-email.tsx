@@ -25,19 +25,51 @@ import {
   render,
 } from 'chakra-email';
 
+const markdownPublicBaseUrl = new URL('https://example.com/content/');
+
+function resolveMarkdownUrl(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized.startsWith('#')) {
+    return normalized;
+  }
+
+  try {
+    return new URL(normalized, markdownPublicBaseUrl).href;
+  } catch {
+    return undefined;
+  }
+}
+
 const markdownComponents: Components = {
   p: ({ children }) => <Text>{children}</Text>,
   h1: ({ children }) => <Heading as="h1">{children}</Heading>,
   h2: ({ children }) => <Heading as="h2">{children}</Heading>,
   h3: ({ children }) => <Heading as="h3">{children}</Heading>,
-  a: ({ href, children }) => <Link href={href ?? '#'}>{children}</Link>,
+  a: ({ href, children }) => {
+    const resolvedHref = resolveMarkdownUrl(href);
+
+    return resolvedHref ? (
+      <Link href={resolvedHref}>{children}</Link>
+    ) : (
+      <>{children}</>
+    );
+  },
   blockquote: ({ children }) => <Blockquote>{children}</Blockquote>,
   code: ({ children }) => <Code>{children}</Code>,
   pre: ({ children }) => <Pre>{children}</Pre>,
   ul: ({ children }) => <List>{children}</List>,
   ol: ({ children }) => <List as="ol">{children}</List>,
   li: ({ children }) => <ListItem>{children}</ListItem>,
-  img: ({ src, alt }) => <Img src={src ?? ''} alt={alt ?? ''} />,
+  img: ({ src, alt }) => {
+    const resolvedSrc = resolveMarkdownUrl(src);
+
+    return resolvedSrc ? <Img src={resolvedSrc} alt={alt ?? ''} /> : null;
+  },
   hr: () => <Hr />,
   table: ({ children }) => <Table>{children}</Table>,
   thead: ({ children }) => <TableHead>{children}</TableHead>,

@@ -22,10 +22,9 @@ export interface ListItemProps
 
 export function List({ as: Component = 'ul', children, ...props }: ListProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     m: '0 0 16px',
     pl: 6,
-    ...styleProps,
   });
 
   return (
@@ -37,9 +36,8 @@ export function List({ as: Component = 'ul', children, ...props }: ListProps) {
 
 export function ListItem({ children, ...props }: ListItemProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     mb: 2,
-    ...styleProps,
   });
 
   return (

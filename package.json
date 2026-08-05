@@ -36,11 +36,12 @@
     "build": "npm run clean && npm exec nx -- run-many -t build --skip-nx-cache",
     "check": "npm run release:check",
     "clean": "node scripts/clean-dist.mjs",
+    "email:dev": "npm exec nx -- run chakra-email-monorepo:email-preview",
     "examples:check": "npm exec nx -- run chakra-email-monorepo:examples-check",
     "format:check": "npm exec nx -- format:check",
     "lint": "npm exec nx -- run-many -t lint",
     "pack:dry": "npm run build && npm run smoke:exports && npm run pack:inspect",
-    "pack:inspect": "npm pack --workspace @chakra-email/core --workspace chakra-email --workspace @chakra-email/chakra-v2 --dry-run --cache ./.npm-cache",
+    "pack:inspect": "npm pack --workspace @chakra-email/core --workspace chakra-email --workspace @chakra-email/chakra-v2 --workspace @chakra-email/preview --dry-run --cache ./.npm-cache",
     "release:check": "npm run audit:ci && npm run format:check && npm run lint && npm run test:release && npm run build && npm run typecheck && npm run examples:check && npm run test:coverage && npm run smoke:exports && npm run pack:inspect && npm run smoke:consumer",
     "site:build": "npm exec nx -- build site",
     "site:dev": "npm exec nx -- serve site",
@@ -55,6 +56,11 @@
     "yalc:push": "npm exec nx -- run chakra-email-monorepo:yalc-push"
   },
   "private": true,
+  "overrides": {
+    "axios": "^1.18.1",
+    "brace-expansion": "^5.0.8",
+    "fast-uri": "^3.1.4"
+  },
   "packageManager": "npm@11.16.0",
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || ^24.0.0"
@@ -101,6 +107,23 @@
   "nx": {
     "includedScripts": [],
     "targets": {
+      "email-preview": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "continuous": true,
+        "dependsOn": [
+          {
+            "projects": [
+              "@chakra-email/preview"
+            ],
+            "target": "build",
+            "params": "ignore"
+          }
+        ],
+        "options": {
+          "command": "node packages/preview/dist/cli.js --config examples/preview/chakra-email.config.ts"
+        }
+      },
       "examples-check": {
         "executor": "nx:run-commands",
         "dependsOn": [
@@ -108,7 +131,8 @@
             "projects": [
               "@chakra-email/core",
               "chakra-email",
-              "@chakra-email/chakra-v2"
+              "@chakra-email/chakra-v2",
+              "@chakra-email/preview"
             ],
             "target": "build",
             "params": "ignore"
@@ -139,7 +163,8 @@
             "projects": [
               "@chakra-email/core",
               "chakra-email",
-              "@chakra-email/chakra-v2"
+              "@chakra-email/chakra-v2",
+              "@chakra-email/preview"
             ],
             "target": "build",
             "params": "ignore"
@@ -156,7 +181,8 @@
             "projects": [
               "@chakra-email/core",
               "chakra-email",
-              "@chakra-email/chakra-v2"
+              "@chakra-email/chakra-v2",
+              "@chakra-email/preview"
             ],
             "target": "build",
             "params": "ignore"

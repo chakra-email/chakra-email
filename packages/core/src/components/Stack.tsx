@@ -22,9 +22,8 @@ export function Stack({
   ...props
 }: StackProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     w: 'full',
-    ...styleProps,
   });
   const items = Children.toArray(children).filter((item) => item !== '');
   const legacyWidth = getLegacyWidthAttribute(styles.width) ?? '100%';

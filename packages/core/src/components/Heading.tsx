@@ -24,13 +24,12 @@ export function Heading({
   ...props
 }: HeadingProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     m: '0 0 16px',
     fontFamily: 'heading',
     fontSize: defaultFontSizes[Component],
     fontWeight: 'bold',
     lineHeight: 'short',
-    ...styleProps,
   });
   const HeadingElement = Component as ElementType;
 

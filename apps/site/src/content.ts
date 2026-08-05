@@ -3,12 +3,14 @@ import componentsDocs from '../../../docs/components.md?raw';
 import gettingStartedDocs from '../../../docs/getting-started.md?raw';
 import markdownDocs from '../../../docs/markdown.md?raw';
 import architectureDocs from '../../../docs/package-architecture.md?raw';
+import previewDocs from '../../../docs/preview.md?raw';
 import renderingDocs from '../../../docs/rendering.md?raw';
 import siteDocs from '../../../docs/site.md?raw';
 import themingDocs from '../../../docs/theming.md?raw';
 import chakraV2Example from '../../../examples/chakra-v2/legacy-theme-email.tsx?raw';
 import basicExample from '../../../examples/basic/welcome-email.tsx?raw';
 import markdownExample from '../../../examples/markdown-body/markdown-email.tsx?raw';
+import previewExample from '../../../examples/preview/emails/welcome.email.tsx?raw';
 
 const repo = 'https://github.com/ryanhefner/chakra-email';
 
@@ -96,6 +98,15 @@ export const docPages: DocPage[] = [
     sourceHref: `${repo}/blob/main/docs/rendering.md`,
   },
   {
+    id: 'preview',
+    title: 'Email Preview',
+    eyebrow: 'Local workflow',
+    description:
+      'Discover, live-render, resize, and inspect templates in the local preview app.',
+    source: previewDocs,
+    sourceHref: `${repo}/blob/main/docs/preview.md`,
+  },
+  {
     id: 'chakra-v2',
     title: 'Chakra v2',
     eyebrow: 'Legacy themes',
@@ -146,6 +157,14 @@ export const examples: Example[] = [
     href: `${repo}/tree/main/examples/chakra-v2`,
     source: chakraV2Example,
   },
+  {
+    id: 'preview',
+    title: 'Preview Template And Variants',
+    description:
+      'A complete template with typed preview props and named development variants.',
+    href: `${repo}/tree/main/examples/preview`,
+    source: previewExample,
+  },
 ];
 
 export const packageLinks: PackageLink[] = [
@@ -166,5 +185,11 @@ export const packageLinks: PackageLink[] = [
     description: 'Compatibility helpers for Chakra UI v2 theme objects.',
     install: 'npm install @chakra-email/chakra-v2',
     href: 'https://www.npmjs.com/package/@chakra-email/chakra-v2',
+  },
+  {
+    name: '@chakra-email/preview',
+    description: 'Reusable local template preview CLI and browser application.',
+    install: 'npm install --save-dev @chakra-email/preview',
+    href: 'https://www.npmjs.com/package/@chakra-email/preview',
   },
 ];

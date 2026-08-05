@@ -8,7 +8,7 @@ export type BadgeProps = BaseChakraEmailProps;
 
 export function Badge({ children, ...props }: BadgeProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     bg: 'gray.100',
     color: 'gray.700',
     px: 2,
@@ -18,7 +18,6 @@ export function Badge({ children, ...props }: BadgeProps) {
     fontWeight: 'semibold',
     lineHeight: 'none',
     textTransform: 'uppercase',
-    ...styleProps,
   });
 
   return (

@@ -1,5 +1,9 @@
 const exportChecks = new Map([
   [
+    '@chakra-email/preview',
+    ['createPreviewServer', 'defineConfig', 'lintRenderedEmail'],
+  ],
+  [
     '@chakra-email/core',
     ['Blockquote', 'Button', 'Code', 'Table', 'ThemeProvider', 'render'],
   ],

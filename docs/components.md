@@ -59,10 +59,29 @@ Common style props include:
 
 Unsafe browser-focused styles such as transforms, filters, flex, and grid are filtered or normalized for email output.
 
+## URL Portability
+
+Email messages have no dependable, sender-controlled base URL. Pass portable
+destinations to components instead of relying on an email client to interpret a
+relative or protocol-relative path:
+
+- `Link` and `Button` allow `http:`, `https:`, `mailto:`, `tel:`, and
+  `#fragment` destinations.
+- `Img` allows `http:`, `https:`, and `cid:` sources. A `cid:` value must match
+  the `Content-ID` of an image attached by the sending provider.
+- Relative paths, protocol-relative URLs, empty values, and unsupported
+  protocols are omitted from the rendered `href` or `src` attribute.
+
+Resolve URLs from Markdown, a CMS, or another portable content source against
+a deliberate public base URL before passing them to these components. URL
+validation is a final output safeguard, not a replacement for content-source
+URL resolution. See [Markdown URL portability](markdown.md#url-portability) for
+an example.
+
 ## Email Client Compatibility
 
 The layout primitives target the current and previous major versions of Apple Mail on macOS and iOS, Gmail on the web and mobile, Outlook.com and the new Outlook, Yahoo Mail, and Word-based Outlook for Windows (Microsoft 365, 2021, 2019, and 2016). `Container`, `Section`, `Column`, and `Button` emit table-cell spacing and legacy width/background attributes for that baseline.
 
 `Button` does not generate Outlook-only VML. Standards-based clients get anchor padding so the full visual CTA is clickable, while Word-based Outlook gets an `mso-padding-alt` table-cell fallback. Rounded corners and a fully clickable padded area remain progressive enhancements in Word-based Outlook; use a custom VML button when those details are a product requirement.
 
-Unit tests validate generated markup, not rendering inside mailbox applications. Before a production send, run representative templates through an external email-client screenshot service and include every client and version required by your audience in that test matrix.
+Unit tests validate generated markup, not rendering inside mailbox applications. Before a production send, run representative templates through an external email-client screenshot service and include every client and version required by your audience in the [email-client test matrix](email-client-test-matrix.md).

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -14,10 +14,45 @@ const releaseWorkflowSource = readFileSync(
   new URL('../.github/workflows/release.yml', import.meta.url),
   'utf8',
 );
+const ciWorkflowSource = readFileSync(
+  new URL('../.github/workflows/ci.yml', import.meta.url),
+  'utf8',
+);
 const contributingSource = readFileSync(
   new URL('../CONTRIBUTING.md', import.meta.url),
   'utf8',
 );
+const nxConfiguration = JSON.parse(
+  readFileSync(new URL('../nx.json', import.meta.url), 'utf8'),
+);
+const cleanSource = readFileSync(
+  new URL('./clean-dist.mjs', import.meta.url),
+  'utf8',
+);
+const packedConsumerSource = readFileSync(
+  new URL('./smoke-packed-consumer.mjs', import.meta.url),
+  'utf8',
+);
+const yalcSource = readFileSync(
+  new URL('./yalc-publish.mjs', import.meta.url),
+  'utf8',
+);
+const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
+  withFileTypes: true,
+}).flatMap((entry) => {
+  if (!entry.isDirectory()) {
+    return [];
+  }
+  const manifest = JSON.parse(
+    readFileSync(
+      new URL(`../packages/${entry.name}/package.json`, import.meta.url),
+      'utf8',
+    ),
+  );
+  return manifest.publishConfig?.access === 'public'
+    ? [{ directory: entry.name, manifest }]
+    : [];
+});
 
 function validateReleaseInput(version, overrides = {}) {
   const env = {
@@ -137,6 +172,41 @@ test('workflows install the npm version declared by packageManager', () => {
   }
 });
 
+test('every public package is covered by release, pack, local, and consumer gates', () => {
+  const expectedNames = publicPackages
+    .map(({ manifest }) => manifest.name)
+    .sort();
+  const releaseNames = [...nxConfiguration.release.projects].sort();
+
+  assert.deepEqual(releaseNames, expectedNames);
+  assert.equal(
+    new Set(publicPackages.map(({ manifest }) => manifest.version)).size,
+    1,
+    'fixed release packages must start from the same version',
+  );
+
+  for (const { directory, manifest } of publicPackages) {
+    assert.match(
+      packageManifest.scripts['pack:inspect'],
+      new RegExp(`--workspace ${manifest.name.replaceAll('/', '\\/')}(?: |$)`),
+      `${manifest.name} must be included in pack inspection`,
+    );
+    assert.ok(
+      packedConsumerSource.includes(`'${manifest.name}'`),
+      `${manifest.name} must be included in the packed consumer smoke`,
+    );
+    assert.ok(
+      yalcSource.includes(`name: '${manifest.name}'`),
+      `${manifest.name} must be included in local yalc publishing`,
+    );
+    assert.match(
+      cleanSource,
+      new RegExp(`['"]${directory}['"]`),
+      `${manifest.name} build output must be cleaned before release builds`,
+    );
+  }
+});
+
 test('publish checks out the verified commit on main before Nx pushes', () => {
   const publishJob = releaseWorkflowSource.slice(
     releaseWorkflowSource.indexOf('\n  publish:'),
@@ -167,6 +237,52 @@ test('publish checks out the verified commit on main before Nx pushes', () => {
     publishJob,
     /ref: \$\{\{ github\.sha \}\}/,
     'checking out a commit SHA would leave Nx release on detached HEAD',
+  );
+});
+
+test('release publication requires successful CI for the exact commit', () => {
+  const ciGateJob = releaseWorkflowSource.slice(
+    releaseWorkflowSource.indexOf('\n  require-ci:'),
+    releaseWorkflowSource.indexOf('\n  dry-run:'),
+  );
+  const publishJob = releaseWorkflowSource.slice(
+    releaseWorkflowSource.indexOf('\n  publish:'),
+  );
+
+  assert.match(releaseWorkflowSource, /permissions:\n\s+actions: read/);
+  assert.match(ciGateJob, /needs: require-main/);
+  assert.match(ciGateJob, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.match(ciGateJob, /VERIFIED_SHA: \$\{\{ github\.sha \}\}/);
+  assert.match(ciGateJob, /gh api \\\n\s+--method GET/);
+  assert.match(
+    ciGateJob,
+    /actions\/workflows\/ci\.yml\/runs/,
+    'the release gate must query the CI workflow directly',
+  );
+  for (const filter of [
+    '-f branch=main',
+    '-f event=push',
+    '-f head_sha="$VERIFIED_SHA"',
+    '-f status=success',
+  ]) {
+    assert.match(
+      ciGateJob,
+      new RegExp(filter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `the CI query must include ${filter}`,
+    );
+  }
+  assert.match(ciGateJob, /if \[ -z "\$ci_run_id" \]; then/);
+  assert.match(publishJob, /needs: require-ci/);
+
+  assert.match(ciWorkflowSource, /node-label: 24\n\s+node-version: 24\.18\.0/);
+  assert.match(ciWorkflowSource, /npm run release:check/);
+  assert.match(ciWorkflowSource, /\n  minimum-node-compatibility:/);
+  assert.match(ciWorkflowSource, /node-version: 20\.19\.0/);
+  assert.match(ciWorkflowSource, /npm run smoke:consumer/);
+  assert.doesNotMatch(
+    publishJob,
+    /needs: require-main/,
+    'publish must depend on the CI gate, not only the branch check',
   );
 });
 

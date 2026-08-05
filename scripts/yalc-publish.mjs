@@ -19,6 +19,10 @@ const packages = [
     root: join(workspaceRoot, 'packages', 'core'),
   },
   {
+    name: '@chakra-email/preview',
+    root: join(workspaceRoot, 'packages', 'preview'),
+  },
+  {
     name: 'chakra-email',
     root: join(workspaceRoot, 'packages', 'chakra-email'),
   },

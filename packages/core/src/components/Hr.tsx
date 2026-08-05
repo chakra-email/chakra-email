@@ -30,12 +30,11 @@ export type HrProps = BaseChakraEmailProps;
 export function Hr({ borderColor, ...props }: HrProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
   const borderTopColor = resolveBorderColor(borderColor, useTheme());
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     m: '16px 0',
     border: 'none',
     borderTop: `1px solid ${borderTopColor}`,
     w: 'full',
-    ...styleProps,
   });
 
   return <hr {...elementProps} style={styles} />;

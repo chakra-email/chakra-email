@@ -8,13 +8,7 @@ describe('sanitizeHref', () => {
     'mailto:hello@example.com',
     'tel:+15555550123',
     '#section',
-    '/relative/path',
-    './relative/path',
-    '../relative/path',
-    '?page=2',
-    'relative/path',
-    '//example.com/protocol-relative',
-  ])('preserves supported and relative hrefs: %s', (href) => {
+  ])('preserves supported absolute hrefs and fragments: %s', (href) => {
     expect(sanitizeHref(href)).toBe(href);
   });
 
@@ -28,7 +22,20 @@ describe('sanitizeHref', () => {
     'file:///etc/passwd',
     'ftp://example.com/file',
     'blob:https://example.com/id',
-  ])('rejects unsupported absolute hrefs: %s', (href) => {
+    'https:',
+    'https:/example.com',
+    'https://',
+    'h t t p s://example.com',
+    'mailto:',
+    'tel:',
+    '',
+    '/relative/path',
+    './relative/path',
+    '../relative/path',
+    '?page=2',
+    'relative/path',
+    '//example.com/protocol-relative',
+  ])('rejects unsupported or non-portable hrefs: %s', (href) => {
     expect(sanitizeHref(href)).toBeUndefined();
   });
 

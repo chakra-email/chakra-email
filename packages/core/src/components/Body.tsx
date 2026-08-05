@@ -8,12 +8,11 @@ export type BodyProps = BaseChakraEmailProps;
 
 export function Body({ children, ...props }: BodyProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     m: 0,
     p: 0,
     fontFamily: 'body',
     w: 'full',
-    ...styleProps,
   });
 
   const legacyBackgroundAttribute = styles.backgroundColor

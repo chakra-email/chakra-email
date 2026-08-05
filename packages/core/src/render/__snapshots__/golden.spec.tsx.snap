@@ -34,15 +34,15 @@ exports[`golden output snapshots > release notes email pretty HTML 1`] = `
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <title>Release notes</title>
 </head>
-<body bgcolor="#ffffff" style="background-color:#ffffff;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif">
+<body bgcolor="#ffffff" style="padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#ffffff">
 <div aria-hidden="true" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden;visibility:hidden;opacity:0;mso-hide:all">What changed in version 2.0.<span style="display:none;mso-hide:all"> ‌ ‌ ‌ ‌ ‌ </span>
 </div>
 <table role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;max-width:600px">
 <tbody>
 <tr>
 <td style="padding:24px">
-<h1 style="margin:0 0 16px;margin-bottom:16px;font-size:20px;font-weight:700;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375">Release notes</h1>
-<p style="margin:0 0 16px;margin-bottom:16px;font-size:16px;line-height:1.5">Highlights from this release:</p>
+<h1 style="margin:0 0 16px;font-weight:700;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375;margin-bottom:16px;font-size:20px">Release notes</h1>
+<p style="margin:0 0 16px;font-size:16px;line-height:1.5;margin-bottom:16px">Highlights from this release:</p>
 <ul style="padding-left:24px;margin:0 0 16px">
 <li style="margin-bottom:8px">Faster rendering pipeline</li>
 <li style="margin-bottom:8px">New <code style="background-color:#EDF2F7;color:#1A202C;padding-left:4px;padding-right:4px;padding-top:0px;padding-bottom:0px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:2px;white-space:pre-wrap;word-break:break-word">render()</code> options</li>
@@ -100,27 +100,27 @@ exports[`golden output snapshots > welcome email pretty HTML 1`] = `
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <title>Welcome to Acme</title>
 </head>
-<body bgcolor="#F7FAFC" style="background-color:#F7FAFC;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif">
+<body bgcolor="#F7FAFC" style="padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#F7FAFC">
 <div aria-hidden="true" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden;visibility:hidden;opacity:0;mso-hide:all">Your Acme account is ready.<span style="display:none;mso-hide:all"> ‌ ‌ ‌ ‌ ‌ </span>
 </div>
-<table bgcolor="#ffffff" role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="background-color:#ffffff;width:100%;max-width:600px">
+<table bgcolor="#ffffff" role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;max-width:600px;background-color:#ffffff">
 <tbody>
 <tr>
 <td style="padding:24px">
-<img src="https://example.com/logo.png" alt="Acme logo" width="120" height="40" style="margin-bottom:24px;width:120px;height:40px;border:none;display:block"/>
-<h1 style="margin:0 0 16px;margin-bottom:16px;font-size:24px;font-weight:700;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375">Welcome!</h1>
-<p style="color:#2D3748;margin:0 0 16px;margin-bottom:24px;font-size:16px;line-height:1.5">Thanks for joining us. Your account is ready.</p>
+<img src="https://example.com/logo.png" alt="Acme logo" width="120" height="40" style="border:none;display:block;margin-bottom:24px;width:120px;height:40px"/>
+<h1 style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375;margin-bottom:16px;font-size:24px;font-weight:700">Welcome!</h1>
+<p style="margin:0 0 16px;line-height:1.5;color:#2D3748;margin-bottom:24px;font-size:16px">Thanks for joining us. Your account is ready.</p>
 <table role="presentation" cellSpacing="0" cellPadding="0" border="0" align="left" style="border-collapse:separate">
 <tbody>
 <tr>
 <td bgcolor="#2563eb" align="center" style="background-color:#2563eb;border-radius:6px;mso-padding-alt:12px 24px 12px 24px">
-<a href="https://example.com/get-started" style="color:#ffffff;padding-left:24px;padding-right:24px;padding-top:12px;padding-bottom:12px;font-size:16px;font-weight:600;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1;text-align:center;text-decoration:none;display:inline-block">Get Started</a>
+<a href="https://example.com/get-started" style="padding-left:24px;padding-right:24px;padding-top:12px;padding-bottom:12px;font-size:16px;font-weight:600;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1;text-align:center;text-decoration:none;color:#ffffff;display:inline-block">Get Started</a>
 </td>
 </tr>
 </tbody>
 </table>
-<hr style="margin:16px 0;margin-top:24px;margin-bottom:24px;width:100%;border:none;border-top:1px solid #E2E8F0"/>
-<p style="color:#718096;margin:0 0 16px;font-size:14px;line-height:1.5">Questions? Visit our <a href="https://example.com/help" style="color:#2563eb;text-decoration:underline">help center</a>.</p>
+<hr style="margin:16px 0;width:100%;border:none;border-top:1px solid #E2E8F0;margin-top:24px;margin-bottom:24px"/>
+<p style="margin:0 0 16px;line-height:1.5;color:#718096;font-size:14px">Questions? Visit our <a href="https://example.com/help" style="color:#2563eb;text-decoration:underline">help center</a>.</p>
 </td>
 </tr>
 </tbody>

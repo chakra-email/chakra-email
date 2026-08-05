@@ -208,7 +208,7 @@ describe('email components', () => {
     expect(html).not.toContain('href=');
   });
 
-  it('keeps safe hrefs on links and buttons', async () => {
+  it('keeps portable hrefs and omits relative email URLs', async () => {
     const html = await render(
       <ThemeProvider>
         <Html>
@@ -230,7 +230,7 @@ describe('email components', () => {
     expect(html).toContain('href="mailto:hi@example.com"');
     expect(html).toContain('href="tel:+15555550123"');
     expect(html).toContain('href="#section"');
-    expect(html).toContain('href="/relative/path"');
+    expect(html).not.toContain('href="/relative/path"');
     expect(html).toContain('href="https://example.com/cta"');
   });
 

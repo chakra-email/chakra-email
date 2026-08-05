@@ -11,11 +11,10 @@ export interface TextProps extends BaseChakraEmailProps {
 
 export function Text({ as: Component = 'p', children, ...props }: TextProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     m: '0 0 16px',
     fontSize: 'md',
     lineHeight: 'base',
-    ...styleProps,
   });
   const TextElement = Component as ElementType;
 

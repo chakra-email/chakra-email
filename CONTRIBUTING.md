@@ -31,11 +31,12 @@ Before opening a pull request:
 
 - Application users should import from `chakra-email` or `@chakra-email/chakra-v2`.
 - Shared implementation lives in `@chakra-email/core`.
+- Local template tooling lives in `@chakra-email/preview`; keep it out of application production dependencies.
 - Keep adapter packages thin unless a theme-version-specific behavior is required.
 
 ## Releases
 
-Releases are versioned and published with [Nx release](https://nx.dev/features/manage-releases) via the `Release` GitHub Actions workflow (`.github/workflows/release.yml`). All three packages are versioned together (fixed versioning), and the workspace `CHANGELOG.md` and a `v{version}` git tag are generated automatically. The workflow accepts dispatches only from `main`, validates version input without shell interpolation, and runs the same `npm run release:check` gate as CI before credentials are exposed.
+Releases are versioned and published with [Nx release](https://nx.dev/features/manage-releases) via the `Release` GitHub Actions workflow (`.github/workflows/release.yml`). All four packages are versioned together (fixed versioning), and the workspace `CHANGELOG.md` and a `v{version}` git tag are generated automatically. The workflow accepts dispatches only from `main`, validates version input without shell interpolation, and runs the same `npm run release:check` gate as CI before credentials are exposed.
 
 To publish:
 
@@ -69,11 +70,11 @@ in the repository cannot enforce them by themselves:
   to `main`.
 - For the first publish only, create a short-lived
   [granular access token](https://docs.npmjs.com/about-access-tokens/) with the
-  narrowest read/write package access that covers all three package names and
+  narrowest read/write package access that covers all four package names and
   **Bypass 2FA** enabled. Store it as the protected environment secret
   `NPM_BOOTSTRAP_TOKEN`; the workflow validates it with `npm whoami` before Nx
   creates a release commit or tag.
-- After all three packages exist, configure each package's
+- After all four packages exist, configure each package's
   [trusted publisher](https://docs.npmjs.com/trusted-publishers/) with GitHub
   owner `ryanhefner`, repository `chakra-email`, workflow `release.yml`,
   environment `npm-publish`, and allowed action `npm publish`. Then revoke the

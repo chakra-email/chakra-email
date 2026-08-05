@@ -200,7 +200,7 @@ describe('Outlook-compatible layout markup', () => {
 
     expect(outlineCell).toContain('border:1px solid #6366f1');
     expect(outlineAnchor).not.toContain('border:');
-    expect(linkCell).toContain('mso-padding-alt:0 0 0 0');
+    expect(linkCell).toContain('mso-padding-alt:0px 0px 0px 0px');
     expect(linkCell).toContain('border:none');
     expect(linkAnchor).toContain('text-decoration:underline');
     expect(linkAnchor).toContain('padding:0');

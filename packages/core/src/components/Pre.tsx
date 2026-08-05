@@ -12,8 +12,7 @@ export interface PreProps
 
 export function Pre({ children, ...props }: PreProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const { style, ...chakraStyleProps } = styleProps;
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     m: '0 0 16px',
     p: 4,
     bg: 'gray.100',
@@ -22,12 +21,10 @@ export function Pre({ children, ...props }: PreProps) {
     fontFamily: 'mono',
     fontSize: 'sm',
     lineHeight: 'base',
-    ...chakraStyleProps,
     style: {
       whiteSpace: 'pre-wrap',
       wordBreak: 'break-word',
       overflowWrap: 'break-word',
-      ...style,
     },
   });
 

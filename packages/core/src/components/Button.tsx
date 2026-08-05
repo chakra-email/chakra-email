@@ -48,7 +48,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles({
+  const styles = useChakraStyles(styleProps, {
     bg: variant === 'solid' ? 'brand.500' : 'transparent',
     color: variant === 'solid' ? 'white' : 'brand.500',
     rounded: 'md',
@@ -57,22 +57,18 @@ export function Button({
     lineHeight: 'none',
     textAlign: 'center',
     textDecoration: variant === 'link' ? 'underline' : 'none',
-    ...sizeProps[size],
-    ...styleProps,
+    ...(variant === 'link'
+      ? {
+          p: 0,
+          bg: 'transparent',
+          border: 'none',
+          fontSize: sizeProps[size].fontSize,
+        }
+      : sizeProps[size]),
   });
 
   if (variant === 'outline' && !styles.border) {
     styles.border = `1px solid ${styles.borderColor ?? styles.color ?? '#6366f1'}`;
-  }
-
-  if (variant === 'link') {
-    styles.padding = 0;
-    delete styles.paddingTop;
-    delete styles.paddingRight;
-    delete styles.paddingBottom;
-    delete styles.paddingLeft;
-    styles.backgroundColor = 'transparent';
-    styles.border = 'none';
   }
 
   const tableStyles: CSSProperties = {

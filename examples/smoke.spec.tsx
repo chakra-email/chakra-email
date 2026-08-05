@@ -23,11 +23,12 @@ describe('repository examples', () => {
 
   it('renders the markdown-body example', async () => {
     const html = await renderMarkdownEmail(
-      '# Release notes\n\nRead the [documentation](https://example.com/docs).',
+      '# Release notes\n\nRead the [documentation](docs).\n\n![Logo](images/logo.png)',
     );
 
     expect(html).toContain('<!DOCTYPE html');
     expect(html).toContain('Release notes');
-    expect(html).toContain('href="https://example.com/docs"');
+    expect(html).toContain('href="https://example.com/content/docs"');
+    expect(html).toContain('src="https://example.com/content/images/logo.png"');
   });
 });

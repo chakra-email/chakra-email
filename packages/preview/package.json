@@ -1,0 +1,77 @@
+{
+  "name": "@chakra-email/preview",
+  "version": "0.1.0",
+  "description": "Local template discovery, live rendering, and browser preview tooling for Chakra Email.",
+  "license": "MIT",
+  "author": "Ryan Hefner",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/ryanhefner"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryanhefner/chakra-email.git",
+    "directory": "packages/preview"
+  },
+  "bugs": {
+    "url": "https://github.com/ryanhefner/chakra-email/issues"
+  },
+  "homepage": "https://github.com/ryanhefner/chakra-email/tree/main/packages/preview#readme",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "bin": {
+    "chakra-email-preview": "./dist/cli.js"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "!**/*.tsbuildinfo"
+  ],
+  "keywords": [
+    "chakra",
+    "email",
+    "email-preview",
+    "email-templates",
+    "react",
+    "react-email",
+    "vite"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "nx": {
+    "implicitDependencies": [
+      "preview-ui"
+    ],
+    "tags": [
+      "scope:chakra-email-preview"
+    ]
+  },
+  "dependencies": {
+    "@chakra-email/core": "^0.1.0",
+    "jiti": "^2.4.2",
+    "parse5": "^8.0.0",
+    "tinyglobby": "^0.2.17",
+    "tslib": "^2.3.0",
+    "vite": "^8.1.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
