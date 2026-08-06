@@ -36,23 +36,51 @@ Before opening a pull request:
 
 ## Releases
 
-Releases are versioned and published with [Nx release](https://nx.dev/features/manage-releases) via the `Release` GitHub Actions workflow (`.github/workflows/release.yml`). All four packages are versioned together (fixed versioning), and the workspace `CHANGELOG.md` and a `v{version}` git tag are generated automatically. The workflow accepts dispatches only from `main`, validates version input without shell interpolation, and runs the same `npm run release:check` gate as CI before credentials are exposed.
+All four packages use one fixed version. Version and changelog changes are
+reviewed and committed through a normal pull request; the `Release` GitHub
+Actions workflow only verifies and publishes the package versions already on
+`main`. It never commits, tags, pushes, or creates a GitHub release.
+
+To prepare a later release, create a branch and run:
+
+```bash
+npm exec nx -- release version 0.2.0
+npm exec nx -- release changelog 0.2.0
+npm run check
+```
+
+Replace `0.2.0` with the intended exact version, review the package manifests,
+lockfile, and `CHANGELOG.md`, then merge those changes through a pull request.
+Nx is configured not to commit, tag, push, or create a GitHub release. The
+initial `0.1.0` version and changelog are already committed, so no preparation
+step is required for the first publication.
 
 To publish:
 
 1. Go to Actions → Release → "Run workflow".
-2. Choose a version specifier (`patch`, `minor`, `major`, `prerelease`, or an explicit version like `0.2.0`). For the initial release, choose the explicit version `0.1.0`.
-3. Leave **dry run** enabled for the first run and review the output (version bumps, changelog, publish preview). Nothing is pushed or published in a dry run.
-4. Re-run the workflow with dry run disabled. Approval from the protected `npm-publish` environment is required before the workflow can commit, tag, push, and publish to npm with provenance.
+2. Enter the exact version already committed in every public package. Relative
+   values such as `patch` are rejected.
+3. Enable **first release** only when the package names have never been
+   published. Leave **dry run** enabled and review the package publication
+   preview.
+4. Re-run with dry run disabled. Approval from the protected `npm-publish`
+   environment is required before publication.
+5. After every package is successfully published, create the matching
+   `v{version}` GitHub release from the exact commit that was published.
 
-For the very first release (no `v*` tag or published package yet), set the
-version to `0.1.0` and enable the **first release** input. Relative keywords are
-rejected for first releases because Nx applies them to the version already in
-the package manifests; `patch` would otherwise turn `0.1.0` into `0.1.1`.
+The workflow accepts dispatches only from `main`, requires successful CI for
+the exact dispatch commit, aborts if `main` advances during environment
+approval, rebuilds the packages, and verifies the requested version against
+every public package manifest. It needs only read access to GitHub and OIDC
+permission for npm trusted publishing.
 
-You can preview the initial release locally with
-`npm exec nx -- release 0.1.0 --dry-run --first-release`, or a later release
-with `npm exec nx -- release patch --dry-run` (no credentials needed).
+You can preview the initial publication locally with:
+
+```bash
+npm run build
+RELEASE_VERSION=0.1.0 RELEASE_DRY_RUN=true RELEASE_FIRST_RELEASE=true \
+  node scripts/run-release.mjs
+```
 
 Before the initial publish, and whenever release ownership or credentials
 change, complete the [production release checklist](docs/production-release-checklist.md).
@@ -62,11 +90,8 @@ in the repository cannot enforce them by themselves:
 
 - Protect `main`, require pull requests and CODEOWNER review, dismiss stale
   approvals, prevent force pushes/deletion, and require the Node 22/24 CI checks.
-- Create a dedicated release GitHub App with only repository **Contents: read
-  and write** permission, install it only on `chakra-email/chakra-email`, and
-  make it the sole ruleset bypass actor for the generated version commit and
-  tag. Store its client ID as `RELEASE_APP_CLIENT_ID` and private key as
-  `RELEASE_APP_PRIVATE_KEY` on the protected `npm-publish` environment.
+- Protect `v*` tags from updates and deletion. Maintainers create a matching tag
+  and GitHub release only after every package has been published successfully.
 - Protect the `npm-publish` environment with required reviewers and restrict it
   to `main`.
 - For the first publish only, create a short-lived
@@ -74,7 +99,7 @@ in the repository cannot enforce them by themselves:
   narrowest read/write package access that covers all four package names and
   **Bypass 2FA** enabled. Store it as the protected environment secret
   `NPM_BOOTSTRAP_TOKEN`; the workflow validates it with `npm whoami` before Nx
-  creates a release commit or tag.
+  publishes any package.
 - After all four packages exist, configure each package's
   [trusted publisher](https://docs.npmjs.com/trusted-publishers/) with GitHub
   owner `chakra-email`, repository `chakra-email`, workflow `release.yml`,

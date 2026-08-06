@@ -53,6 +53,7 @@ const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
     ? [{ directory: entry.name, manifest }]
     : [];
 });
+const committedVersion = publicPackages[0]?.manifest.version;
 
 function validateReleaseInput(version, overrides = {}) {
   const env = {
@@ -73,25 +74,23 @@ function validateReleaseInput(version, overrides = {}) {
   });
 }
 
-for (const version of [
-  'major',
-  'minor',
-  'patch',
-  'prerelease',
-  '1.2.3',
-  '1.2.3-beta.1+build.7',
-]) {
-  test(`accepts release version ${version}`, () => {
-    const result = validateReleaseInput(version);
+test('accepts the exact version committed in every public package', () => {
+  const result = validateReleaseInput(committedVersion);
 
-    assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout.trim(), `Validated release version: ${version}`);
-  });
-}
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(
+    result.stdout.trim(),
+    `Validated committed release version ${committedVersion} for ${publicPackages.length} public packages.`,
+  );
+});
 
 for (const version of [
   undefined,
   '',
+  'major',
+  'minor',
+  'patch',
+  'prerelease',
   'v1.2.3',
   '1.2',
   '01.2.3',
@@ -107,11 +106,20 @@ for (const version of [
   });
 }
 
+test('rejects an exact version that is not committed in the packages', () => {
+  const uncommittedVersion =
+    committedVersion === '999.999.999' ? '999.999.998' : '999.999.999';
+  const result = validateReleaseInput(uncommittedVersion);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /does not match the committed package versions/);
+});
+
 test('rejects non-boolean workflow flags', () => {
-  const invalidDryRun = validateReleaseInput('patch', {
+  const invalidDryRun = validateReleaseInput(committedVersion, {
     RELEASE_DRY_RUN: 'yes',
   });
-  const invalidFirstRelease = validateReleaseInput('patch', {
+  const invalidFirstRelease = validateReleaseInput(committedVersion, {
     RELEASE_FIRST_RELEASE: '1',
   });
 
@@ -124,24 +132,13 @@ test('rejects non-boolean workflow flags', () => {
   );
 });
 
-for (const version of ['major', 'minor', 'patch', 'prerelease']) {
-  test(`rejects relative version ${version} for a first release`, () => {
-    const result = validateReleaseInput(version, {
-      RELEASE_FIRST_RELEASE: 'true',
-    });
-
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /must be an explicit semantic version/);
-  });
-}
-
-test('accepts an explicit semantic version for a first release', () => {
-  const result = validateReleaseInput('0.1.0', {
+test('accepts the committed version for a first release', () => {
+  const result = validateReleaseInput(committedVersion, {
     RELEASE_FIRST_RELEASE: 'true',
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout.trim(), 'Validated release version: 0.1.0');
+  assert.match(result.stdout, /Validated committed release version/);
 });
 
 test('workflows install the npm version declared by packageManager', () => {
@@ -207,75 +204,68 @@ test('every public package is covered by release, pack, local, and consumer gate
   }
 });
 
-test('publish checks out the verified commit on main before Nx pushes', () => {
+test('publish checks out the verified commit and rejects an advanced main', () => {
   const publishJob = releaseWorkflowSource.slice(
     releaseWorkflowSource.indexOf('\n  publish:'),
   );
-  const branchCheckout = publishJob.indexOf('          ref: main');
+  const verifiedCheckout = publishJob.indexOf(
+    '          ref: ${{ github.sha }}',
+  );
   const verifiedSha = publishJob.indexOf(
     '          VERIFIED_SHA: ${{ github.sha }}',
   );
-  const branchAssertion = publishJob.indexOf(
-    `if [ "$current_branch" != 'main' ]; then`,
-  );
-  const shaAssertion = publishJob.indexOf(
+  const checkoutAssertion = publishJob.indexOf(
     'if [ "$current_sha" != "$VERIFIED_SHA" ]; then',
+  );
+  const mainAssertion = publishJob.indexOf(
+    'if [ "$main_sha" != "$VERIFIED_SHA" ]; then',
   );
   const publish = publishJob.indexOf('      - name: Publish release');
 
-  assert.ok(branchCheckout >= 0, 'publish must check out the main branch');
+  assert.ok(verifiedCheckout >= 0, 'publish must check out the verified SHA');
   assert.ok(
-    verifiedSha > branchCheckout,
+    verifiedSha > verifiedCheckout,
     'publish must retain the SHA that passed verification',
   );
   assert.ok(
-    branchAssertion > verifiedSha && shaAssertion > branchAssertion,
-    'publish must verify both the branch and commit before releasing',
+    checkoutAssertion > verifiedSha && mainAssertion > checkoutAssertion,
+    'publish must verify both the checkout and current main before publishing',
   );
-  assert.ok(publish > shaAssertion, 'Nx release must run after verification');
-  assert.doesNotMatch(
-    publishJob,
-    /ref: \$\{\{ github\.sha \}\}/,
-    'checking out a commit SHA would leave Nx release on detached HEAD',
+  assert.ok(
+    publish > mainAssertion,
+    'package publication must run after verification',
   );
 });
 
-test('publish uses the repository-scoped release app for Git writes', () => {
+test('publish is read-only on GitHub and never creates Git credentials', () => {
   const publishJob = releaseWorkflowSource.slice(
     releaseWorkflowSource.indexOf('\n  publish:'),
   );
-  const dependencyInstall = publishJob.indexOf('      - run: npm ci');
-  const appToken = publishJob.indexOf('      - name: Create release app token');
-  const credentialedCheckout = publishJob.indexOf(
-    '      - name: Enable release app push credentials on main',
-  );
 
-  assert.ok(
-    appToken > dependencyInstall,
-    'the write-capable app token must not exist during dependency installation',
-  );
-  assert.ok(
-    credentialedCheckout > appToken,
-    'the release checkout must be authenticated after creating the app token',
-  );
   assert.match(
     publishJob,
-    /client-id: \$\{\{ secrets\.RELEASE_APP_CLIENT_ID \}\}/,
+    /permissions:\n\s+contents: read\n\s+id-token: write/,
   );
-  assert.match(
-    publishJob,
-    /private-key: \$\{\{ secrets\.RELEASE_APP_PRIVATE_KEY \}\}/,
+  assert.match(publishJob, /persist-credentials: false/);
+  assert.doesNotMatch(publishJob, /create-github-app-token/);
+  assert.doesNotMatch(publishJob, /RELEASE_APP_/);
+  assert.doesNotMatch(publishJob, /contents: write/);
+  assert.doesNotMatch(publishJob, /persist-credentials: true/);
+});
+
+test('Nx release only publishes committed packages and cannot write Git state', () => {
+  const releaseSource = readFileSync(releaseScript, 'utf8');
+
+  assert.match(releaseSource, /\['exec', 'nx', '--', 'release', 'publish'\]/);
+  assert.deepEqual(nxConfiguration.release.git, {
+    commit: false,
+    tag: false,
+    push: false,
+  });
+  assert.equal(
+    nxConfiguration.release.changelog.workspaceChangelog.createRelease,
+    false,
   );
-  assert.match(publishJob, /permission-contents: write/);
-  assert.match(
-    publishJob,
-    /token: \$\{\{ steps\.release-app\.outputs\.token \}\}/,
-  );
-  assert.match(
-    publishJob,
-    /GITHUB_TOKEN: \$\{\{ steps\.release-app\.outputs\.token \}\}/,
-  );
-  assert.doesNotMatch(publishJob, /GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
 });
 
 test('release publication requires successful CI for the exact commit', () => {
@@ -335,7 +325,7 @@ test('first publish authenticates the bootstrap token before releasing', () => {
   assert.ok(tokenCheck >= 0, 'first publish must require the bootstrap token');
   assert.ok(
     authentication > tokenCheck && publish > authentication,
-    'the bootstrap token must authenticate before Nx release runs',
+    'the bootstrap token must authenticate before package publication',
   );
 });
 

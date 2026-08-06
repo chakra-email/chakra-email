@@ -16,14 +16,8 @@ this repository alone.
   - `Verify (Node 24)`
   - `Compatibility floor (Node 20.19 / React 18)`
 - [ ] Force pushes and branch deletion are disabled for `main`.
-- [ ] `v*` tags cannot be updated or deleted, and only the dedicated release
-      GitHub App can create them.
-- [ ] A dedicated release GitHub App has only repository **Contents: read and
-      write** permission, is installed only on `chakra-email/chakra-email`, and
-      is the sole bypass actor for the Nx-generated release commit and tag.
-- [ ] The app's client ID is stored as the `RELEASE_APP_CLIENT_ID` secret and
-      its complete PEM private key is stored as `RELEASE_APP_PRIVATE_KEY` on the
-      protected `npm-publish` environment.
+- [ ] `v*` tags cannot be updated or deleted, and only maintainers can create
+      them after every package has been published successfully.
 - [ ] The `npm-publish` environment requires reviewer approval, prevents
       self-review where available, restricts deployment to `main`, and does not
       permit unreviewed protection-rule bypasses.
@@ -47,9 +41,10 @@ this repository alone.
       access that covers all four names, has **Bypass 2FA** enabled, and is
       stored only as the protected `npm-publish` environment secret
       `NPM_BOOTSTRAP_TOKEN`.
-- [ ] The first-release workflow uses the explicit version `0.1.0`, has
-      **first release** enabled, and completes a reviewed dry run before the
-      publish dispatch.
+- [ ] Version `0.1.0` is committed in every public package manifest and the
+      lockfile before dispatching the first-release workflow.
+- [ ] The first-release workflow uses exact version `0.1.0`, has **first
+      release** enabled, and completes a reviewed dry run before publication.
 
 ## Trusted Publishing
 
@@ -104,16 +99,19 @@ preview tool.
       workflow's `Require successful CI for release commit` job accepts its
       exact commit SHA.
 - [ ] The workflow dry run reports the intended fixed version for all four
-      packages and only the expected changelog changes.
+      packages and only the intended package contents.
 - [ ] The publish job runs from the reviewed `main` SHA without a newer commit
       landing between verification and publication.
-- [ ] The GitHub release, `v{version}` tag, changelog, and all four npm package
-      versions agree.
+- [ ] After all packages are published, a maintainer creates the matching
+      `v{version}` GitHub release and tag from the exact published commit.
+- [ ] The GitHub release, `v{version}` tag, changelog, committed package
+      manifests, and all four npm package versions agree.
 - [ ] A clean consumer can install the published packages, run the documented
       React 18 and React 19 examples, and launch the installed preview CLI with
       its bundled browser assets.
 
-If npm publication fails after Nx has pushed the release commit or tag, stop and
-record which package versions became public before retrying. Never overwrite or
-reuse a version that reached the registry. Resolve credentials or package access,
-then choose a recovery that preserves matching Git, changelog, and npm versions.
+If npm publication partially fails, stop and record which package versions
+became public before retrying. Do not create the GitHub release or tag yet, and
+never overwrite or reuse a version that reached the registry. Resolve
+credentials or package access, then choose a recovery that preserves matching
+Git, changelog, manifest, and npm versions.
