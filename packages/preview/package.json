@@ -1,7 +1,7 @@
 {
   "name": "@chakra-email/preview",
   "version": "0.1.0",
-  "description": "Local template discovery, live rendering, and browser preview tooling for Chakra Email.",
+  "description": "Local React email preview server with live rendering, template variants, and email linting.",
   "license": "MIT",
   "author": {
     "name": "Ryan Hefner",
@@ -51,11 +51,15 @@
   ],
   "keywords": [
     "chakra",
+    "chakra-ui",
+    "email-development",
     "email",
     "email-preview",
     "email-templates",
+    "email-testing",
     "react",
     "react-email",
+    "typescript",
     "vite"
   ],
   "engines": {

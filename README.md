@@ -1,5 +1,11 @@
 # chakra-email
 
+Build React email templates with Chakra-style props, theme tokens, markdown-body primitives, and email-safe inline HTML.
+
+`chakra-email` is for teams that like Chakra UI's styling model and want email templates that can be rendered on the server with React. It provides email-safe components, Chakra-style theme resolution, HTML rendering, and plain-text rendering.
+
+Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
+
 [![npm](https://img.shields.io/npm/v/chakra-email?style=flat-square)](https://www.pkgstats.com/pkg:chakra-email)
 [![NPM](https://img.shields.io/npm/l/chakra-email?style=flat-square)](LICENSE)
 [![npm](https://img.shields.io/npm/dt/chakra-email?style=flat-square)](https://www.pkgstats.com/pkg:chakra-email)
@@ -7,11 +13,11 @@
 [![codecov](https://codecov.io/gh/chakra-email/chakra-email/branch/main/graph/badge.svg)](https://codecov.io/gh/chakra-email/chakra-email)
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/ryanhefner?style=flat-square&label=sponsors)](https://github.com/sponsors/ryanhefner)
 
-Build React email templates with Chakra-style props, theme tokens, markdown-body primitives, and email-safe inline HTML.
+## Why Chakra Email?
 
-Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
-
-`chakra-email` is for teams that like Chakra UI's styling model and want email templates that can be rendered on the server with React. It provides email-safe components, Chakra-style theme resolution, HTML rendering, and plain-text rendering.
+- **A familiar styling model** — compose templates with Chakra-style props and reusable theme tokens.
+- **Email-safe output** — render static inline HTML and plain text without relying on browser-only layout or interaction.
+- **A complete local workflow** — preview templates, edit representative props, exercise variants, and catch common email issues before sending.
 
 ## Install
 
@@ -79,6 +85,8 @@ export async function renderWelcomeEmail() {
   );
 }
 ```
+
+Pass the rendered HTML and plain-text output to any email delivery provider; Chakra Email does not lock you into a sending service.
 
 ## Preview Templates Locally
 
@@ -287,6 +295,13 @@ Yes. Map markdown nodes to the markdown-body primitives listed above, then wrap 
 
 The renderer is shared by the public packages and exposed as a subpath. A standalone renderer package can be added later if render-only use cases become common.
 
+## Help and contributing
+
+- [Report a bug or request a feature](https://github.com/chakra-email/chakra-email/issues)
+- [Read the contribution guidelines](CONTRIBUTING.md)
+- [Report a vulnerability privately](SECURITY.md)
+- [Review release notes](CHANGELOG.md)
+
 ## Development
 
 ```bash
@@ -301,3 +316,7 @@ npm exec nx -- run chakra-email-monorepo:yalc-publish
 runs coverage tests, performs a clean build and typecheck, compiles the examples,
 inspects package contents, and installs the resulting tarballs in a clean React
 18 consumer for runtime and declaration checks.
+
+## License
+
+[MIT](LICENSE)

@@ -78,6 +78,7 @@
     "chakra-theme",
     "email",
     "email-components",
+    "email-renderer",
     "email-templates",
     "html-email",
     "jsx-email",
@@ -85,6 +86,7 @@
     "react",
     "react-email",
     "server-rendered",
+    "typescript",
     "transactional-email"
   ],
   "engines": {

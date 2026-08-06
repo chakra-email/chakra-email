@@ -10,6 +10,15 @@ Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](http
 
 Most applications should install `chakra-email` for current Chakra UI v3-style themes or `@chakra-email/chakra-v2` for legacy Chakra UI v2 themes. Install `@chakra-email/core` directly when you are building an adapter package or integrating the renderer into custom tooling.
 
+## Install
+
+```bash
+npm install @chakra-email/core react react-dom
+```
+
+> [!NOTE]
+> `@chakra-email/core` is ESM-only and requires Node.js 20.19 or newer. Node.js 22 or 24 is recommended for new deployments.
+
 ## Includes
 
 - React email primitives.
@@ -42,3 +51,11 @@ import { ThemeProvider } from '@chakra-email/core/theme';
 - [Package architecture](https://github.com/chakra-email/chakra-email/blob/main/docs/package-architecture.md)
 - [Components](https://github.com/chakra-email/chakra-email/blob/main/docs/components.md)
 - [Rendering](https://github.com/chakra-email/chakra-email/blob/main/docs/rendering.md)
+
+## Help and contributing
+
+See the [project README](https://github.com/chakra-email/chakra-email#readme), [open an issue](https://github.com/chakra-email/chakra-email/issues), or read the [contribution guidelines](https://github.com/chakra-email/chakra-email/blob/main/CONTRIBUTING.md). Report vulnerabilities privately through the [security policy](https://github.com/chakra-email/chakra-email/security/policy).
+
+## License
+
+MIT

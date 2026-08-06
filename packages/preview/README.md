@@ -1,6 +1,10 @@
 # @chakra-email/preview
 
-Local development server and browser preview for Chakra Email templates.
+[![npm](https://img.shields.io/npm/v/%40chakra-email%2Fpreview?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/preview)
+[![NPM](https://img.shields.io/npm/l/%40chakra-email%2Fpreview?style=flat-square)](https://github.com/chakra-email/chakra-email/blob/main/LICENSE)
+[![npm](https://img.shields.io/npm/dt/%40chakra-email%2Fpreview?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/preview)
+
+Local React email preview server with live rendering, template variants, and email linting.
 
 Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
 
@@ -17,6 +21,9 @@ contains your emails:
 ```bash
 npm install --save-dev @chakra-email/preview
 ```
+
+> [!NOTE]
+> `@chakra-email/preview` is ESM-only. Node.js 20.19.0 is the compatibility floor; Node.js 22 or 24 is recommended for new development environments.
 
 Your email library should also install its normal rendering package and React
 peer dependencies, for example:
@@ -270,3 +277,17 @@ and variants. It does not currently provide:
 
 Use actual delivery-provider and mailbox-client testing before treating an
 email as production-ready.
+
+## More Docs
+
+- [Email preview guide](https://github.com/chakra-email/chakra-email/blob/main/docs/preview.md)
+- [Getting started](https://github.com/chakra-email/chakra-email/blob/main/docs/getting-started.md)
+- [Examples](https://github.com/chakra-email/chakra-email/tree/main/examples/preview)
+
+## Help and contributing
+
+See the [project README](https://github.com/chakra-email/chakra-email#readme), [open an issue](https://github.com/chakra-email/chakra-email/issues), or read the [contribution guidelines](https://github.com/chakra-email/chakra-email/blob/main/CONTRIBUTING.md). Report vulnerabilities privately through the [security policy](https://github.com/chakra-email/chakra-email/security/policy).
+
+## License
+
+MIT

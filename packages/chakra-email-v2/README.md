@@ -4,7 +4,7 @@
 [![NPM](https://img.shields.io/npm/l/%40chakra-email%2Fchakra-v2?style=flat-square)](https://github.com/chakra-email/chakra-email/blob/main/LICENSE)
 [![npm](https://img.shields.io/npm/dt/%40chakra-email%2Fchakra-v2?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/chakra-v2)
 
-Legacy Chakra UI v2-compatible adapter for Chakra Email.
+React email components and theme adapter for Chakra UI v2.
 
 Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
 
@@ -25,7 +25,7 @@ npm install @chakra-email/chakra-v2 react react-dom
 ```
 
 > [!NOTE]
-> `@chakra-email/chakra-v2` is ESM-only (no CommonJS build). Use `import`, or Node.js 20.19+ where `require()` of ESM modules is supported. Node.js 20.19.0 or newer is required.
+> `@chakra-email/chakra-v2` is ESM-only (no CommonJS build). Use `import`, or Node.js 20.19+ where `require()` of ESM modules is supported. Node.js 20.19.0 is the compatibility floor; Node.js 22 or 24 is recommended for new deployments.
 
 ## Usage
 
@@ -69,3 +69,11 @@ The shared email renderer, primitives, and markdown-body components come from `@
 - [Chakra UI v2 guide](https://github.com/chakra-email/chakra-email/blob/main/docs/chakra-v2.md)
 - [Components](https://github.com/chakra-email/chakra-email/blob/main/docs/components.md)
 - [Markdown](https://github.com/chakra-email/chakra-email/blob/main/docs/markdown.md)
+
+## Help and contributing
+
+See the [project README](https://github.com/chakra-email/chakra-email#readme), [open an issue](https://github.com/chakra-email/chakra-email/issues), or read the [contribution guidelines](https://github.com/chakra-email/chakra-email/blob/main/CONTRIBUTING.md). Report vulnerabilities privately through the [security policy](https://github.com/chakra-email/chakra-email/security/policy).
+
+## License
+
+MIT

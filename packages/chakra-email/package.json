@@ -1,7 +1,7 @@
 {
   "name": "chakra-email",
   "version": "0.1.0",
-  "description": "React email components with Chakra-style props, theme tokens, markdown-body primitives, and email-safe rendering.",
+  "description": "React email components and templates with Chakra-style props, theme tokens, and email-safe HTML rendering.",
   "license": "MIT",
   "author": {
     "name": "Ryan Hefner",
@@ -72,6 +72,7 @@
     "chakra-theme",
     "email",
     "email-components",
+    "email-renderer",
     "email-templates",
     "html-email",
     "jsx-email",
@@ -79,6 +80,7 @@
     "react",
     "react-email",
     "server-rendered",
+    "typescript",
     "transactional-email"
   ],
   "engines": {

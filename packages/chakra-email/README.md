@@ -4,7 +4,7 @@
 [![NPM](https://img.shields.io/npm/l/chakra-email?style=flat-square)](https://github.com/chakra-email/chakra-email/blob/main/LICENSE)
 [![npm](https://img.shields.io/npm/dt/chakra-email?style=flat-square)](https://www.pkgstats.com/pkg:chakra-email)
 
-React email components with Chakra-style props, theme tokens, markdown-body primitives, and email-safe rendering.
+React email components and templates with Chakra-style props, theme tokens, and email-safe HTML rendering.
 
 Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
 
@@ -17,7 +17,7 @@ npm install chakra-email react react-dom
 ```
 
 > [!NOTE]
-> `chakra-email` is ESM-only (no CommonJS build). Use `import`, or Node.js 20.19+ where `require()` of ESM modules is supported. Node.js 20.19.0 or newer is required.
+> `chakra-email` is ESM-only (no CommonJS build). Use `import`, or Node.js 20.19+ where `require()` of ESM modules is supported. Node.js 20.19.0 is the compatibility floor; Node.js 22 or 24 is recommended for new deployments.
 
 ## Quick Start
 
@@ -73,6 +73,8 @@ const html = await render(
 );
 ```
 
+Pass `html` to any email delivery provider. Use `renderPlainText` when the provider also accepts a plain-text alternative.
+
 ## Markdown-Friendly Components
 
 Use these primitives when mapping markdown nodes into an email body:
@@ -105,6 +107,7 @@ Keep raw HTML disabled in your markdown parser unless you sanitize it first.
 
 - `@chakra-email/chakra-v2` supports legacy Chakra UI v2-style flat theme scales.
 - `@chakra-email/core` contains the shared primitives, renderer, theme resolver, and tests.
+- `@chakra-email/preview` provides local template discovery, live previews, variants, and email linting.
 
 ## More Docs
 
@@ -112,3 +115,11 @@ Keep raw HTML disabled in your markdown parser unless you sanitize it first.
 - [Components](https://github.com/chakra-email/chakra-email/blob/main/docs/components.md)
 - [Markdown](https://github.com/chakra-email/chakra-email/blob/main/docs/markdown.md)
 - [Theming](https://github.com/chakra-email/chakra-email/blob/main/docs/theming.md)
+
+## Help and contributing
+
+See the [project README](https://github.com/chakra-email/chakra-email#readme), [open an issue](https://github.com/chakra-email/chakra-email/issues), or read the [contribution guidelines](https://github.com/chakra-email/chakra-email/blob/main/CONTRIBUTING.md). Report vulnerabilities privately through the [security policy](https://github.com/chakra-email/chakra-email/security/policy).
+
+## License
+
+MIT

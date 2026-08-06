@@ -1,7 +1,7 @@
 {
   "name": "@chakra-email/chakra-v2",
   "version": "0.1.0",
-  "description": "Legacy Chakra UI v2 theme adapter for Chakra Email.",
+  "description": "React email components and theme adapter for Chakra UI v2.",
   "license": "MIT",
   "author": {
     "name": "Ryan Hefner",
@@ -73,6 +73,7 @@
     "chakra-theme",
     "email",
     "email-components",
+    "email-renderer",
     "email-templates",
     "html-email",
     "jsx-email",
@@ -80,6 +81,7 @@
     "react",
     "react-email",
     "server-rendered",
+    "typescript",
     "transactional-email"
   ],
   "engines": {
