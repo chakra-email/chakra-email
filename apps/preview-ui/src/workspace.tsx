@@ -12,6 +12,7 @@ import {
   Heading,
   IconButton,
   NativeSelect,
+  Portal,
   Skeleton,
   Spinner,
   Stack,
@@ -19,8 +20,10 @@ import {
   Tabs,
   Text,
   Textarea,
+  Tooltip,
 } from '@chakra-ui/react';
 import { useEffect, useRef } from 'react';
+import type { ReactElement } from 'react';
 import type {
   ApplicationState,
   EmailColorMode,
@@ -31,26 +34,59 @@ import type {
 } from './app';
 import { previewSystem } from './theme';
 
-const tabs: ReadonlyArray<{ id: PreviewTab; label: string }> = [
-  { id: 'preview', label: 'Preview' },
-  { id: 'html', label: 'HTML' },
-  { id: 'text', label: 'Text' },
-  { id: 'source', label: 'Source' },
+const tabs: ReadonlyArray<{
+  id: PreviewTab;
+  label: string;
+  tooltip: string;
+}> = [
+  { id: 'preview', label: 'Preview', tooltip: 'View the rendered email' },
+  { id: 'html', label: 'HTML', tooltip: 'Inspect the rendered HTML output' },
+  { id: 'text', label: 'Text', tooltip: 'Inspect the plain-text output' },
+  { id: 'source', label: 'Source', tooltip: 'Inspect the template source' },
 ];
 
-const viewports: ReadonlyArray<{ id: Viewport; label: string }> = [
-  { id: 'desktop', label: 'Desktop' },
-  { id: 'mobile', label: 'Mobile' },
-  { id: 'fluid', label: 'Fit' },
+const viewports: ReadonlyArray<{
+  id: Viewport;
+  label: string;
+  tooltip: string;
+}> = [
+  {
+    id: 'desktop',
+    label: 'Desktop',
+    tooltip: 'Preview at a 680px desktop email width',
+  },
+  {
+    id: 'mobile',
+    label: 'Mobile',
+    tooltip: 'Preview at a 390px mobile email width',
+  },
+  {
+    id: 'fluid',
+    label: 'Fit',
+    tooltip: 'Fit the email preview to the available workspace',
+  },
 ];
 
 const emailColorModes: ReadonlyArray<{
   id: EmailColorMode;
   label: string;
+  tooltip: string;
 }> = [
-  { id: 'system', label: 'System' },
-  { id: 'light', label: 'Light' },
-  { id: 'dark', label: 'Dark' },
+  {
+    id: 'system',
+    label: 'System',
+    tooltip: 'Use your current system color preference in the email preview',
+  },
+  {
+    id: 'light',
+    label: 'Light',
+    tooltip: 'Simulate a light color preference in the email preview',
+  },
+  {
+    id: 'dark',
+    label: 'Dark',
+    tooltip: 'Simulate a dark color preference in the email preview',
+  },
 ];
 
 const avatarColors = ['#91d8c5', '#e6bf83', '#93bfe6', '#c8a6df'];
@@ -166,29 +202,32 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
         </Flex>
 
         <Flex align="center" gap="2">
-          <IconButton
-            className="workspace-color-mode-toggle"
-            type="button"
-            data-action="toggle-workspace-color-mode"
-            aria-label={`Use ${
+          <PreviewTooltip
+            content={`Switch the app to the ${
               state.workspaceColorMode === 'dark' ? 'light' : 'dark'
             } workspace theme`}
-            title={`Use ${
-              state.workspaceColorMode === 'dark' ? 'light' : 'dark'
-            } workspace theme`}
-            size="sm"
-            borderWidth="1px"
-            borderColor="preview.border"
-            borderRadius="full"
-            color="preview.textSubtle"
-            bg="preview.overlay"
-            variant="ghost"
-            onClick={props.onToggleWorkspaceColorMode}
           >
-            <Text aria-hidden="true">
-              {state.workspaceColorMode === 'dark' ? '☀' : '☾'}
-            </Text>
-          </IconButton>
+            <IconButton
+              className="workspace-color-mode-toggle"
+              type="button"
+              data-action="toggle-workspace-color-mode"
+              aria-label={`Use ${
+                state.workspaceColorMode === 'dark' ? 'light' : 'dark'
+              } workspace theme`}
+              size="sm"
+              borderWidth="1px"
+              borderColor="preview.border"
+              borderRadius="full"
+              color="preview.textSubtle"
+              bg="preview.overlay"
+              variant="ghost"
+              onClick={props.onToggleWorkspaceColorMode}
+            >
+              <Text aria-hidden="true">
+                {state.workspaceColorMode === 'dark' ? '☀' : '☾'}
+              </Text>
+            </IconButton>
+          </PreviewTooltip>
 
           <Badge
             className={`connection connection--${state.connection}`}
@@ -366,66 +405,68 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                 bg="preview.panel"
               >
                 {viewports.map((viewport) => (
-                  <Button
-                    key={viewport.id}
-                    type="button"
-                    data-viewport={viewport.id}
-                    aria-pressed={state.viewport === viewport.id}
-                    title={`${viewport.label} viewport`}
-                    disabled={state.activeTab !== 'preview'}
-                    minH="8"
-                    px="2"
-                    gap="1.5"
-                    borderRadius="lg"
-                    color={
-                      state.viewport === viewport.id
-                        ? 'preview.text'
-                        : 'preview.textMuted'
-                    }
-                    bg={
-                      state.viewport === viewport.id
-                        ? 'preview.soft'
-                        : 'transparent'
-                    }
-                    fontSize="2xs"
-                    fontWeight="bold"
-                    variant="ghost"
-                    onClick={() => props.onViewportChange(viewport.id)}
-                  >
-                    <ViewportIcon viewport={viewport.id} />
-                    {viewport.label}
-                  </Button>
+                  <PreviewTooltip key={viewport.id} content={viewport.tooltip}>
+                    <Button
+                      type="button"
+                      data-viewport={viewport.id}
+                      aria-pressed={state.viewport === viewport.id}
+                      disabled={state.activeTab !== 'preview'}
+                      minH="8"
+                      px="2"
+                      gap="1.5"
+                      borderRadius="lg"
+                      color={
+                        state.viewport === viewport.id
+                          ? 'preview.text'
+                          : 'preview.textMuted'
+                      }
+                      bg={
+                        state.viewport === viewport.id
+                          ? 'preview.soft'
+                          : 'transparent'
+                      }
+                      fontSize="2xs"
+                      fontWeight="bold"
+                      variant="ghost"
+                      onClick={() => props.onViewportChange(viewport.id)}
+                    >
+                      <ViewportIcon viewport={viewport.id} />
+                      {viewport.label}
+                    </Button>
+                  </PreviewTooltip>
                 ))}
               </Flex>
 
-              <Switch.Root
-                checked={state.remoteImages}
-                disabled={state.activeTab !== 'preview'}
-                display="flex"
-                minH="10"
-                alignItems="center"
-                gap="2"
-                px="2.5"
-                borderWidth="1px"
-                borderColor="preview.border"
-                borderRadius="xl"
-                color="preview.textSubtle"
-                bg="preview.panel"
-                fontSize="2xs"
-                fontWeight="bold"
-              >
-                <Switch.HiddenInput
-                  ref={remoteImagesInput}
-                  id="remote-images"
-                />
-                <Switch.Control
-                  bg="preview.borderStrong"
-                  _checked={{ bg: 'preview.accentStrong' }}
+              <PreviewTooltip content="Allow the rendered email to load images from remote URLs">
+                <Switch.Root
+                  checked={state.remoteImages}
+                  disabled={state.activeTab !== 'preview'}
+                  display="flex"
+                  minH="10"
+                  alignItems="center"
+                  gap="2"
+                  px="2.5"
+                  borderWidth="1px"
+                  borderColor="preview.border"
+                  borderRadius="xl"
+                  color="preview.textSubtle"
+                  bg="preview.panel"
+                  fontSize="2xs"
+                  fontWeight="bold"
                 >
-                  <Switch.Thumb />
-                </Switch.Control>
-                <Switch.Label>Remote images</Switch.Label>
-              </Switch.Root>
+                  <Switch.HiddenInput
+                    ref={remoteImagesInput}
+                    id="remote-images"
+                  />
+                  <Switch.Control
+                    bg="preview.borderStrong"
+                    _checked={{ bg: 'preview.accentStrong' }}
+                  >
+                    <Switch.Thumb />
+                  </Switch.Control>
+                  <Switch.Label>Remote images</Switch.Label>
+                </Switch.Root>
+              </PreviewTooltip>
 
               <Badge
                 className="lint-summary"
@@ -464,31 +505,35 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                     : `${lint.length} ${lint.length === 1 ? 'issue' : 'issues'}`}
               </Badge>
 
-              <Button
-                className="copy-button"
-                type="button"
-                data-action="copy"
-                disabled={!state.result}
-                minH="10"
-                px="3"
-                gap="2"
-                borderWidth="1px"
-                borderColor="rgba(99, 217, 187, 0.25)"
-                borderRadius="xl"
-                color="preview.accentInk"
-                bg="preview.accent"
-                boxShadow="previewAccent"
-                fontSize="xs"
-                fontWeight="extrabold"
-                _hover={{
-                  bg: 'preview.accentHover',
-                  transform: 'translateY(-1px)',
-                }}
-                onClick={props.onCopy}
+              <PreviewTooltip
+                content={`Copy the ${outputLabel} output to the clipboard`}
               >
-                <Box aria-hidden="true">{state.copied ? '✓' : '⧉'}</Box>
-                {state.copied ? 'Copied' : `Copy ${outputLabel}`}
-              </Button>
+                <Button
+                  className="copy-button"
+                  type="button"
+                  data-action="copy"
+                  disabled={!state.result}
+                  minH="10"
+                  px="3"
+                  gap="2"
+                  borderWidth="1px"
+                  borderColor="rgba(99, 217, 187, 0.25)"
+                  borderRadius="xl"
+                  color="preview.accentInk"
+                  bg="preview.accent"
+                  boxShadow="previewAccent"
+                  fontSize="xs"
+                  fontWeight="extrabold"
+                  _hover={{
+                    bg: 'preview.accentHover',
+                    transform: 'translateY(-1px)',
+                  }}
+                  onClick={props.onCopy}
+                >
+                  <Box aria-hidden="true">{state.copied ? '✓' : '⧉'}</Box>
+                  {state.copied ? 'Copied' : `Copy ${outputLabel}`}
+                </Button>
+              </PreviewTooltip>
             </Flex>
           </Flex>
 
@@ -535,66 +580,67 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                 borderColor="preview.border"
               >
                 {tabs.map((tab) => (
-                  <Tabs.Trigger
-                    key={tab.id}
-                    id={`tab-${tab.id}`}
-                    value={tab.id}
-                    data-tab={tab.id}
-                    h="10"
-                    px="3"
-                    color="preview.textMuted"
-                    fontSize="xs"
-                    fontWeight="bold"
-                    _selected={{
-                      color: 'preview.text',
-                      _after: {
-                        position: 'absolute',
-                        insetInline: '3',
-                        bottom: '-1px',
-                        h: '2px',
-                        borderRadius: 'full',
-                        bg: 'preview.accent',
-                        content: '""',
-                      },
-                    }}
-                    onClick={() => props.onTabChange(tab.id)}
-                    onKeyDown={(event) => {
-                      const currentIndex = tabs.findIndex(
-                        (candidate) => candidate.id === tab.id,
-                      );
-                      const nextIndex =
-                        event.key === 'ArrowRight'
-                          ? (currentIndex + 1) % tabs.length
-                          : event.key === 'ArrowLeft'
-                            ? (currentIndex - 1 + tabs.length) % tabs.length
-                            : event.key === 'Home'
-                              ? 0
-                              : event.key === 'End'
-                                ? tabs.length - 1
-                                : null;
+                  <PreviewTooltip key={tab.id} content={tab.tooltip}>
+                    <Tabs.Trigger
+                      id={`tab-${tab.id}`}
+                      value={tab.id}
+                      data-tab={tab.id}
+                      h="10"
+                      px="3"
+                      color="preview.textMuted"
+                      fontSize="xs"
+                      fontWeight="bold"
+                      _selected={{
+                        color: 'preview.text',
+                        _after: {
+                          position: 'absolute',
+                          insetInline: '3',
+                          bottom: '-1px',
+                          h: '2px',
+                          borderRadius: 'full',
+                          bg: 'preview.accent',
+                          content: '""',
+                        },
+                      }}
+                      onClick={() => props.onTabChange(tab.id)}
+                      onKeyDown={(event) => {
+                        const currentIndex = tabs.findIndex(
+                          (candidate) => candidate.id === tab.id,
+                        );
+                        const nextIndex =
+                          event.key === 'ArrowRight'
+                            ? (currentIndex + 1) % tabs.length
+                            : event.key === 'ArrowLeft'
+                              ? (currentIndex - 1 + tabs.length) % tabs.length
+                              : event.key === 'Home'
+                                ? 0
+                                : event.key === 'End'
+                                  ? tabs.length - 1
+                                  : null;
 
-                      if (nextIndex === null) {
-                        return;
-                      }
+                        if (nextIndex === null) {
+                          return;
+                        }
 
-                      const nextTab = tabs[nextIndex];
+                        const nextTab = tabs[nextIndex];
 
-                      if (!nextTab) {
-                        return;
-                      }
+                        if (!nextTab) {
+                          return;
+                        }
 
-                      event.preventDefault();
-                      event.stopPropagation();
-                      props.onTabChange(nextTab.id);
-                      document
-                        .querySelector<HTMLElement>(
-                          `[data-tab="${nextTab.id}"]`,
-                        )
-                        ?.focus();
-                    }}
-                  >
-                    {tab.label}
-                  </Tabs.Trigger>
+                        event.preventDefault();
+                        event.stopPropagation();
+                        props.onTabChange(nextTab.id);
+                        document
+                          .querySelector<HTMLElement>(
+                            `[data-tab="${nextTab.id}"]`,
+                          )
+                          ?.focus();
+                      }}
+                    >
+                      {tab.label}
+                    </Tabs.Trigger>
+                  </PreviewTooltip>
                 ))}
               </Tabs.List>
 
@@ -1203,7 +1249,6 @@ function Viewer({
             <Flex
               role="group"
               aria-label="Email preview color mode"
-              title="Simulates the browser color preference used by the rendered email"
               align="center"
               gap="1"
               p="1"
@@ -1214,42 +1259,43 @@ function Viewer({
             >
               <Text px="1.5">Email mode</Text>
               {emailColorModes.map((colorMode) => (
-                <Button
-                  key={colorMode.id}
-                  type="button"
-                  data-email-color-mode={colorMode.id}
-                  aria-pressed={state.emailColorMode === colorMode.id}
-                  minH="7"
-                  px="2"
-                  borderRadius="md"
-                  color={
-                    state.emailColorMode === colorMode.id
-                      ? 'preview.accentInk'
-                      : 'preview.textMuted'
-                  }
-                  bg={
-                    state.emailColorMode === colorMode.id
-                      ? 'preview.accent'
-                      : 'transparent'
-                  }
-                  fontSize="2xs"
-                  fontWeight="extrabold"
-                  textTransform="none"
-                  variant="ghost"
-                  _hover={{
-                    color:
+                <PreviewTooltip key={colorMode.id} content={colorMode.tooltip}>
+                  <Button
+                    type="button"
+                    data-email-color-mode={colorMode.id}
+                    aria-pressed={state.emailColorMode === colorMode.id}
+                    minH="7"
+                    px="2"
+                    borderRadius="md"
+                    color={
                       state.emailColorMode === colorMode.id
                         ? 'preview.accentInk'
-                        : 'preview.text',
-                    bg:
+                        : 'preview.textMuted'
+                    }
+                    bg={
                       state.emailColorMode === colorMode.id
-                        ? 'preview.accentHover'
-                        : 'preview.hover',
-                  }}
-                  onClick={() => onEmailColorModeChange(colorMode.id)}
-                >
-                  {colorMode.label}
-                </Button>
+                        ? 'preview.accent'
+                        : 'transparent'
+                    }
+                    fontSize="2xs"
+                    fontWeight="extrabold"
+                    textTransform="none"
+                    variant="ghost"
+                    _hover={{
+                      color:
+                        state.emailColorMode === colorMode.id
+                          ? 'preview.accentInk'
+                          : 'preview.text',
+                      bg:
+                        state.emailColorMode === colorMode.id
+                          ? 'preview.accentHover'
+                          : 'preview.hover',
+                    }}
+                    onClick={() => onEmailColorModeChange(colorMode.id)}
+                  >
+                    {colorMode.label}
+                  </Button>
+                </PreviewTooltip>
               ))}
             </Flex>
             <Text>
@@ -1389,19 +1435,57 @@ function PreviewError({
       >
         Try again
       </Button>
-      <IconButton
-        className="dismiss-button"
-        type="button"
-        data-action="dismiss-error"
-        aria-label="Dismiss error"
-        size="sm"
-        color="preview.textSubtle"
-        variant="ghost"
-        onClick={onDismiss}
-      >
-        ×
-      </IconButton>
+      <PreviewTooltip content="Dismiss this error message">
+        <IconButton
+          className="dismiss-button"
+          type="button"
+          data-action="dismiss-error"
+          aria-label="Dismiss error"
+          size="sm"
+          color="preview.textSubtle"
+          variant="ghost"
+          onClick={onDismiss}
+        >
+          ×
+        </IconButton>
+      </PreviewTooltip>
     </Alert.Root>
+  );
+}
+
+function PreviewTooltip({
+  children,
+  content,
+}: {
+  children: ReactElement;
+  content: string;
+}) {
+  return (
+    <Tooltip.Root openDelay={350} closeDelay={100}>
+      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+      <Portal>
+        <Tooltip.Positioner>
+          <Tooltip.Content
+            maxW="260px"
+            px="2.5"
+            py="1.5"
+            borderWidth="1px"
+            borderColor="preview.borderStrong"
+            borderRadius="md"
+            color="preview.text"
+            bg="preview.raised"
+            boxShadow="lg"
+            fontSize="2xs"
+            lineHeight="1.4"
+          >
+            {content}
+            <Tooltip.Arrow>
+              <Tooltip.ArrowTip />
+            </Tooltip.Arrow>
+          </Tooltip.Content>
+        </Tooltip.Positioner>
+      </Portal>
+    </Tooltip.Root>
   );
 }
 

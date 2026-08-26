@@ -432,6 +432,55 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
+  it('explains ambiguous controls with accessible tooltips', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+
+    const themeToggle = getElement<HTMLButtonElement>(
+      '[data-action="toggle-workspace-color-mode"]',
+    );
+    themeToggle.focus();
+
+    await vi.waitFor(
+      () => {
+        expect(
+          document.querySelector('[data-scope="tooltip"][data-part="content"]')
+            ?.textContent,
+        ).toContain('Switch the app to the dark workspace theme');
+      },
+      { timeout: 2_000 },
+    );
+
+    themeToggle.blur();
+    await new Promise((resolve) => window.setTimeout(resolve, 150));
+
+    const fitViewport = getElement<HTMLButtonElement>(
+      '[data-viewport="fluid"]',
+    );
+    fitViewport.focus();
+
+    await vi.waitFor(
+      () => {
+        expect(
+          [...document.querySelectorAll('[data-scope="tooltip"]')].some(
+            (element) =>
+              element.textContent?.includes(
+                'Fit the email preview to the available workspace',
+              ),
+          ),
+        ).toBe(true);
+      },
+      { timeout: 2_000 },
+    );
+
+    expect(themeToggle.getAttribute('title')).toBeNull();
+    expect(themeToggle.getAttribute('aria-label')).toBe(
+      'Use dark workspace theme',
+    );
+
+    harness.application.destroy();
+  });
+
   it('forces the rendered email color mode while preserving a system option', async () => {
     const harness = createHarness();
     await harness.application.start();
