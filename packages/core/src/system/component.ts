@@ -1,5 +1,10 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { useTheme } from '../theme/index.js';
+import {
+  resolveRecipe,
+  resolveSlotRecipe,
+  useTheme,
+  type RecipeSelection,
+} from '../theme/index.js';
 import {
   mapChakraPropsToStyles,
   type ChakraEmailStyleProps,
@@ -35,4 +40,28 @@ export function useChakraStyles(
   }
 
   return { ...defaultStyles, ...overrideStyles };
+}
+
+export function useRecipeStyles(
+  key: string,
+  selection: RecipeSelection | undefined,
+  props: ChakraEmailStyleProps = {},
+): CSSProperties {
+  const theme = useTheme();
+  return useChakraStyles(props, resolveRecipe(theme.recipes?.[key], selection));
+}
+
+export function useSlotRecipeStyles(
+  key: string,
+  selection?: RecipeSelection,
+): Record<string, CSSProperties> {
+  const theme = useTheme();
+  const recipe = resolveSlotRecipe(theme.slotRecipes?.[key], selection);
+
+  return Object.fromEntries(
+    Object.entries(recipe).map(([slot, props]) => [
+      slot,
+      mapChakraPropsToStyles(props, theme),
+    ]),
+  );
 }
