@@ -64,6 +64,8 @@ Use `chakra-email` for new projects or Chakra UI v3-style token objects.
 
 The shared email renderer, primitives, and markdown-body components come from `@chakra-email/core`.
 
+The shared components also support Chakra Email's `recipes` and `slotRecipes` theme keys. Chakra UI v2's legacy `components` configurations are still dropped because they depend on the browser-oriented v2 style runtime; define email recipes with the exports re-exported by `@chakra-email/chakra-v2` instead.
+
 ## More Docs
 
 - [Chakra UI v2 guide](https://github.com/chakra-email/chakra-email/blob/main/docs/chakra-v2.md)

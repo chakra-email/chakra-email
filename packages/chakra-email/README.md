@@ -75,6 +75,12 @@ const html = await render(
 
 Pass `html` to any email delivery provider. Use `renderPlainText` when the provider also accepts a plain-text alternative.
 
+## Theme-Level Component Styling
+
+All visually styled components use exported recipes. Multipart components such as `Button`, `Container`, `List`, `Preview`, `Section`, `Stack`, and `Table` use slot recipes so their internal email-safe markup can be styled independently. Compose `chakraEmailThemeConfig` into a Chakra UI `createSystem()` configuration, or pass `recipes` and `slotRecipes` directly to `ChakraEmailProvider`.
+
+See the [component recipe guide](https://github.com/chakra-email/chakra-email/blob/main/docs/theming.md#component-recipes) for the exported keys and slot map.
+
 ## Markdown-Friendly Components
 
 Use these primitives when mapping markdown nodes into an email body:
