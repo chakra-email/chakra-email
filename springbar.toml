@@ -15,7 +15,7 @@ setup = []
 [[unit]]
 name = "site"
 working_dir = "apps/site"
-command = 'NX_DAEMON=false npx nx run site:dev -- --host 127.0.0.1 --port "$PORT"'
+command = '__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=site.chakra-email.test NX_DAEMON=false npx nx run site:dev -- --host 127.0.0.1 --port "$PORT"'
 package_manager = "npm"
 port = 4362
 hostnames = ["site.chakra-email.test"]
