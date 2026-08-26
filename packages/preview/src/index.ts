@@ -10,6 +10,7 @@ export type {
   LoadPreviewConfigOptions,
   PreviewConfig,
   ResolvedPreviewConfig,
+  PreviewThemeConfig,
 } from './config.js';
 export { createPreviewServer } from './server.js';
 export { lintRenderedEmail } from './lint-email.js';

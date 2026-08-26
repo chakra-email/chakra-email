@@ -61,6 +61,7 @@ type EventSourceFactory = (url: string) => EventSourceLike;
 export type PreviewApplicationOptions = {
   root: HTMLElement;
   token: string;
+  theme?: JsonRecord;
   fetch?: Fetcher;
   createEventSource?: EventSourceFactory;
   copyText?: (value: string) => Promise<void>;
@@ -328,6 +329,7 @@ export function withPreviewContentSecurityPolicy(
 export class PreviewApplication {
   private readonly root: HTMLElement;
   private readonly token: string;
+  private readonly theme: JsonRecord;
   private readonly request: Fetcher;
   private readonly createEventSource: EventSourceFactory;
   private readonly copyText: (value: string) => Promise<void>;
@@ -362,6 +364,7 @@ export class PreviewApplication {
   public constructor(options: PreviewApplicationOptions) {
     this.root = options.root;
     this.token = options.token;
+    this.theme = options.theme ?? {};
     this.request = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.createEventSource =
       options.createEventSource ??
@@ -785,6 +788,7 @@ export class PreviewApplication {
         createElement(PreviewRoot, {
           state,
           securedHtml,
+          theme: this.theme,
           onSelectTemplate: (templateId: string) => {
             this.selectTemplate(templateId);
           },

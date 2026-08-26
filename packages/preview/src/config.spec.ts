@@ -48,6 +48,34 @@ describe('preview config', () => {
     expect(config.include).toEqual(['src/**/*.email.tsx']);
   });
 
+  it('preserves a JSON-safe preview theme', () => {
+    const theme = {
+      semanticTokens: {
+        colors: {
+          preview: {
+            accent: { value: { _dark: '#fafafa', _light: '#171717' } },
+          },
+        },
+      },
+    };
+
+    expect(normalizeConfig({ theme }, undefined, '/workspace').theme).toEqual(
+      theme,
+    );
+  });
+
+  it('rejects a circular preview theme', () => {
+    const theme: Record<string, unknown> = {};
+    theme['self'] = theme;
+
+    expect(() =>
+      normalizeConfig(
+        { theme: theme as never },
+        '/workspace/chakra-email.config.ts',
+      ),
+    ).toThrow('serializable as JSON');
+  });
+
   it.each([
     [{ templates: '../private' }, 'templates directory'],
     [{ assets: '../private' }, 'assets'],

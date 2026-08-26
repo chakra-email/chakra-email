@@ -47,6 +47,16 @@ export default defineConfig({
   assets: './public',
   host: '127.0.0.1',
   port: 4100,
+  theme: {
+    semanticTokens: {
+      colors: {
+        preview: {
+          accent: { value: { _light: '#171717', _dark: '#fafafa' } },
+          accentInk: { value: { _light: '#ffffff', _dark: '#171717' } },
+        },
+      },
+    },
+  },
 });
 ```
 
@@ -63,6 +73,12 @@ file. `templates` and `assets` are resolved relative to `root`; `include` and
 - `assets` selects the static asset directory used by the preview server.
 - `host` defaults to the loopback-only address `127.0.0.1`.
 - `port` defaults to `4100`.
+- `theme` accepts a JSON-serializable Chakra theme fragment for the preview UI,
+  including `tokens`, `semanticTokens`, `recipes`, and `slotRecipes`.
+
+The theme is serialized by the local preview server and merged over the
+preview UI defaults in the browser. Keep it data-only: functions and a
+pre-created Chakra `SystemContext` cannot cross that boundary.
 
 A missing `assets` directory does not prevent the server from starting; requests
 for files that are not present return `404`.

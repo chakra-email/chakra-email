@@ -8,6 +8,15 @@ export interface JsonObject {
   [key: string]: JsonValue;
 }
 
+/**
+ * A serializable Chakra theme fragment applied to the preview workspace.
+ *
+ * The fragment may include Chakra theme keys such as `tokens`,
+ * `semanticTokens`, `recipes`, and `slotRecipes`. Functions are intentionally
+ * unsupported because preview configuration is transferred to the browser.
+ */
+export type PreviewThemeConfig = JsonObject;
+
 export interface PreviewConfig {
   /** Directory all preview paths are contained by. Relative to the config file. */
   root?: string;
@@ -23,6 +32,8 @@ export interface PreviewConfig {
   host?: string;
   /** Port to bind. Use `0` to select an available port programmatically. */
   port?: number;
+  /** Serializable Chakra theme overrides for the preview workspace UI. */
+  theme?: PreviewThemeConfig;
 }
 
 export interface ResolvedPreviewConfig {
@@ -34,6 +45,7 @@ export interface ResolvedPreviewConfig {
   port: number;
   root: string;
   templateRoots: readonly string[];
+  theme: PreviewThemeConfig;
 }
 
 export interface LoadPreviewConfigOptions {
@@ -94,6 +106,34 @@ function normalizePort(port: number | undefined): number {
   return value;
 }
 
+function normalizeTheme(theme: PreviewThemeConfig | undefined): PreviewThemeConfig {
+  if (theme === undefined) {
+    return {};
+  }
+
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(theme);
+  } catch {
+    throw new Error('Preview theme must be serializable as JSON.');
+  }
+
+  if (serialized === undefined) {
+    throw new Error('Preview theme must be a JSON object.');
+  }
+
+  const normalized: unknown = JSON.parse(serialized);
+  if (
+    typeof normalized !== 'object' ||
+    normalized === null ||
+    Array.isArray(normalized)
+  ) {
+    throw new Error('Preview theme must be a JSON object.');
+  }
+
+  return normalized as PreviewThemeConfig;
+}
+
 export function normalizeConfig(
   config: PreviewConfig = {},
   configFile?: string,
@@ -145,6 +185,7 @@ export function normalizeConfig(
     port: normalizePort(config.port),
     root,
     templateRoots,
+    theme: normalizeTheme(config.theme),
   };
 }
 

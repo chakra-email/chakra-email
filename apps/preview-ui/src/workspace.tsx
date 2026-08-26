@@ -22,7 +22,7 @@ import {
   Textarea,
   Tooltip,
 } from '@chakra-ui/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ReactElement } from 'react';
 import type {
   ApplicationState,
@@ -32,7 +32,7 @@ import type {
   PreviewTab,
   Viewport,
 } from './app';
-import { previewSystem } from './theme';
+import { createPreviewSystem } from './theme';
 
 const tabs: ReadonlyArray<{
   id: PreviewTab;
@@ -94,6 +94,7 @@ const avatarColors = ['#91d8c5', '#e6bf83', '#93bfe6', '#c8a6df'];
 export type PreviewWorkspaceProps = {
   state: Readonly<ApplicationState>;
   securedHtml: string | null;
+  theme?: Record<string, unknown>;
   onSelectTemplate(templateId: string): void;
   onTabChange(tab: PreviewTab): void;
   onViewportChange(viewport: Viewport): void;
@@ -109,8 +110,10 @@ export type PreviewWorkspaceProps = {
 };
 
 export function PreviewRoot(props: PreviewWorkspaceProps) {
+  const system = useMemo(() => createPreviewSystem(props.theme), [props.theme]);
+
   return (
-    <ChakraProvider value={previewSystem}>
+    <ChakraProvider value={system}>
       <PreviewWorkspace {...props} />
     </ChakraProvider>
   );

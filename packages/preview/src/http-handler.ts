@@ -16,6 +16,7 @@ import type {
 const MAX_BODY_BYTES = 64 * 1024;
 const TOKEN_HEADER = 'x-chakra-email-preview-token';
 const TOKEN_PLACEHOLDER = '__CHAKRA_EMAIL_PREVIEW_TOKEN__';
+const THEME_PLACEHOLDER = '__CHAKRA_EMAIL_PREVIEW_THEME__';
 
 const MIME_TYPES: Readonly<Record<string, string>> = {
   '.css': 'text/css; charset=utf-8',
@@ -33,6 +34,12 @@ const MIME_TYPES: Readonly<Record<string, string>> = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
 };
+
+function encodeTheme(config: ResolvedPreviewConfig): string {
+  return Buffer.from(JSON.stringify(config.theme), 'utf8').toString(
+    'base64url',
+  );
+}
 
 export interface PreviewHttpDependencies {
   allowRemote: boolean;
@@ -411,7 +418,9 @@ export function createPreviewHttpHandler(
       if (url.pathname === '/' || url.pathname === '/__preview/') {
         const indexPath = resolve(dependencies.uiRoot, 'index.html');
         const sent = await sendFile(request, response, indexPath, (contents) =>
-          contents.replaceAll(TOKEN_PLACEHOLDER, dependencies.token),
+          contents
+            .replaceAll(TOKEN_PLACEHOLDER, dependencies.token)
+            .replaceAll(THEME_PLACEHOLDER, encodeTheme(dependencies.config)),
         );
         if (!sent) {
           sendText(

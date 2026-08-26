@@ -1,4 +1,5 @@
 import { createSystem, defaultConfig, defineConfig } from '@chakra-ui/react';
+import type { SystemConfig } from '@chakra-ui/react';
 
 const previewTheme = defineConfig({
   globalCss: {
@@ -121,4 +122,10 @@ const previewTheme = defineConfig({
   },
 });
 
-export const previewSystem = createSystem(defaultConfig, previewTheme);
+export function createPreviewSystem(theme: Record<string, unknown> = {}) {
+  return createSystem(
+    defaultConfig,
+    previewTheme,
+    defineConfig({ theme: theme as SystemConfig['theme'] }),
+  );
+}

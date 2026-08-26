@@ -21,13 +21,23 @@ describe('preview HTTP handler', () => {
     await mkdir(join(directory, 'public'), { recursive: true });
     await writeFile(
       join(directory, 'ui', 'index.html'),
-      '<meta name="preview-token" content="__CHAKRA_EMAIL_PREVIEW_TOKEN__"><main>Preview</main>',
+      '<meta name="preview-token" content="__CHAKRA_EMAIL_PREVIEW_TOKEN__"><meta name="preview-theme" content="__CHAKRA_EMAIL_PREVIEW_THEME__"><main>Preview</main>',
     );
     await writeFile(join(directory, 'ui', 'assets', 'app.js'), 'export {};');
     await writeFile(join(directory, 'public', 'logo.txt'), 'logo');
 
     const config = normalizeConfig(
-      { assets: 'public', host: '127.0.0.1', port: 0, templates: 'emails' },
+      {
+        assets: 'public',
+        host: '127.0.0.1',
+        port: 0,
+        templates: 'emails',
+        theme: {
+          semanticTokens: {
+            colors: { preview: { accent: { value: '#111111' } } },
+          },
+        },
+      },
       undefined,
       directory,
     );
@@ -89,7 +99,16 @@ describe('preview HTTP handler', () => {
     await expect(health.json()).resolves.toEqual({ status: 'ok' });
 
     const index = await fetch(baseUrl);
-    expect(await index.text()).toContain(`content="${token}"`);
+    const indexHtml = await index.text();
+    expect(indexHtml).toContain(`content="${token}"`);
+    const encodedTheme = Buffer.from(
+      JSON.stringify({
+        semanticTokens: {
+          colors: { preview: { accent: { value: '#111111' } } },
+        },
+      }),
+    ).toString('base64url');
+    expect(indexHtml).toContain(`content="${encodedTheme}"`);
     expect(index.headers.get('content-security-policy')).toContain(
       "default-src 'self'",
     );
