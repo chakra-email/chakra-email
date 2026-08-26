@@ -1,9 +1,12 @@
 import type { TableHTMLAttributes } from 'react';
 import {
+  mergeInlineStyles,
   splitStyleProps,
   useChakraStyles,
+  useSlotRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { chakraEmailSlotRecipeKeys } from '../theme/index.js';
 import {
   getLegacyWidthAttribute,
   paddingStyleKeys,
@@ -22,20 +25,20 @@ export interface ContainerProps
 }
 
 export function Container({
-  maxW = '600px',
+  maxW,
   centerContent = true,
   children,
   ...props
 }: ContainerProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const resolvedStyles = useChakraStyles(styleProps, {
-    w: 'full',
-    maxW,
-  });
-  const [tableStyles, cellStyles] = splitStyles(
-    resolvedStyles,
+  const recipeStyles = useSlotRecipeStyles(chakraEmailSlotRecipeKeys.container);
+  const instanceStyles = useChakraStyles({ maxW, ...styleProps });
+  const [tableOverrides, cellOverrides] = splitStyles(
+    instanceStyles,
     paddingStyleKeys,
   );
+  const tableStyles = mergeInlineStyles(recipeStyles.root, tableOverrides);
+  const cellStyles = mergeInlineStyles(recipeStyles.cell, cellOverrides);
   const legacyWidth =
     getLegacyWidthAttribute(
       tableStyles.width === '100%' ? tableStyles.maxWidth : tableStyles.width,

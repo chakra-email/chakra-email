@@ -1,5 +1,7 @@
 import type { EmailTheme } from './types.js';
 import { chakraEmailRecipes } from './default-recipes.js';
+import { chakraEmailSlotRecipes } from './default-slot-recipes.js';
+import { chakraEmailSemanticTokens } from './default-semantic-tokens.js';
 
 /**
  * Chakra's spacing scale converted to px. Off-scale numbers fall back to raw
@@ -72,48 +74,7 @@ export const defaultTheme: EmailTheme = {
       900: '#312e81',
     },
   },
-  semanticTokens: {
-    colors: {
-      bg: {
-        DEFAULT: {
-          value: { _light: '{colors.white}', _dark: '{colors.black}' },
-        },
-        subtle: {
-          value: { _light: '{colors.gray.50}', _dark: '{colors.gray.900}' },
-        },
-        muted: {
-          value: { _light: '{colors.gray.100}', _dark: '{colors.gray.800}' },
-        },
-      },
-      fg: {
-        DEFAULT: {
-          value: { _light: '{colors.gray.900}', _dark: '{colors.gray.50}' },
-        },
-        muted: {
-          value: { _light: '{colors.gray.600}', _dark: '{colors.gray.400}' },
-        },
-      },
-      border: {
-        DEFAULT: {
-          value: { _light: '{colors.gray.200}', _dark: '{colors.gray.700}' },
-        },
-      },
-      accent: {
-        DEFAULT: {
-          value: { _light: '{colors.brand.500}', _dark: '{colors.brand.400}' },
-        },
-        fg: {
-          value: { _light: '{colors.brand.700}', _dark: '{colors.brand.200}' },
-        },
-        subtle: {
-          value: { _light: '{colors.brand.100}', _dark: '{colors.brand.800}' },
-        },
-        contrast: {
-          value: { _light: '{colors.white}', _dark: '{colors.white}' },
-        },
-      },
-    },
-  },
+  semanticTokens: chakraEmailSemanticTokens,
   space: spaceScale,
   spacing: spaceScale,
   sizes: {
@@ -178,4 +139,5 @@ export const defaultTheme: EmailTheme = {
     base: '1px solid #E2E8F0',
   },
   recipes: chakraEmailRecipes,
+  slotRecipes: chakraEmailSlotRecipes,
 };

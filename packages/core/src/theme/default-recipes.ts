@@ -188,7 +188,3 @@ export const chakraEmailRecipes = {
   [chakraEmailRecipeKeys.spacer]: chakraEmailSpacerRecipe,
   [chakraEmailRecipeKeys.text]: chakraEmailTextRecipe,
 };
-
-export const chakraEmailThemeConfig = {
-  theme: { recipes: chakraEmailRecipes },
-};

@@ -56,18 +56,18 @@ exports[`golden output snapshots > release notes email pretty HTML 1`] = `
 npm test</pre><table cellPadding="0" cellSpacing="0" border="0" width="100%" style="margin:0 0 16px;width:100%;border-collapse:collapse;border-spacing:0">
 <thead>
 <tr>
-<th style="background-color:#F7FAFC;color:#2D3748;padding:12px;font-weight:600;text-align:left;border:1px solid #E2E8F0;vertical-align:top">Feature</th>
-<th style="background-color:#F7FAFC;color:#2D3748;padding:12px;font-weight:600;text-align:left;border:1px solid #E2E8F0;vertical-align:top">Status</th>
+<th style="background-color:#F7FAFC;color:#171923;padding:12px;font-weight:600;text-align:left;vertical-align:top;border:1px solid #E2E8F0">Feature</th>
+<th style="background-color:#F7FAFC;color:#171923;padding:12px;font-weight:600;text-align:left;vertical-align:top;border:1px solid #E2E8F0">Status</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Pretty output</td>
-<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Stable</td>
+<td style="padding:12px;vertical-align:top;border:1px solid #E2E8F0">Pretty output</td>
+<td style="padding:12px;vertical-align:top;border:1px solid #E2E8F0">Stable</td>
 </tr>
 <tr>
-<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Plain text</td>
-<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Stable</td>
+<td style="padding:12px;vertical-align:top;border:1px solid #E2E8F0">Plain text</td>
+<td style="padding:12px;vertical-align:top;border:1px solid #E2E8F0">Stable</td>
 </tr>
 </tbody>
 </table>
@@ -103,7 +103,7 @@ exports[`golden output snapshots > welcome email pretty HTML 1`] = `
 <body bgcolor="#F7FAFC" style="color:#171923;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#F7FAFC">
 <div aria-hidden="true" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden;visibility:hidden;opacity:0;mso-hide:all">Your Acme account is ready.<span style="display:none;mso-hide:all"> ‌ ‌ ‌ ‌ ‌ </span>
 </div>
-<table bgcolor="#ffffff" role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;max-width:600px;background-color:#ffffff">
+<table bgcolor="#ffffff" role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;background-color:#ffffff;max-width:600px">
 <tbody>
 <tr>
 <td style="padding:24px">
@@ -113,8 +113,8 @@ exports[`golden output snapshots > welcome email pretty HTML 1`] = `
 <table role="presentation" cellSpacing="0" cellPadding="0" border="0" align="left" style="border-collapse:separate">
 <tbody>
 <tr>
-<td bgcolor="#2563eb" align="center" style="background-color:#2563eb;border-radius:6px;mso-padding-alt:12px 24px 12px 24px">
-<a href="https://example.com/get-started" style="padding-left:24px;padding-right:24px;padding-top:12px;padding-bottom:12px;font-size:16px;font-weight:600;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1;text-align:center;text-decoration:none;color:#ffffff;display:inline-block">Get Started</a>
+<td bgcolor="#2563eb" align="center" style="border-radius:6px;background-color:#2563eb;mso-padding-alt:12px 24px 12px 24px">
+<a href="https://example.com/get-started" style="padding-left:24px;padding-right:24px;padding-top:12px;padding-bottom:12px;font-size:16px;font-weight:600;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1;text-align:center;text-decoration:none;display:inline-block;color:#ffffff">Get Started</a>
 </td>
 </tr>
 </tbody>

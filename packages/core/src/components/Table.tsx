@@ -4,19 +4,29 @@ import type {
   TdHTMLAttributes,
   ThHTMLAttributes,
 } from 'react';
+import { createContext, useContext } from 'react';
 import {
+  mergeInlineStyles,
   splitStyleProps,
   useChakraStyles,
+  useSlotRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
-import { useTheme } from '../theme/index.js';
+import {
+  chakraEmailSlotRecipeKeys,
+  useTheme,
+  type RecipeSelection,
+} from '../theme/index.js';
 import { resolveBorderColor } from './Hr.js';
 import { getLegacyWidthAttribute } from './layout-styles.js';
 
 export interface TableProps
   extends
     BaseChakraEmailProps,
-    Omit<TableHTMLAttributes<HTMLTableElement>, keyof BaseChakraEmailProps> {}
+    Omit<TableHTMLAttributes<HTMLTableElement>, keyof BaseChakraEmailProps> {
+  variant?: string;
+  size?: string;
+}
 
 export interface TableHeadProps
   extends
@@ -53,16 +63,28 @@ export interface TableCaptionProps
     BaseChakraEmailProps,
     Omit<HTMLAttributes<HTMLTableCaptionElement>, keyof BaseChakraEmailProps> {}
 
-export function Table({ children, ...props }: TableProps) {
+const TableRecipeContext = createContext<RecipeSelection | undefined>(
+  undefined,
+);
+
+function useTableRecipeStyles() {
+  return useSlotRecipeStyles(
+    chakraEmailSlotRecipeKeys.table,
+    useContext(TableRecipeContext),
+  );
+}
+
+export function Table({ variant, size, children, ...props }: TableProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps, {
-    m: '0 0 16px',
-    w: 'full',
-    style: {
-      borderCollapse: 'collapse',
-      borderSpacing: 0,
-    },
-  });
+  const recipeSelection = { variant, size };
+  const recipeStyles = useSlotRecipeStyles(
+    chakraEmailSlotRecipeKeys.table,
+    recipeSelection,
+  );
+  const styles = mergeInlineStyles(
+    recipeStyles.root,
+    useChakraStyles(styleProps),
+  );
   const legacyWidth = getLegacyWidthAttribute(styles.width) ?? '100%';
 
   return (
@@ -74,14 +96,20 @@ export function Table({ children, ...props }: TableProps) {
       width={legacyWidth}
       style={styles}
     >
-      {children}
+      <TableRecipeContext.Provider value={recipeSelection}>
+        {children}
+      </TableRecipeContext.Provider>
     </table>
   );
 }
 
 export function TableHead({ children, ...props }: TableHeadProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps);
+  const recipeStyles = useTableRecipeStyles();
+  const styles = mergeInlineStyles(
+    recipeStyles.header,
+    useChakraStyles(styleProps),
+  );
 
   return (
     <thead {...elementProps} style={styles}>
@@ -92,7 +120,11 @@ export function TableHead({ children, ...props }: TableHeadProps) {
 
 export function TableBody({ children, ...props }: TableBodyProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps);
+  const recipeStyles = useTableRecipeStyles();
+  const styles = mergeInlineStyles(
+    recipeStyles.body,
+    useChakraStyles(styleProps),
+  );
 
   return (
     <tbody {...elementProps} style={styles}>
@@ -103,7 +135,11 @@ export function TableBody({ children, ...props }: TableBodyProps) {
 
 export function TableFoot({ children, ...props }: TableFootProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps);
+  const recipeStyles = useTableRecipeStyles();
+  const styles = mergeInlineStyles(
+    recipeStyles.footer,
+    useChakraStyles(styleProps),
+  );
 
   return (
     <tfoot {...elementProps} style={styles}>
@@ -114,7 +150,11 @@ export function TableFoot({ children, ...props }: TableFootProps) {
 
 export function TableRow({ children, ...props }: TableRowProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps);
+  const recipeStyles = useTableRecipeStyles();
+  const styles = mergeInlineStyles(
+    recipeStyles.row,
+    useChakraStyles(styleProps),
+  );
 
   return (
     <tr {...elementProps} style={styles}>
@@ -129,15 +169,14 @@ export function TableHeader({
   ...props
 }: TableHeaderProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps, {
-    p: 3,
-    bg: 'gray.50',
-    color: 'gray.700',
-    border: `1px solid ${resolveBorderColor(borderColor, useTheme())}`,
-    fontWeight: 'semibold',
-    textAlign: 'left',
-    verticalAlign: 'top',
-  });
+  const theme = useTheme();
+  const recipeStyles = useTableRecipeStyles();
+  const styles = mergeInlineStyles(
+    recipeStyles.columnHeader,
+    useChakraStyles(borderColor ? { borderColor, ...styleProps } : styleProps),
+  );
+  styles.border ??= `1px solid ${styles.borderColor ?? resolveBorderColor(undefined, theme)}`;
+  delete styles.borderColor;
 
   return (
     <th {...elementProps} style={styles}>
@@ -148,11 +187,14 @@ export function TableHeader({
 
 export function TableCell({ borderColor, children, ...props }: TableCellProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps, {
-    p: 3,
-    border: `1px solid ${resolveBorderColor(borderColor, useTheme())}`,
-    verticalAlign: 'top',
-  });
+  const theme = useTheme();
+  const recipeStyles = useTableRecipeStyles();
+  const styles = mergeInlineStyles(
+    recipeStyles.cell,
+    useChakraStyles(borderColor ? { borderColor, ...styleProps } : styleProps),
+  );
+  styles.border ??= `1px solid ${styles.borderColor ?? resolveBorderColor(undefined, theme)}`;
+  delete styles.borderColor;
 
   return (
     <td {...elementProps} style={styles}>
@@ -163,12 +205,11 @@ export function TableCell({ borderColor, children, ...props }: TableCellProps) {
 
 export function TableCaption({ children, ...props }: TableCaptionProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps, {
-    color: 'gray.600',
-    fontSize: 'sm',
-    textAlign: 'left',
-    mb: 2,
-  });
+  const recipeStyles = useTableRecipeStyles();
+  const styles = mergeInlineStyles(
+    recipeStyles.caption,
+    useChakraStyles(styleProps),
+  );
 
   return (
     <caption {...elementProps} style={styles}>

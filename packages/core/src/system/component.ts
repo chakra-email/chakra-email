@@ -17,6 +17,22 @@ export interface BaseChakraEmailProps extends ChakraEmailStyleProps {
   children?: ReactNode;
 }
 
+export function mergeInlineStyles(
+  base: CSSProperties | undefined,
+  override: CSSProperties | undefined,
+): CSSProperties {
+  const styles = { ...base };
+
+  for (const property of Object.keys(override ?? {}) as Array<
+    keyof CSSProperties
+  >) {
+    delete styles[property];
+    styles[property] = override?.[property] as never;
+  }
+
+  return styles;
+}
+
 export function useChakraStyles(
   props: ChakraEmailStyleProps,
   defaults?: ChakraEmailStyleProps,
@@ -27,19 +43,10 @@ export function useChakraStyles(
     return mapChakraPropsToStyles(props, theme);
   }
 
-  const defaultStyles = { ...mapChakraPropsToStyles(defaults, theme) };
+  const defaultStyles = mapChakraPropsToStyles(defaults, theme);
   const overrideStyles = mapChakraPropsToStyles(props, theme);
 
-  // Reinsert overridden properties in the caller layer's order. This matters
-  // for CSS shorthand/longhand pairs such as `p` + `pl`: a plain object spread
-  // updates an existing key without moving it after the shorthand.
-  for (const property of Object.keys(overrideStyles) as Array<
-    keyof CSSProperties
-  >) {
-    delete defaultStyles[property];
-  }
-
-  return { ...defaultStyles, ...overrideStyles };
+  return mergeInlineStyles(defaultStyles, overrideStyles);
 }
 
 export function useRecipeStyles(
