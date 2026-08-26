@@ -1,10 +1,10 @@
 import type { BlockquoteHTMLAttributes } from 'react';
 import {
   splitStyleProps,
-  useChakraStyles,
+  useRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
-import { useTheme } from '../theme/index.js';
+import { chakraEmailRecipeKeys, useTheme } from '../theme/index.js';
 import { resolveBorderColor } from './Hr.js';
 
 export interface BlockquoteProps
@@ -21,13 +21,14 @@ export function Blockquote({
   ...props
 }: BlockquoteProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const borderLeftColor = resolveBorderColor(borderColor, useTheme());
-  const styles = useChakraStyles(styleProps, {
-    m: '0 0 16px',
-    pl: 4,
-    color: 'gray.700',
-    borderLeft: `4px solid ${borderLeftColor}`,
-  });
+  const theme = useTheme();
+  const styles = useRecipeStyles(
+    chakraEmailRecipeKeys.blockquote,
+    undefined,
+    borderColor ? { borderColor, ...styleProps } : styleProps,
+  );
+  styles.borderLeft ??= `4px solid ${styles.borderColor ?? resolveBorderColor(undefined, theme)}`;
+  delete styles.borderColor;
 
   return (
     <blockquote {...elementProps} style={styles}>

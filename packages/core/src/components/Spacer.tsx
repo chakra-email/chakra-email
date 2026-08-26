@@ -1,10 +1,10 @@
 import {
   resolveSpacing,
   splitStyleProps,
-  useChakraStyles,
+  useRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
-import { useTheme } from '../theme/index.js';
+import { chakraEmailRecipeKeys, useTheme } from '../theme/index.js';
 
 export interface SpacerProps extends Omit<BaseChakraEmailProps, 'children'> {
   size?: string | number;
@@ -15,10 +15,10 @@ export function Spacer({ size = 4, ...props }: SpacerProps) {
   // Spacer sizes are spacing values, so resolve them through the `space`
   // scale (size={3} → 12px) rather than the `sizes` scale.
   const resolvedSize = resolveSpacing(size, useTheme());
-  const styles = useChakraStyles(styleProps, {
+  const styles = useRecipeStyles(chakraEmailRecipeKeys.spacer, undefined, {
     h: resolvedSize,
     lineHeight: resolvedSize,
-    fontSize: 0,
+    ...styleProps,
   });
 
   return (

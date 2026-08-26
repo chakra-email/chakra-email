@@ -35,7 +35,7 @@ describe('rendering without a ThemeProvider', () => {
     expect(html).not.toContain('height:2px');
   });
 
-  it('resolves the Hr border color to the default gray.200 token', () => {
+  it('resolves the Hr border color to the default semantic border token', () => {
     const html = renderToStaticMarkup(<Hr />);
 
     expect(html).toContain('border-top:1px solid #E2E8F0');

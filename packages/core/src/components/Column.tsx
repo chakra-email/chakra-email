@@ -1,9 +1,10 @@
 import type { TdHTMLAttributes } from 'react';
 import {
   splitStyleProps,
-  useChakraStyles,
+  useRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { chakraEmailRecipeKeys } from '../theme/index.js';
 import { getLegacyWidthAttribute } from './layout-styles.js';
 
 export interface ColumnProps
@@ -19,12 +20,10 @@ export interface ColumnProps
 
 export function Column({ width, align, children, ...props }: ColumnProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(
-    { width, ...styleProps },
-    {
-      verticalAlign: 'top',
-    },
-  );
+  const styles = useRecipeStyles(chakraEmailRecipeKeys.column, undefined, {
+    width,
+    ...styleProps,
+  });
   const legacyWidth = getLegacyWidthAttribute(styles.width);
 
   return (

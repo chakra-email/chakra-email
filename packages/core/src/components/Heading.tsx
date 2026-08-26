@@ -1,22 +1,14 @@
 import type { ElementType } from 'react';
 import {
   splitStyleProps,
-  useChakraStyles,
+  useRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { chakraEmailRecipeKeys } from '../theme/index.js';
 
 export interface HeadingProps extends BaseChakraEmailProps {
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 }
-
-const defaultFontSizes: Record<NonNullable<HeadingProps['as']>, string> = {
-  h1: '3xl',
-  h2: '2xl',
-  h3: 'xl',
-  h4: 'lg',
-  h5: 'md',
-  h6: 'sm',
-};
 
 export function Heading({
   as: Component = 'h1',
@@ -24,13 +16,11 @@ export function Heading({
   ...props
 }: HeadingProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps, {
-    m: '0 0 16px',
-    fontFamily: 'heading',
-    fontSize: defaultFontSizes[Component],
-    fontWeight: 'bold',
-    lineHeight: 'short',
-  });
+  const styles = useRecipeStyles(
+    chakraEmailRecipeKeys.heading,
+    { level: Component },
+    styleProps,
+  );
   const HeadingElement = Component as ElementType;
 
   return (

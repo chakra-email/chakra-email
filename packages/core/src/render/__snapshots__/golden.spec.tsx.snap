@@ -34,25 +34,25 @@ exports[`golden output snapshots > release notes email pretty HTML 1`] = `
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <title>Release notes</title>
 </head>
-<body bgcolor="#ffffff" style="padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#ffffff">
+<body bgcolor="#ffffff" style="color:#171923;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#ffffff">
 <div aria-hidden="true" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden;visibility:hidden;opacity:0;mso-hide:all">What changed in version 2.0.<span style="display:none;mso-hide:all"> ‌ ‌ ‌ ‌ ‌ </span>
 </div>
 <table role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;max-width:600px">
 <tbody>
 <tr>
 <td style="padding:24px">
-<h1 style="margin:0 0 16px;font-weight:700;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375;margin-bottom:16px;font-size:20px">Release notes</h1>
-<p style="margin:0 0 16px;font-size:16px;line-height:1.5;margin-bottom:16px">Highlights from this release:</p>
+<h1 style="color:#171923;margin:0 0 16px;font-weight:700;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375;margin-bottom:16px;font-size:20px">Release notes</h1>
+<p style="color:#171923;margin:0 0 16px;font-size:16px;line-height:1.5;margin-bottom:16px">Highlights from this release:</p>
 <ul style="padding-left:24px;margin:0 0 16px">
 <li style="margin-bottom:8px">Faster rendering pipeline</li>
-<li style="margin-bottom:8px">New <code style="background-color:#EDF2F7;color:#1A202C;padding-left:4px;padding-right:4px;padding-top:0px;padding-bottom:0px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:2px;white-space:pre-wrap;word-break:break-word">render()</code> options</li>
+<li style="margin-bottom:8px">New <code style="background-color:#EDF2F7;color:#171923;padding-left:4px;padding-right:4px;padding-top:0px;padding-bottom:0px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:2px;white-space:pre-wrap;word-break:break-word">render()</code> options</li>
 <li style="margin-bottom:8px">Improved plain-text output</li>
 </ul>
 <ol style="padding-left:24px;margin:0 0 16px">
 <li style="margin-bottom:8px">Upgrade the package</li>
 <li style="margin-bottom:8px">Run your test suite</li>
 </ol>
-<blockquote style="color:#2D3748;padding-left:16px;margin:0 0 16px;border-left:4px solid #E2E8F0">Email rendering should be boring and predictable.</blockquote><pre style="background-color:#EDF2F7;color:#1A202C;padding:16px;margin:0 0 16px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.5;border-radius:6px;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word">npm install chakra-email@latest
+<blockquote style="color:#4A5568;padding-left:16px;margin:0 0 16px;border-left:4px solid #E2E8F0">Email rendering should be boring and predictable.</blockquote><pre style="background-color:#EDF2F7;color:#171923;padding:16px;margin:0 0 16px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.5;border-radius:6px;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word">npm install chakra-email@latest
 npm test</pre><table cellPadding="0" cellSpacing="0" border="0" width="100%" style="margin:0 0 16px;width:100%;border-collapse:collapse;border-spacing:0">
 <thead>
 <tr>
@@ -100,7 +100,7 @@ exports[`golden output snapshots > welcome email pretty HTML 1`] = `
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <title>Welcome to Acme</title>
 </head>
-<body bgcolor="#F7FAFC" style="padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#F7FAFC">
+<body bgcolor="#F7FAFC" style="color:#171923;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#F7FAFC">
 <div aria-hidden="true" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden;visibility:hidden;opacity:0;mso-hide:all">Your Acme account is ready.<span style="display:none;mso-hide:all"> ‌ ‌ ‌ ‌ ‌ </span>
 </div>
 <table bgcolor="#ffffff" role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;max-width:600px;background-color:#ffffff">
@@ -108,7 +108,7 @@ exports[`golden output snapshots > welcome email pretty HTML 1`] = `
 <tr>
 <td style="padding:24px">
 <img src="https://example.com/logo.png" alt="Acme logo" width="120" height="40" style="border:none;display:block;margin-bottom:24px;width:120px;height:40px"/>
-<h1 style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375;margin-bottom:16px;font-size:24px;font-weight:700">Welcome!</h1>
+<h1 style="color:#171923;margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375;margin-bottom:16px;font-size:24px;font-weight:700">Welcome!</h1>
 <p style="margin:0 0 16px;line-height:1.5;color:#2D3748;margin-bottom:24px;font-size:16px">Thanks for joining us. Your account is ready.</p>
 <table role="presentation" cellSpacing="0" cellPadding="0" border="0" align="left" style="border-collapse:separate">
 <tbody>
@@ -119,7 +119,7 @@ exports[`golden output snapshots > welcome email pretty HTML 1`] = `
 </tr>
 </tbody>
 </table>
-<hr style="margin:16px 0;width:100%;border:none;border-top:1px solid #E2E8F0;margin-top:24px;margin-bottom:24px"/>
+<hr style="margin:16px 0;width:100%;border:none;margin-top:24px;margin-bottom:24px;border-top:1px solid #E2E8F0"/>
 <p style="margin:0 0 16px;line-height:1.5;color:#718096;font-size:14px">Questions? Visit our <a href="https://example.com/help" style="color:#2563eb;text-decoration:underline">help center</a>.</p>
 </td>
 </tr>

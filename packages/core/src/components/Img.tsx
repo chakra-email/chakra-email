@@ -1,9 +1,10 @@
 import type { ImgHTMLAttributes } from 'react';
 import {
   splitStyleProps,
-  useChakraStyles,
+  useRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { chakraEmailRecipeKeys } from '../theme/index.js';
 import { getLegacyWidthAttribute } from './layout-styles.js';
 
 const SAFE_IMAGE_PROTOCOLS = new Set(['http', 'https', 'cid']);
@@ -36,7 +37,7 @@ export function sanitizeImageSrc(src: string): string | undefined {
 }
 
 function getLegacyPixelDimension(
-  value: ReturnType<typeof useChakraStyles>['width'],
+  value: ReturnType<typeof useRecipeStyles>['width'],
 ): number | undefined {
   const dimension = getLegacyWidthAttribute(value);
   return typeof dimension === 'number' ? dimension : undefined;
@@ -57,13 +58,11 @@ export interface ImgProps
 
 export function Img({ src, alt, width, height, ...props }: ImgProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(
-    { width, height, ...styleProps },
-    {
-      display: 'block',
-      border: 'none',
-    },
-  );
+  const styles = useRecipeStyles(chakraEmailRecipeKeys.img, undefined, {
+    width,
+    height,
+    ...styleProps,
+  });
   const legacyWidth = getLegacyPixelDimension(styles.width);
   const legacyHeight = getLegacyPixelDimension(styles.height);
 

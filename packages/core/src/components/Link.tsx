@@ -1,9 +1,10 @@
 import type { AnchorHTMLAttributes } from 'react';
 import {
   splitStyleProps,
-  useChakraStyles,
+  useRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { chakraEmailRecipeKeys } from '../theme/index.js';
 
 export interface LinkProps
   extends
@@ -55,10 +56,11 @@ export function sanitizeHref(href: string | undefined): string | undefined {
 
 export function Link({ href, children, ...props }: LinkProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps, {
-    color: 'brand.500',
-    textDecoration: 'underline',
-  });
+  const styles = useRecipeStyles(
+    chakraEmailRecipeKeys.link,
+    undefined,
+    styleProps,
+  );
 
   return (
     <a {...elementProps} href={sanitizeHref(href)} style={styles}>
