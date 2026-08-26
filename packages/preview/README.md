@@ -37,7 +37,7 @@ npm install chakra-email react react-dom
 Create `chakra-email.config.ts` next to the email project or package:
 
 ```ts
-import { defineConfig } from '@chakra-email/preview';
+import { defineConfig, previewSlotRecipeKeys } from '@chakra-email/preview';
 
 export default defineConfig({
   root: '.',
@@ -53,6 +53,14 @@ export default defineConfig({
         preview: {
           accent: { value: { _light: '#171717', _dark: '#fafafa' } },
           accentInk: { value: { _light: '#ffffff', _dark: '#171717' } },
+        },
+      },
+    },
+    slotRecipes: {
+      [previewSlotRecipeKeys.workspace]: {
+        base: {
+          header: { bg: 'preview.panel' },
+          sidebar: { bg: 'preview.canvas' },
         },
       },
     },
@@ -79,6 +87,19 @@ file. `templates` and `assets` are resolved relative to `root`; `include` and
 The theme is serialized by the local preview server and merged over the
 preview UI defaults in the browser. Keep it data-only: functions and a
 pre-created Chakra `SystemContext` cannot cross that boundary.
+
+The neutral default system uses `preview.*` semantic color tokens and these
+exported slot recipe keys:
+
+- `workspace`: the application shell, header, sidebar, toolbar, and content.
+- `templates`: template list, item, avatar, text, and selected-state slots.
+- `viewer`: format tabs, preview surface, email frame, and source viewer.
+- `inspector`: props editor, controls, notice, and lint result slots.
+- `feedback`: error banner and tooltip slots.
+
+Each recipe supports partial overrides, so omitted defaults remain intact. Use
+the exported `previewSlotRecipeKeys` values as computed keys to keep theme
+configuration resilient to future package changes.
 
 A missing `assets` directory does not prevent the server from starting; requests
 for files that are not present return `404`.

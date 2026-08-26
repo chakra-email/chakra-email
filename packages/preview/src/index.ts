@@ -14,6 +14,8 @@ export type {
 } from './config.js';
 export { createPreviewServer } from './server.js';
 export { lintRenderedEmail } from './lint-email.js';
+export { previewSlotRecipeKeys } from './ui-theme.js';
+export type { PreviewSlotRecipeKey } from './ui-theme.js';
 export type {
   CreatePreviewServerOptions,
   PreviewServer,
