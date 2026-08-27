@@ -1,0 +1,76 @@
+{
+  "name": "@chakra-email/react-email",
+  "version": "0.1.0",
+  "description": "Optional React Email renderer adapter for Chakra Email preview and tooling.",
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Hefner",
+    "email": "hi@ryanhefner.com",
+    "url": "https://www.ryanhefner.com"
+  },
+  "contributors": [
+    {
+      "name": "Commune Software",
+      "url": "https://commune.software"
+    }
+  ],
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/ryanhefner"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chakra-email/chakra-email.git",
+    "directory": "packages/react-email"
+  },
+  "bugs": {
+    "url": "https://github.com/chakra-email/chakra-email/issues"
+  },
+  "homepage": "https://github.com/chakra-email/chakra-email/tree/main/packages/react-email#readme",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "!**/*.tsbuildinfo"
+  ],
+  "keywords": [
+    "chakra-email",
+    "email",
+    "react",
+    "react-email",
+    "renderer-adapter"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "react-email": "^6.0.0"
+  },
+  "dependencies": {
+    "@chakra-email/core": "^0.1.0",
+    "tslib": "^2.3.0"
+  },
+  "nx": {
+    "tags": [
+      "scope:chakra-email-react-email"
+    ]
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -68,6 +68,19 @@ export default defineConfig({
 });
 ```
 
+The default renderer is `chakraEmailRenderer` from `@chakra-email/core`. To
+preview templates that rely on React Email rendering behavior, install the
+optional adapter and configure it server-side:
+
+```ts
+import { reactEmailRenderer } from '@chakra-email/react-email';
+import { defineConfig } from '@chakra-email/preview';
+
+export default defineConfig({
+  renderer: reactEmailRenderer(),
+});
+```
+
 `root` is resolved relative to the directory containing the configuration
 file. `templates` and `assets` are resolved relative to `root`; `include` and
 `exclude` patterns are evaluated inside each templates directory. When neither
@@ -83,6 +96,8 @@ file. `templates` and `assets` are resolved relative to `root`; `include` and
 - `port` defaults to `4100`.
 - `theme` accepts a JSON-serializable Chakra theme fragment for the preview UI,
   including `tokens`, `semanticTokens`, `recipes`, and `slotRecipes`.
+- `renderer` accepts an `EmailRenderer` implementation and remains on the
+  preview server; functions are never serialized into the browser UI.
 
 The theme is serialized by the local preview server and merged over the
 preview UI defaults in the browser. Keep it data-only: functions and a

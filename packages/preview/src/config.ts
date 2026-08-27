@@ -1,6 +1,7 @@
 import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { createJiti } from 'jiti';
+import type { EmailRenderer } from '@chakra-email/core';
 
 export type JsonPrimitive = boolean | null | number | string;
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
@@ -34,6 +35,8 @@ export interface PreviewConfig {
   port?: number;
   /** Serializable Chakra theme overrides for the preview workspace UI. */
   theme?: PreviewThemeConfig;
+  /** Server-side renderer used to produce matching HTML and plain-text output. */
+  renderer?: EmailRenderer;
 }
 
 export interface ResolvedPreviewConfig {
@@ -44,6 +47,7 @@ export interface ResolvedPreviewConfig {
   include: readonly string[];
   port: number;
   root: string;
+  renderer?: EmailRenderer;
   templateRoots: readonly string[];
   theme: PreviewThemeConfig;
 }
@@ -106,7 +110,9 @@ function normalizePort(port: number | undefined): number {
   return value;
 }
 
-function normalizeTheme(theme: PreviewThemeConfig | undefined): PreviewThemeConfig {
+function normalizeTheme(
+  theme: PreviewThemeConfig | undefined,
+): PreviewThemeConfig {
   if (theme === undefined) {
     return {};
   }
@@ -184,6 +190,7 @@ export function normalizeConfig(
     include: normalizeStringList(config.include, DEFAULT_INCLUDE, 'include'),
     port: normalizePort(config.port),
     root,
+    renderer: config.renderer,
     templateRoots,
     theme: normalizeTheme(config.theme),
   };

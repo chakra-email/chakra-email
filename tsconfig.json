@@ -20,6 +20,9 @@
     },
     {
       "path": "./apps/preview-ui"
+    },
+    {
+      "path": "./packages/react-email"
     }
   ]
 }

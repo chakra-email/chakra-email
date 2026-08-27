@@ -189,6 +189,7 @@ export async function createPreviewServer(
     return renderTemplate({
       module: await moduleLoader.load(template.absolutePath),
       props: request.props,
+      renderer: config.renderer,
       template,
       variant: request.variant,
     });

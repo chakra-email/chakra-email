@@ -6,6 +6,7 @@ The workspace publishes four packages:
 - `@chakra-email/chakra-v2` - adapter for Chakra UI v2-style theme objects.
 - `@chakra-email/core` - shared components, renderer, style system, theme resolver, and tests.
 - `@chakra-email/preview` - development-only CLI, template runner, local server, and bundled browser UI.
+- `@chakra-email/react-email` - optional React Email renderer adapter for preview and export tooling.
 
 ## Why Rendering Lives In Core
 
@@ -44,12 +45,13 @@ Use the root Nx yalc targets when you want to test the publishable packages in a
 npx nx run chakra-email-monorepo:yalc-publish
 ```
 
-That target builds the four publishable packages, then publishes them to your local yalc store in dependency-safe order:
+That target builds the five publishable packages, then publishes them to your local yalc store in dependency-safe order:
 
 1. `@chakra-email/core`
 2. `@chakra-email/preview`
-3. `chakra-email`
-4. `@chakra-email/chakra-v2`
+3. `@chakra-email/react-email`
+4. `chakra-email`
+5. `@chakra-email/chakra-v2`
 
 If the packages are already installed in a consumer app with yalc and you want to push updates immediately, run:
 
@@ -63,6 +65,7 @@ In the consumer app, add whichever packages you want to test:
 yalc add chakra-email @chakra-email/core
 yalc add @chakra-email/chakra-v2
 yalc add --dev @chakra-email/preview
+yalc add --dev @chakra-email/react-email
 ```
 
 The root npm aliases are available too:

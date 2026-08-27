@@ -72,6 +72,28 @@ describe('renderTemplate', () => {
     expect(result.props).toEqual({ name: 'Lin' });
   });
 
+  it('uses a configured renderer once for matching output', async () => {
+    const renderer = {
+      render: vi.fn(async () => ({
+        html: '<main>Adapted HTML</main>',
+        text: 'Adapted text',
+      })),
+    };
+
+    const result = await renderTemplate({
+      module: { default: () => createElement('main', null, 'Template') },
+      renderer,
+      template,
+    });
+
+    expect(renderer.render).toHaveBeenCalledOnce();
+    expect(renderer.render).toHaveBeenCalledWith(expect.anything(), {
+      pretty: true,
+    });
+    expect(result.html).toBe('<main>Adapted HTML</main>');
+    expect(result.text).toBe('Adapted text');
+  });
+
   it('prefers named previewProps over Component.PreviewProps', async () => {
     const Welcome = ({ name }: { name?: string }) =>
       createElement('p', null, name);

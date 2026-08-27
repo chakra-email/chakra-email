@@ -46,6 +46,13 @@ export default [
                 'scope:chakra-email-preview',
               ],
             },
+            {
+              sourceTag: 'scope:chakra-email-react-email',
+              onlyDependOnLibsWithTags: [
+                'scope:chakra-email-core',
+                'scope:chakra-email-react-email',
+              ],
+            },
           ],
         },
       ],

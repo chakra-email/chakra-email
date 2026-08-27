@@ -14,6 +14,7 @@ const packageNames = [
   'chakra-email',
   '@chakra-email/chakra-v2',
   '@chakra-email/preview',
+  '@chakra-email/react-email',
 ];
 const commandEnvironment = {
   ...process.env,
@@ -73,9 +74,13 @@ try {
           '@chakra-email/chakra-v2': tarballs.get('@chakra-email/chakra-v2'),
           '@chakra-email/core': tarballs.get('@chakra-email/core'),
           '@chakra-email/preview': tarballs.get('@chakra-email/preview'),
+          '@chakra-email/react-email': tarballs.get(
+            '@chakra-email/react-email',
+          ),
           'chakra-email': tarballs.get('chakra-email'),
           react: '18.3.1',
           'react-dom': '18.3.1',
+          'react-email': '6.9.1',
         },
         devDependencies: {
           '@types/react': '18.3.31',
@@ -98,6 +103,7 @@ import {
   defineConfig,
   lintRenderedEmail,
 } from '@chakra-email/preview';
+import { reactEmailRenderer } from '@chakra-email/react-email';
 import { Body, Head, Html, Preview, Text, render } from 'chakra-email';
 
 if (!React.version.startsWith('18.')) {
@@ -112,6 +118,10 @@ if (
   )
 ) {
   throw new Error('The packed preview package did not expose its public API.');
+}
+
+if (typeof reactEmailRenderer !== 'function') {
+  throw new Error('@chakra-email/react-email did not expose its renderer adapter.');
 }
 
 const email = React.createElement(
@@ -203,6 +213,11 @@ if (
   throw new Error('@chakra-email/preview did not expose its require(esm) API.');
 }
 
+const reactEmailAdapter = require('@chakra-email/react-email');
+if (typeof reactEmailAdapter.reactEmailRenderer !== 'function') {
+  throw new Error('@chakra-email/react-email did not expose its require(esm) API.');
+}
+
 const packageSubpaths = [
   '@chakra-email/core/components',
   '@chakra-email/core/render',
@@ -248,6 +263,7 @@ import {
   type PreviewLintFinding,
   type PreviewConfig,
 } from '@chakra-email/preview';
+import { reactEmailRenderer } from '@chakra-email/react-email';
 import * as V2Components from '@chakra-email/chakra-v2/components';
 import * as V2Render from '@chakra-email/chakra-v2/render';
 import * as V2System from '@chakra-email/chakra-v2/system';
@@ -279,6 +295,7 @@ const previewConfig: PreviewConfig = defineConfig({
   templates: 'emails',
   port: 0,
 });
+void reactEmailRenderer();
 void createPreviewServer({ config: previewConfig, port: 0 });
 const lintFindings: PreviewLintFinding[] = lintRenderedEmail('<main>Test</main>');
 void lintFindings;

@@ -3,6 +3,7 @@ const exportChecks = new Map([
     '@chakra-email/preview',
     ['createPreviewServer', 'defineConfig', 'lintRenderedEmail'],
   ],
+  ['@chakra-email/react-email', ['reactEmailRenderer']],
   [
     '@chakra-email/core',
     ['Blockquote', 'Button', 'Code', 'Table', 'ThemeProvider', 'render'],
@@ -19,7 +20,10 @@ const exportChecks = new Map([
     '@chakra-email/core/components/Table',
     ['Table', 'TableCell', 'TableHeader'],
   ],
-  ['@chakra-email/core/render', ['render', 'renderPlainText']],
+  [
+    '@chakra-email/core/render',
+    ['chakraEmailRenderer', 'render', 'renderEmail', 'renderPlainText'],
+  ],
   ['@chakra-email/core/system', ['mapChakraPropsToStyles']],
   ['@chakra-email/core/theme', ['ThemeProvider', 'mergeTheme']],
   [

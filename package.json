@@ -51,7 +51,7 @@
     "format:check": "npm exec nx -- format:check",
     "lint": "npm exec nx -- run-many -t lint",
     "pack:dry": "npm run build && npm run smoke:exports && npm run pack:inspect",
-    "pack:inspect": "npm pack --workspace @chakra-email/core --workspace chakra-email --workspace @chakra-email/chakra-v2 --workspace @chakra-email/preview --dry-run --cache ./.npm-cache",
+    "pack:inspect": "npm pack --workspace @chakra-email/core --workspace chakra-email --workspace @chakra-email/chakra-v2 --workspace @chakra-email/preview --workspace @chakra-email/react-email --dry-run --cache ./.npm-cache",
     "release:check": "npm run audit:ci && npm run format:check && npm run lint && npm run test:release && npm run build && npm run typecheck && npm run examples:check && npm run test:coverage && npm run smoke:exports && npm run pack:inspect && npm run smoke:consumer",
     "site:build": "npm exec nx -- build site",
     "site:dev": "npm exec nx -- serve site",
@@ -70,7 +70,9 @@
   "overrides": {
     "axios": "^1.18.1",
     "brace-expansion": "^5.0.9",
-    "fast-uri": "^3.1.5"
+    "fast-uri": "^3.1.5",
+    "js-yaml": "^4.3.1",
+    "nanoid": "^3.3.18"
   },
   "packageManager": "npm@11.16.0",
   "engines": {
@@ -89,7 +91,6 @@
     "@swc-node/register": "1.11.1",
     "@swc/core": "1.15.8",
     "@swc/helpers": "0.5.18",
-    "@types/html-to-text": "^9.0.4",
     "@types/node": "20.19.9",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -104,6 +105,7 @@
     "prettier": "^3.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-email": "^6.9.3",
     "react-markdown": "^10.1.0",
     "remark-directive": "^4.0.0",
     "remark-frontmatter": "^5.0.0",
@@ -149,7 +151,8 @@
               "@chakra-email/core",
               "chakra-email",
               "@chakra-email/chakra-v2",
-              "@chakra-email/preview"
+              "@chakra-email/preview",
+              "@chakra-email/react-email"
             ],
             "target": "build",
             "params": "ignore"
@@ -181,7 +184,8 @@
               "@chakra-email/core",
               "chakra-email",
               "@chakra-email/chakra-v2",
-              "@chakra-email/preview"
+              "@chakra-email/preview",
+              "@chakra-email/react-email"
             ],
             "target": "build",
             "params": "ignore"

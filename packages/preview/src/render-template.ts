@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { render, renderPlainText } from '@chakra-email/core';
+import { chakraEmailRenderer, type EmailRenderer } from '@chakra-email/core';
 import {
   cloneElement,
   createElement,
@@ -17,6 +17,7 @@ export type TemplateModule = Record<string, unknown> & { default?: unknown };
 export interface RenderTemplateOptions {
   module: TemplateModule;
   props?: unknown;
+  renderer?: EmailRenderer;
   template: RegisteredTemplate;
   variant?: string;
 }
@@ -145,11 +146,12 @@ export async function renderTemplate(
   const customProps = normalizeJsonObject(options.props, 'props');
   const props = { ...baseProps, ...variantProps, ...customProps };
   const element = createTemplateElement(component, props);
-  const [html, text, source] = await Promise.all([
-    render(element, { pretty: true }),
-    renderPlainText(element),
+  const renderer = options.renderer ?? chakraEmailRenderer;
+  const [output, source] = await Promise.all([
+    renderer.render(element, { pretty: true }),
     readFile(options.template.absolutePath, 'utf8'),
   ]);
+  const { html, text } = output;
 
   return {
     html,

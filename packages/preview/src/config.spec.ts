@@ -64,6 +64,16 @@ describe('preview config', () => {
     );
   });
 
+  it('preserves a server-side renderer without serializing it', () => {
+    const renderer = {
+      render: vi.fn(async () => ({ html: '<p>HTML</p>', text: 'Text' })),
+    };
+
+    expect(
+      normalizeConfig({ renderer }, undefined, '/workspace').renderer,
+    ).toBe(renderer);
+  });
+
   it('rejects a circular preview theme', () => {
     const theme: Record<string, unknown> = {};
     theme['self'] = theme;

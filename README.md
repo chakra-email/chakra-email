@@ -255,6 +255,7 @@ const output = await renderEmail(<Email />, { pretty: true });
 - `@chakra-email/chakra-v2` - adapter for Chakra UI v2-style theme objects.
 - `@chakra-email/core` - shared implementation for adapter authors and custom tooling.
 - `@chakra-email/preview` - local template discovery, live rendering, and browser preview tooling.
+- `@chakra-email/react-email` - optional React Email renderer integration for preview and export tooling.
 
 Most applications should start with `chakra-email`.
 
