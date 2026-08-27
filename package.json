@@ -51,7 +51,7 @@
     "format:check": "npm exec nx -- format:check",
     "lint": "npm exec nx -- run-many -t lint",
     "pack:dry": "npm run build && npm run smoke:exports && npm run pack:inspect",
-    "pack:inspect": "npm pack --workspace @chakra-email/core --workspace chakra-email --workspace @chakra-email/chakra-v2 --workspace @chakra-email/preview --workspace @chakra-email/react-email --dry-run --cache ./.npm-cache",
+    "pack:inspect": "npm pack --workspace @chakra-email/core --workspace chakra-email --workspace @chakra-email/chakra-v2 --workspace @chakra-email/preview --workspace @chakra-email/react-email --workspace @chakra-email/code-block --workspace @chakra-email/markdown --dry-run --cache ./.npm-cache",
     "release:check": "npm run audit:ci && npm run format:check && npm run lint && npm run test:release && npm run build && npm run typecheck && npm run examples:check && npm run test:coverage && npm run smoke:exports && npm run pack:inspect && npm run smoke:consumer",
     "site:build": "npm exec nx -- build site",
     "site:dev": "npm exec nx -- serve site",
@@ -152,7 +152,9 @@
               "chakra-email",
               "@chakra-email/chakra-v2",
               "@chakra-email/preview",
-              "@chakra-email/react-email"
+              "@chakra-email/react-email",
+              "@chakra-email/code-block",
+              "@chakra-email/markdown"
             ],
             "target": "build",
             "params": "ignore"
@@ -185,7 +187,9 @@
               "chakra-email",
               "@chakra-email/chakra-v2",
               "@chakra-email/preview",
-              "@chakra-email/react-email"
+              "@chakra-email/react-email",
+              "@chakra-email/code-block",
+              "@chakra-email/markdown"
             ],
             "target": "build",
             "params": "ignore"
@@ -203,7 +207,10 @@
               "@chakra-email/core",
               "chakra-email",
               "@chakra-email/chakra-v2",
-              "@chakra-email/preview"
+              "@chakra-email/preview",
+              "@chakra-email/react-email",
+              "@chakra-email/code-block",
+              "@chakra-email/markdown"
             ],
             "target": "build",
             "params": "ignore"

@@ -1,4 +1,6 @@
 const exportChecks = new Map([
+  ['@chakra-email/code-block', ['CodeBlock', 'plainTextHighlighter']],
+  ['@chakra-email/markdown', ['Markdown']],
   [
     '@chakra-email/preview',
     ['createPreviewServer', 'defineConfig', 'lintRenderedEmail'],
@@ -6,11 +8,19 @@ const exportChecks = new Map([
   ['@chakra-email/react-email', ['reactEmailRenderer']],
   [
     '@chakra-email/core',
-    ['Blockquote', 'Button', 'Code', 'Table', 'ThemeProvider', 'render'],
+    [
+      'Blockquote',
+      'Button',
+      'Code',
+      'Font',
+      'Table',
+      'ThemeProvider',
+      'render',
+    ],
   ],
   [
     '@chakra-email/core/components',
-    ['Blockquote', 'Button', 'Code', 'Pre', 'Table', 'Text'],
+    ['Blockquote', 'Button', 'Code', 'Font', 'Pre', 'Table', 'Text'],
   ],
   ['@chakra-email/core/components/Blockquote', ['Blockquote']],
   ['@chakra-email/core/components/Button', ['Button']],

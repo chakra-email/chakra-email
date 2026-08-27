@@ -146,15 +146,17 @@ The keys are available from `chakraEmailRecipeKeys`, and the complete default ma
 
 Multipart slot recipes are:
 
-| Key         | Components                    | Slots                                                                        |
-| ----------- | ----------------------------- | ---------------------------------------------------------------------------- |
-| `button`    | `Button`                      | `root`, `cell`, `link`                                                       |
-| `container` | `Container`                   | `root`, `cell`                                                               |
-| `list`      | `List`, `ListItem`            | `root`, `item`                                                               |
-| `preview`   | `Preview`                     | `root`, `spacer`                                                             |
-| `section`   | `Section`                     | `root`, `cell`                                                               |
-| `stack`     | `Stack`                       | `root`, `item`                                                               |
-| `table`     | `Table` and its subcomponents | `root`, `header`, `body`, `footer`, `row`, `columnHeader`, `cell`, `caption` |
+| Key         | Components                    | Slots                                                                                                                                       |
+| ----------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `button`    | `Button`                      | `root`, `cell`, `link`                                                                                                                      |
+| `codeBlock` | `@chakra-email/code-block`    | `root`, `code`, `line`, `lineNumber`, `token`                                                                                               |
+| `container` | `Container`                   | `root`, `cell`                                                                                                                              |
+| `list`      | `List`, `ListItem`            | `root`, `item`                                                                                                                              |
+| `markdown`  | `@chakra-email/markdown`      | `root`, `heading`, `paragraph`, `link`, `blockquote`, `list`, `listItem`, `code`, `pre`, `hr`, `table`, `tableHeader`, `tableCell`, `image` |
+| `preview`   | `Preview`                     | `root`, `spacer`                                                                                                                            |
+| `section`   | `Section`                     | `root`, `cell`                                                                                                                              |
+| `stack`     | `Stack`                       | `root`, `item`                                                                                                                              |
+| `table`     | `Table` and its subcomponents | `root`, `header`, `body`, `footer`, `row`, `columnHeader`, `cell`, `caption`                                                                |
 
 The keys are available from `chakraEmailSlotRecipeKeys`, and the complete default map is exported as `chakraEmailSlotRecipes`. `Table` propagates its `size` and `variant` selections to all nested table slots.
 

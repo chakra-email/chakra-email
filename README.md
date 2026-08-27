@@ -123,7 +123,21 @@ programmatic API, and Nx target configuration.
 
 ## Markdown Bodies
 
-Markdown rendering is easiest when your markdown parser maps elements to Chakra Email components. This keeps the rendered HTML email-safe while letting the email body come from a markdown document.
+Install the optional Markdown package for a ready-to-use, recipe-driven GFM renderer:
+
+```bash
+npm install @chakra-email/markdown
+```
+
+```tsx
+import { Markdown } from '@chakra-email/markdown';
+
+<Markdown codeBlockLineNumbers>{markdown}</Markdown>;
+```
+
+Fenced code uses the optional `@chakra-email/code-block` package, which is installed with the Markdown adapter. Both packages expose slot recipes and CodeBlock accepts a synchronous Prism, Shiki, or custom highlighter adapter.
+
+If you need complete control of the AST mapping, use `react-markdown` directly. Mapping its elements to Chakra Email components keeps the rendered HTML email-safe while letting the email body come from a markdown document.
 
 For example, with `react-markdown`:
 
@@ -256,6 +270,8 @@ const output = await renderEmail(<Email />, { pretty: true });
 - `@chakra-email/core` - shared implementation for adapter authors and custom tooling.
 - `@chakra-email/preview` - local template discovery, live rendering, and browser preview tooling.
 - `@chakra-email/react-email` - optional React Email renderer integration for preview and export tooling.
+- `@chakra-email/code-block` - optional recipe-driven code blocks with a pluggable highlighter.
+- `@chakra-email/markdown` - optional GFM rendering through email-safe Chakra components.
 
 Most applications should start with `chakra-email`.
 

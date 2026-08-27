@@ -3,8 +3,10 @@ import { defineSlotRecipe } from './recipes.js';
 
 export const chakraEmailSlotRecipeKeys = {
   button: 'chakraEmailButton',
+  codeBlock: 'chakraEmailCodeBlock',
   container: 'chakraEmailContainer',
   list: 'chakraEmailList',
+  markdown: 'chakraEmailMarkdown',
   preview: 'chakraEmailPreview',
   section: 'chakraEmailSection',
   stack: 'chakraEmailStack',
@@ -66,6 +68,89 @@ export const chakraEmailContainerSlotRecipe = defineSlotRecipe({
   base: {
     root: { w: 'full', maxW: '600px' },
   },
+});
+
+export const chakraEmailCodeBlockSlotRecipe = defineSlotRecipe({
+  className: 'chakra-email-code-block',
+  slots: ['root', 'code', 'line', 'lineNumber', 'token'],
+  base: {
+    root: {
+      m: '0 0 16px',
+      p: 4,
+      bg: 'bg.subtle',
+      color: 'fg',
+      rounded: 'md',
+      fontFamily: 'mono',
+      lineHeight: 'base',
+      style: { overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' },
+    },
+    code: { fontFamily: 'mono' },
+    line: {},
+    lineNumber: {
+      display: 'inline-block',
+      color: 'fg.muted',
+      mr: 4,
+      textAlign: 'right',
+    },
+    token: { fontFamily: 'mono' },
+  },
+  variants: {
+    size: {
+      sm: { root: { fontSize: 'xs', p: 3 } },
+      md: { root: { fontSize: 'sm', p: 4 } },
+      lg: { root: { fontSize: 'md', p: 5 } },
+    },
+    variant: {
+      subtle: { root: { bg: 'bg.subtle' } },
+      outline: {
+        root: { bg: 'bg', border: 'base', borderColor: 'border' },
+      },
+      plain: { root: { bg: 'transparent', p: 0, rounded: 'none' } },
+    },
+  },
+  defaultVariants: { size: 'md', variant: 'subtle' },
+});
+
+export const chakraEmailMarkdownSlotRecipe = defineSlotRecipe({
+  className: 'chakra-email-markdown',
+  slots: [
+    'root',
+    'heading',
+    'paragraph',
+    'link',
+    'blockquote',
+    'list',
+    'listItem',
+    'code',
+    'pre',
+    'hr',
+    'table',
+    'tableHeader',
+    'tableCell',
+    'image',
+  ],
+  base: {
+    root: { color: 'fg', fontFamily: 'body' },
+    link: { color: 'accent' },
+    table: { w: 'full' },
+    image: { maxW: 'full' },
+  },
+  variants: {
+    size: {
+      sm: {
+        root: { fontSize: 'sm' },
+        paragraph: { fontSize: 'sm' },
+        list: { fontSize: 'sm' },
+      },
+      md: {},
+      lg: {
+        root: { fontSize: 'lg' },
+        paragraph: { fontSize: 'lg' },
+        list: { fontSize: 'lg' },
+      },
+    },
+  },
+  defaultVariants: { size: 'md' },
 });
 
 export const chakraEmailListSlotRecipe = defineSlotRecipe({
@@ -165,8 +250,10 @@ export const chakraEmailTableSlotRecipe = defineSlotRecipe({
 
 export const chakraEmailSlotRecipes = {
   [chakraEmailSlotRecipeKeys.button]: chakraEmailButtonSlotRecipe,
+  [chakraEmailSlotRecipeKeys.codeBlock]: chakraEmailCodeBlockSlotRecipe,
   [chakraEmailSlotRecipeKeys.container]: chakraEmailContainerSlotRecipe,
   [chakraEmailSlotRecipeKeys.list]: chakraEmailListSlotRecipe,
+  [chakraEmailSlotRecipeKeys.markdown]: chakraEmailMarkdownSlotRecipe,
   [chakraEmailSlotRecipeKeys.preview]: chakraEmailPreviewSlotRecipe,
   [chakraEmailSlotRecipeKeys.section]: chakraEmailSectionSlotRecipe,
   [chakraEmailSlotRecipeKeys.stack]: chakraEmailStackSlotRecipe,

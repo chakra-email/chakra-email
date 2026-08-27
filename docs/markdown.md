@@ -1,10 +1,26 @@
 # Markdown
 
-Chakra Email does not bundle a markdown parser. Instead, use the markdown parser you prefer and map markdown elements to Chakra Email components.
+Chakra Email keeps markdown parsing out of its core runtime. Install the optional adapter for a ready-to-use, email-safe GFM mapping:
 
-This keeps the core package small and avoids forcing a markdown AST dependency on users who write templates directly in JSX.
+```bash
+npm install @chakra-email/markdown
+```
 
-## React Markdown Example
+```tsx
+import { Markdown } from '@chakra-email/markdown';
+
+export function MarkdownBody({ markdown }: { markdown: string }) {
+  return <Markdown codeBlockLineNumbers>{markdown}</Markdown>;
+}
+```
+
+Use the `chakraEmailMarkdown` slot recipe to customize document elements and `chakraEmailCodeBlock` to customize fenced code. CodeBlock also accepts a synchronous `highlighter` adapter, keeping Prism, Shiki, or another syntax engine optional.
+
+For complete control, use the markdown parser you prefer and map markdown elements to Chakra Email components yourself.
+
+This package split keeps the core package small and avoids forcing a markdown AST dependency on users who write templates directly in JSX.
+
+## Custom React Markdown Example
 
 ```bash
 npm install react-markdown

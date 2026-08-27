@@ -40,6 +40,21 @@ export default [
               ],
             },
             {
+              sourceTag: 'scope:chakra-email-code-block',
+              onlyDependOnLibsWithTags: [
+                'scope:chakra-email-core',
+                'scope:chakra-email-code-block',
+              ],
+            },
+            {
+              sourceTag: 'scope:chakra-email-markdown',
+              onlyDependOnLibsWithTags: [
+                'scope:chakra-email-core',
+                'scope:chakra-email-code-block',
+                'scope:chakra-email-markdown',
+              ],
+            },
+            {
               sourceTag: 'scope:chakra-email-preview',
               onlyDependOnLibsWithTags: [
                 'scope:chakra-email-core',

@@ -1,12 +1,14 @@
 # Package Architecture
 
-The workspace publishes four packages:
+The workspace publishes seven packages:
 
 - `chakra-email` - main application-facing package.
 - `@chakra-email/chakra-v2` - adapter for Chakra UI v2-style theme objects.
 - `@chakra-email/core` - shared components, renderer, style system, theme resolver, and tests.
 - `@chakra-email/preview` - development-only CLI, template runner, local server, and bundled browser UI.
 - `@chakra-email/react-email` - optional React Email renderer adapter for preview and export tooling.
+- `@chakra-email/code-block` - optional themeable code rendering with a pluggable syntax highlighter.
+- `@chakra-email/markdown` - optional GFM rendering through the email-safe component layer.
 
 ## Why Rendering Lives In Core
 
@@ -34,7 +36,7 @@ Potential future splits can be added without changing the main package API:
 - `@chakra-email/components` if component-only installs become common.
 - `@chakra-email/render` if render-only tooling becomes common.
 
-For the initial release, these four packages keep runtime adapters, shared
+For the initial release, these seven packages keep runtime adapters, shared
 rendering, and development tooling behind clear boundaries.
 
 ## Local Package Testing With Yalc
@@ -45,13 +47,15 @@ Use the root Nx yalc targets when you want to test the publishable packages in a
 npx nx run chakra-email-monorepo:yalc-publish
 ```
 
-That target builds the five publishable packages, then publishes them to your local yalc store in dependency-safe order:
+That target builds the seven publishable packages, then publishes them to your local yalc store in dependency-safe order:
 
 1. `@chakra-email/core`
-2. `@chakra-email/preview`
-3. `@chakra-email/react-email`
-4. `chakra-email`
-5. `@chakra-email/chakra-v2`
+2. `@chakra-email/code-block`
+3. `@chakra-email/markdown`
+4. `@chakra-email/preview`
+5. `@chakra-email/react-email`
+6. `chakra-email`
+7. `@chakra-email/chakra-v2`
 
 If the packages are already installed in a consumer app with yalc and you want to push updates immediately, run:
 
@@ -66,6 +70,7 @@ yalc add chakra-email @chakra-email/core
 yalc add @chakra-email/chakra-v2
 yalc add --dev @chakra-email/preview
 yalc add --dev @chakra-email/react-email
+yalc add @chakra-email/code-block @chakra-email/markdown
 ```
 
 The root npm aliases are available too:

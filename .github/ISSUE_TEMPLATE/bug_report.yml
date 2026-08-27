@@ -27,7 +27,10 @@ body:
         - chakra-email
         - '@chakra-email/chakra-v2'
         - '@chakra-email/core'
+        - '@chakra-email/code-block'
+        - '@chakra-email/markdown'
         - '@chakra-email/preview'
+        - '@chakra-email/react-email'
         - Not sure
     validations:
       required: true

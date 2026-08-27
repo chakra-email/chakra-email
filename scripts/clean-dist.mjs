@@ -4,7 +4,9 @@ import { join } from 'node:path';
 const packageNames = [
   'chakra-email',
   'chakra-email-v2',
+  'code-block',
   'core',
+  'markdown',
   'preview',
   'react-email',
 ];

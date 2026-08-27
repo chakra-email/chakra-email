@@ -15,6 +15,8 @@ const packageNames = [
   '@chakra-email/chakra-v2',
   '@chakra-email/preview',
   '@chakra-email/react-email',
+  '@chakra-email/code-block',
+  '@chakra-email/markdown',
 ];
 const commandEnvironment = {
   ...process.env,
@@ -72,7 +74,9 @@ try {
         type: 'module',
         dependencies: {
           '@chakra-email/chakra-v2': tarballs.get('@chakra-email/chakra-v2'),
+          '@chakra-email/code-block': tarballs.get('@chakra-email/code-block'),
           '@chakra-email/core': tarballs.get('@chakra-email/core'),
+          '@chakra-email/markdown': tarballs.get('@chakra-email/markdown'),
           '@chakra-email/preview': tarballs.get('@chakra-email/preview'),
           '@chakra-email/react-email': tarballs.get(
             '@chakra-email/react-email',
@@ -98,6 +102,8 @@ try {
     `import React from 'react';
 import { ThemeProvider } from '@chakra-email/core';
 import { ChakraEmailV2Provider } from '@chakra-email/chakra-v2';
+import { CodeBlock } from '@chakra-email/code-block';
+import { Markdown } from '@chakra-email/markdown';
 import {
   createPreviewServer,
   defineConfig,
@@ -122,6 +128,18 @@ if (
 
 if (typeof reactEmailRenderer !== 'function') {
   throw new Error('@chakra-email/react-email did not expose its renderer adapter.');
+}
+
+const markdownHtml = await render(
+  React.createElement(
+    ThemeProvider,
+    null,
+    React.createElement(Markdown, null, '# Packed markdown'),
+    React.createElement(CodeBlock, { code: 'const packed = true;' })
+  )
+);
+if (!markdownHtml.includes('Packed markdown') || !markdownHtml.includes('const packed = true;')) {
+  throw new Error('The optional content packages did not render.');
 }
 
 const email = React.createElement(
@@ -218,6 +236,15 @@ if (typeof reactEmailAdapter.reactEmailRenderer !== 'function') {
   throw new Error('@chakra-email/react-email did not expose its require(esm) API.');
 }
 
+const codeBlockPackage = require('@chakra-email/code-block');
+const markdownPackage = require('@chakra-email/markdown');
+if (
+  typeof codeBlockPackage.CodeBlock !== 'function' ||
+  typeof markdownPackage.Markdown !== 'function'
+) {
+  throw new Error('Optional content packages did not expose require(esm) APIs.');
+}
+
 const packageSubpaths = [
   '@chakra-email/core/components',
   '@chakra-email/core/render',
@@ -248,6 +275,8 @@ console.log('ok packed require(esm) runtime and subpaths');
     join(consumerDirectory, 'smoke.tsx'),
     `import type { ComponentType, ReactElement } from 'react';
 import { ThemeProvider, type ThemeProviderProps } from '@chakra-email/core';
+import { CodeBlock, type CodeBlockProps } from '@chakra-email/code-block';
+import { Markdown, type MarkdownProps } from '@chakra-email/markdown';
 import * as CoreComponents from '@chakra-email/core/components';
 import * as CoreRender from '@chakra-email/core/render';
 import * as CoreSystem from '@chakra-email/core/system';
@@ -277,6 +306,8 @@ import * as ChakraTheme from 'chakra-email/theme';
 const CoreProvider: ComponentType<ThemeProviderProps> = ThemeProvider;
 const V2Provider: ComponentType<ChakraEmailV2ProviderProps> =
   ChakraEmailV2Provider;
+const codeBlockProps: CodeBlockProps = { code: 'const typed = true;' };
+const markdownProps: MarkdownProps = { children: '# Typed markdown' };
 const email: ReactElement = (
   <CoreProvider>
     <V2Provider>
@@ -296,6 +327,8 @@ const previewConfig: PreviewConfig = defineConfig({
   port: 0,
 });
 void reactEmailRenderer();
+void <CodeBlock {...codeBlockProps} />;
+void <Markdown {...markdownProps} />;
 void createPreviewServer({ config: previewConfig, port: 0 });
 const lintFindings: PreviewLintFinding[] = lintRenderedEmail('<main>Test</main>');
 void lintFindings;
