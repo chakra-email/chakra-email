@@ -294,6 +294,7 @@ Most applications should start with `chakra-email`.
 - [Markdown body](examples/markdown-body)
 - [Chakra UI v2 adapter](examples/chakra-v2)
 - [Preview workspace](examples/preview)
+- [Copyable transactional patterns](examples/patterns)
 
 ## FAQ
 
