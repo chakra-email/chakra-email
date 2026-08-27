@@ -8,6 +8,9 @@ export interface PreviewTemplate {
 }
 
 export interface PreviewTemplatesResponse {
+  capabilities: {
+    testSend: boolean;
+  };
   templates: PreviewTemplate[];
 }
 
@@ -15,6 +18,16 @@ export interface PreviewRenderRequest {
   id: string;
   props?: JsonObject;
   variant?: string;
+}
+
+export interface PreviewTestSendRequest extends PreviewRenderRequest {
+  subject?: string;
+  to: string;
+}
+
+export interface PreviewTestSendResponse {
+  id?: string;
+  message: string;
 }
 
 export type PreviewLintSeverity = 'error' | 'warning' | 'info';

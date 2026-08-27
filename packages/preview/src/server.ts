@@ -17,6 +17,8 @@ import { createPreviewHttpHandler } from './http-handler.js';
 import type {
   PreviewRenderRequest,
   PreviewRenderResponse,
+  PreviewTestSendRequest,
+  PreviewTestSendResponse,
 } from './protocol.js';
 import { renderTemplate } from './render-template.js';
 import {
@@ -195,6 +197,35 @@ export async function createPreviewServer(
     });
   };
 
+  const sendRequest = config.testSend
+    ? async (
+        request: PreviewTestSendRequest,
+      ): Promise<PreviewTestSendResponse> => {
+        const template = registry.byId.get(request.id);
+        if (!template) {
+          throw new Error('Template was not found.');
+        }
+        const rendered = await renderRequest(request);
+        const result = await config.testSend?.send({
+          html: rendered.html,
+          props: rendered.props,
+          subject: request.subject?.trim() || rendered.name,
+          template: {
+            id: template.id,
+            name: template.name,
+            path: template.path,
+          },
+          text: rendered.text,
+          to: request.to,
+          variant: request.variant,
+        });
+        return {
+          ...(result?.id ? { id: result.id } : {}),
+          message: result?.message || `Test email sent to ${request.to}.`,
+        };
+      }
+    : undefined;
+
   const getRegistry = (): TemplateRegistry => registry;
   const handler = createPreviewHttpHandler({
     allowRemote,
@@ -202,6 +233,7 @@ export async function createPreviewServer(
     events,
     getRegistry,
     render: renderRequest,
+    send: sendRequest,
     token,
     uiRoot,
   });

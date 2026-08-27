@@ -98,6 +98,8 @@ file. `templates` and `assets` are resolved relative to `root`; `include` and
   including `tokens`, `semanticTokens`, `recipes`, and `slotRecipes`.
 - `renderer` accepts an `EmailRenderer` implementation and remains on the
   preview server; functions are never serialized into the browser UI.
+- `testSend` accepts a server-only delivery adapter. When configured, the
+  inspector exposes recipient and subject fields for sending the active render.
 
 The theme is serialized by the local preview server and merged over the
 preview UI defaults in the browser. Keep it data-only: functions and a
@@ -228,6 +230,41 @@ Export includes the default props and every named preview variant. Use
 `--default-only` to omit variants, `--format html|text|both` to select output,
 or `--compact` to skip HTML pretty-printing. Output paths mirror template paths
 and variant filenames include a deterministic suffix to prevent collisions.
+
+## Test-send adapters
+
+Test sending is opt-in and provider-neutral. Supply an adapter in the local
+config; it receives the same HTML, text, props, and variant currently rendered
+by the preview:
+
+```ts
+import { Resend } from 'resend';
+import { defineConfig } from '@chakra-email/preview';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export default defineConfig({
+  testSend: {
+    async send(message) {
+      const { data, error } = await resend.emails.send({
+        from: 'Preview <preview@example.com>',
+        to: message.to,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      });
+
+      if (error) throw new Error(error.message);
+      return { id: data?.id };
+    },
+  },
+});
+```
+
+Provider SDKs and credentials stay in the consuming project. The adapter runs
+only in the preview server and is not serialized into the browser UI. The
+preview package does not send anything unless a developer submits the local
+test-send form.
 
 ## Nx Libraries
 

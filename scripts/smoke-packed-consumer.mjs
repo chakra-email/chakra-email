@@ -301,6 +301,7 @@ import {
   lintRenderedEmail,
   type PreviewLintFinding,
   type PreviewConfig,
+  type PreviewTestTransport,
 } from '@chakra-email/preview';
 import { reactEmailRenderer } from '@chakra-email/react-email';
 import * as V2Components from '@chakra-email/chakra-v2/components';
@@ -331,10 +332,16 @@ const email: ReactElement = (
 );
 
 void render(email);
+const testSend: PreviewTestTransport = {
+  async send(message) {
+    return { id: message.to };
+  },
+};
 const previewConfig: PreviewConfig = defineConfig({
   root: '.',
   templates: 'emails',
   port: 0,
+  testSend,
 });
 void reactEmailRenderer();
 void <CodeBlock {...codeBlockProps} />;

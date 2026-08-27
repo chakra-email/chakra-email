@@ -74,6 +74,14 @@ describe('preview config', () => {
     ).toBe(renderer);
   });
 
+  it('preserves a server-only test-send transport', () => {
+    const testSend = { send: vi.fn(async () => ({ id: 'message-id' })) };
+
+    expect(
+      normalizeConfig({ testSend }, undefined, '/workspace').testSend,
+    ).toBe(testSend);
+  });
+
   it('rejects a circular preview theme', () => {
     const theme: Record<string, unknown> = {};
     theme['self'] = theme;
@@ -92,6 +100,7 @@ describe('preview config', () => {
     [{ host: 'http://localhost' }, 'hostname'],
     [{ port: 65_536 }, 'integer'],
     [{ include: [] }, 'include'],
+    [{ testSend: {} as never }, 'send(message)'],
   ] as const)('rejects invalid config %#', (input, message) => {
     expect(() =>
       normalizeConfig(input, '/workspace/chakra-email.config.ts'),

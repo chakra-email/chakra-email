@@ -11,6 +11,9 @@ export type {
   PreviewConfig,
   ResolvedPreviewConfig,
   PreviewThemeConfig,
+  PreviewTestSendMessage,
+  PreviewTestSendResult,
+  PreviewTestTransport,
 } from './config.js';
 export { createPreviewServer } from './server.js';
 export { exportTemplates } from './export-templates.js';
@@ -41,4 +44,6 @@ export type {
   PreviewRenderResponse,
   PreviewTemplate,
   PreviewTemplatesResponse,
+  PreviewTestSendRequest,
+  PreviewTestSendResponse,
 } from './protocol.js';

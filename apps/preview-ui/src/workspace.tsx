@@ -11,6 +11,7 @@ import {
   Grid,
   Heading,
   IconButton,
+  Input,
   Link,
   NativeSelect,
   Portal,
@@ -111,9 +112,12 @@ export type PreviewWorkspaceProps = {
   onRemoteImagesChange(checked: boolean): void;
   onVariantChange(variant: string): void;
   onPropsTextChange(value: string): void;
+  onSendToChange(value: string): void;
+  onSendSubjectChange(value: string): void;
   onApplyProps(): void;
   onCopy(): void;
   onDownload(): void;
+  onSend(): void;
   onRetry(): void;
   onDismissError(): void;
 };
@@ -698,6 +702,95 @@ function Inspector(props: PreviewWorkspaceProps) {
           'Apply props'
         )}
       </Button>
+
+      {state.canTestSend ? (
+        <Stack
+          as="form"
+          className="test-send"
+          css={styles.sendRoot}
+          onSubmit={(event) => {
+            event.preventDefault();
+            props.onSend();
+          }}
+        >
+          <Box css={styles.sendHeader}>
+            <Text css={styles.eyebrow}>Delivery check</Text>
+            <Heading as="h3" fontSize="sm">
+              Send a test email
+            </Heading>
+          </Box>
+          <Stack css={styles.sendFields}>
+            <Field.Root invalid={Boolean(state.sendError)}>
+              <Field.Label htmlFor="test-send-to" css={styles.fieldLabel}>
+                Recipient
+              </Field.Label>
+              <Input
+                id="test-send-to"
+                name="to"
+                type="email"
+                value={state.sendTo}
+                autoComplete="email"
+                placeholder="you@example.com"
+                css={styles.sendInput}
+                aria-describedby={
+                  state.sendError ? 'test-send-error' : undefined
+                }
+                onInput={(event) =>
+                  props.onSendToChange(event.currentTarget.value)
+                }
+              />
+            </Field.Root>
+            <Field.Root>
+              <Field.Label htmlFor="test-send-subject" css={styles.fieldLabel}>
+                Subject
+              </Field.Label>
+              <Input
+                id="test-send-subject"
+                name="subject"
+                value={state.sendSubject}
+                placeholder={state.result?.name ?? 'Template name'}
+                css={styles.sendInput}
+                onInput={(event) =>
+                  props.onSendSubjectChange(event.currentTarget.value)
+                }
+              />
+            </Field.Root>
+          </Stack>
+          <Button
+            type="submit"
+            data-action="test-send"
+            disabled={!state.result || state.sending}
+            css={styles.sendAction}
+          >
+            {state.sending ? (
+              <>
+                <Spinner size="xs" />
+                Sending
+              </>
+            ) : (
+              'Send test'
+            )}
+          </Button>
+          {state.sendError ? (
+            <Text
+              id="test-send-error"
+              role="alert"
+              color="preview.danger"
+              css={styles.sendFeedback}
+            >
+              {state.sendError}
+            </Text>
+          ) : state.sendMessage ? (
+            <Text
+              role="status"
+              color="preview.accent"
+              css={styles.sendFeedback}
+            >
+              {state.sendMessage}
+            </Text>
+          ) : null}
+        </Stack>
+      ) : null}
 
       <LintPanel findings={state.result?.lint ?? null} />
 

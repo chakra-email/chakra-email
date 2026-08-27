@@ -9,6 +9,30 @@ export interface JsonObject {
   [key: string]: JsonValue;
 }
 
+export interface PreviewTestSendMessage {
+  html: string;
+  props: JsonObject;
+  subject: string;
+  template: {
+    id: string;
+    name: string;
+    path: string;
+  };
+  text: string;
+  to: string;
+  variant?: string;
+}
+
+export interface PreviewTestSendResult {
+  id?: string;
+  message?: string;
+}
+
+/** Server-only adapter for delivering a rendered preview through any provider. */
+export interface PreviewTestTransport {
+  send(message: PreviewTestSendMessage): Promise<PreviewTestSendResult | void>;
+}
+
 /**
  * A serializable Chakra theme fragment applied to the preview workspace.
  *
@@ -37,6 +61,8 @@ export interface PreviewConfig {
   theme?: PreviewThemeConfig;
   /** Server-side renderer used to produce matching HTML and plain-text output. */
   renderer?: EmailRenderer;
+  /** Optional server-only transport that enables test sending in the UI. */
+  testSend?: PreviewTestTransport;
 }
 
 export interface ResolvedPreviewConfig {
@@ -49,6 +75,7 @@ export interface ResolvedPreviewConfig {
   root: string;
   renderer?: EmailRenderer;
   templateRoots: readonly string[];
+  testSend?: PreviewTestTransport;
   theme: PreviewThemeConfig;
 }
 
@@ -140,6 +167,22 @@ function normalizeTheme(
   return normalized as PreviewThemeConfig;
 }
 
+function normalizeTestSend(
+  testSend: PreviewTestTransport | undefined,
+): PreviewTestTransport | undefined {
+  if (testSend === undefined) {
+    return undefined;
+  }
+  if (
+    typeof testSend !== 'object' ||
+    testSend === null ||
+    typeof testSend.send !== 'function'
+  ) {
+    throw new Error('testSend must provide an async send(message) function.');
+  }
+  return testSend;
+}
+
 export function normalizeConfig(
   config: PreviewConfig = {},
   configFile?: string,
@@ -192,6 +235,7 @@ export function normalizeConfig(
     root,
     renderer: config.renderer,
     templateRoots,
+    testSend: normalizeTestSend(config.testSend),
     theme: normalizeTheme(config.theme),
   };
 }

@@ -12,6 +12,11 @@ type RenderRequest = {
   props?: Record<string, unknown>;
 };
 
+type TestSendRequest = RenderRequest & {
+  subject?: string;
+  to: string;
+};
+
 class FakeEventSource extends EventTarget {
   public closed = false;
 
@@ -54,6 +59,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
   copyText: ReturnType<typeof vi.fn>;
   downloadText: ReturnType<typeof vi.fn>;
   renderRequests: RenderRequest[];
+  sendRequests: TestSendRequest[];
   setTemplates: (templates: Array<Record<string, string>>) => void;
 } {
   let templates: Array<Record<string, string>> = [
@@ -69,13 +75,17 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
     },
   ];
   const renderRequests: RenderRequest[] = [];
+  const sendRequests: TestSendRequest[] = [];
   const eventSource = new FakeEventSource();
   const copyText = vi.fn(async () => undefined);
   const downloadText = vi.fn(() => undefined);
   const fetcher = vi.fn(
     async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       if (input === '/api/templates') {
-        return jsonResponse({ templates });
+        return jsonResponse({
+          capabilities: { testSend: true },
+          templates,
+        });
       }
 
       if (input === '/api/render') {
@@ -121,6 +131,15 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
         });
       }
 
+      if (input === '/api/send') {
+        const request = JSON.parse(String(init?.body)) as TestSendRequest;
+        sendRequests.push(request);
+        return jsonResponse({
+          id: 'provider-id',
+          message: `Test email sent to ${request.to}.`,
+        });
+      }
+
       return jsonResponse({ message: 'Not found' }, 404);
     },
   );
@@ -147,6 +166,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
     copyText,
     downloadText,
     renderRequests,
+    sendRequests,
     setTemplates(nextTemplates) {
       templates = nextTemplates;
     },
@@ -318,6 +338,41 @@ describe('PreviewApplication', () => {
     expect(
       document.querySelector<HTMLAnchorElement>('.lint-panel a')?.href,
     ).toBe('https://www.caniemail.com/features/css-display-grid/');
+
+    harness.application.destroy();
+  });
+
+  it('validates and sends the active template through the configured transport', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+
+    getElement<HTMLButtonElement>('[data-action="test-send"]').click();
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      'valid recipient',
+    );
+    expect(harness.sendRequests).toHaveLength(0);
+
+    const recipient = getElement<HTMLInputElement>('#test-send-to');
+    recipient.value = 'ada@example.com';
+    recipient.dispatchEvent(new Event('input', { bubbles: true }));
+    const subject = getElement<HTMLInputElement>('#test-send-subject');
+    subject.value = 'A preview for Ada';
+    subject.dispatchEvent(new Event('input', { bubbles: true }));
+    getElement<HTMLButtonElement>('[data-action="test-send"]').click();
+
+    await vi.waitFor(() => {
+      expect(harness.sendRequests).toEqual([
+        {
+          id: 'welcome',
+          props: { name: 'Ada' },
+          subject: 'A preview for Ada',
+          to: 'ada@example.com',
+        },
+      ]);
+      expect(
+        document.querySelector('.test-send [role="status"]')?.textContent,
+      ).toContain('sent to ada@example.com');
+    });
 
     harness.application.destroy();
   });

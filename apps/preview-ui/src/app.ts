@@ -94,6 +94,12 @@ export type ApplicationState = {
   error: string | null;
   connection: ConnectionStatus;
   copied: boolean;
+  canTestSend: boolean;
+  sendTo: string;
+  sendSubject: string;
+  sending: boolean;
+  sendError: string | null;
+  sendMessage: string | null;
 };
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -163,7 +169,10 @@ function initialEmailColorMode(): EmailColorMode {
     : 'system';
 }
 
-function parseTemplates(value: unknown): TemplateSummary[] {
+function parseTemplates(value: unknown): {
+  canTestSend: boolean;
+  templates: TemplateSummary[];
+} {
   const candidates = Array.isArray(value)
     ? value
     : isRecord(value) && Array.isArray(value['templates'])
@@ -174,7 +183,7 @@ function parseTemplates(value: unknown): TemplateSummary[] {
     throw new Error('The preview server returned an invalid template list.');
   }
 
-  return candidates.flatMap((candidate) => {
+  const templates = candidates.flatMap((candidate) => {
     if (
       !isRecord(candidate) ||
       typeof candidate['id'] !== 'string' ||
@@ -188,6 +197,12 @@ function parseTemplates(value: unknown): TemplateSummary[] {
 
     return [{ id: candidate['id'], name: candidate['name'], path }];
   });
+
+  const capabilities = isRecord(value) ? value['capabilities'] : undefined;
+  const canTestSend =
+    isRecord(capabilities) && capabilities['testSend'] === true;
+
+  return { canTestSend, templates };
 }
 
 function parseRenderResult(value: unknown): RenderResult {
@@ -420,6 +435,12 @@ export class PreviewApplication {
     error: null,
     connection: 'connecting',
     copied: false,
+    canTestSend: false,
+    sendTo: '',
+    sendSubject: '',
+    sending: false,
+    sendError: null,
+    sendMessage: null,
   };
 
   public constructor(options: PreviewApplicationOptions) {
@@ -505,6 +526,20 @@ export class PreviewApplication {
     this.render();
   };
 
+  private readonly changeSendTo = (value: string): void => {
+    this.state.sendTo = value;
+    this.state.sendError = null;
+    this.state.sendMessage = null;
+    this.render();
+  };
+
+  private readonly changeSendSubject = (value: string): void => {
+    this.state.sendSubject = value;
+    this.state.sendError = null;
+    this.state.sendMessage = null;
+    this.render();
+  };
+
   private readonly retry = (): void => {
     if (this.state.templates.length === 0) {
       void this.loadTemplates(false);
@@ -534,6 +569,8 @@ export class PreviewApplication {
     this.state.appliedProps = null;
     this.state.propsDirty = false;
     this.state.propsError = null;
+    this.state.sendError = null;
+    this.state.sendMessage = null;
     void this.renderCurrent({ replaceEditor: true });
   }
 
@@ -555,7 +592,9 @@ export class PreviewApplication {
         throw await responseError(response);
       }
 
-      const templates = parseTemplates(await response.json());
+      const parsed = parseTemplates(await response.json());
+      const { templates } = parsed;
+      this.state.canTestSend = parsed.canTestSend;
       this.state.templates = templates;
       this.state.loadingTemplates = false;
 
@@ -704,6 +743,71 @@ export class PreviewApplication {
 
     this.state.propsError = null;
     await this.renderCurrent({ props, replaceEditor: true });
+  }
+
+  private async sendTestEmail(): Promise<void> {
+    const result = this.state.result;
+    const to = this.state.sendTo.trim();
+
+    if (!this.state.canTestSend || !result || this.state.sending) {
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(to)) {
+      this.state.sendError = 'Enter a valid recipient email address.';
+      this.state.sendMessage = null;
+      this.render();
+      return;
+    }
+
+    const body: {
+      id: string;
+      props: JsonRecord;
+      subject?: string;
+      to: string;
+      variant?: string;
+    } = {
+      id: result.id,
+      props: result.props,
+      to,
+    };
+    const subject = this.state.sendSubject.trim();
+    if (subject) {
+      body.subject = subject;
+    }
+    if (this.state.selectedVariant) {
+      body.variant = this.state.selectedVariant;
+    }
+
+    this.state.sending = true;
+    this.state.sendError = null;
+    this.state.sendMessage = null;
+    this.render();
+
+    try {
+      const response = await this.request('/api/send', {
+        body: JSON.stringify(body),
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'x-chakra-email-preview-token': this.token,
+        },
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw await responseError(response);
+      }
+      const payload: unknown = await response.json();
+      if (!isRecord(payload) || typeof payload['message'] !== 'string') {
+        throw new Error('The preview server returned an invalid send result.');
+      }
+      this.state.sendMessage = payload['message'];
+    } catch (error) {
+      this.state.sendError =
+        error instanceof Error ? error.message : 'Could not send the email.';
+    } finally {
+      this.state.sending = false;
+      this.render();
+    }
   }
 
   private async copyCurrentOutput(): Promise<void> {
@@ -901,6 +1005,8 @@ export class PreviewApplication {
           onRemoteImagesChange: this.changeRemoteImages,
           onVariantChange: this.changeVariant,
           onPropsTextChange: this.changePropsText,
+          onSendToChange: this.changeSendTo,
+          onSendSubjectChange: this.changeSendSubject,
           onApplyProps: () => {
             void this.applyProps();
           },
@@ -909,6 +1015,9 @@ export class PreviewApplication {
           },
           onDownload: () => {
             this.downloadCurrentOutput();
+          },
+          onSend: () => {
+            void this.sendTestEmail();
           },
           onRetry: this.retry,
           onDismissError: this.dismissError,

@@ -14,6 +14,7 @@ describe('preview HTTP handler', () => {
   let events: EventHub;
   let server: Server;
   const token = 'test-preview-token';
+  const send = vi.fn(async () => ({ id: 'sent-id', message: 'Delivered.' }));
 
   beforeEach(async () => {
     directory = await mkdtemp(join(tmpdir(), 'chakra-email-http-'));
@@ -64,12 +65,14 @@ describe('preview HTTP handler', () => {
       variants: [],
     };
     events = new EventHub();
+    send.mockClear();
     const handler = createPreviewHttpHandler({
       allowRemote: false,
       config,
       events,
       getRegistry: () => registry,
       render: async () => rendered,
+      send,
       token,
       uiRoot: join(directory, 'ui'),
     });
@@ -128,6 +131,7 @@ describe('preview HTTP handler', () => {
       headers: { 'x-chakra-email-preview-token': token },
     });
     await expect(templates.json()).resolves.toEqual({
+      capabilities: { testSend: true },
       templates: [
         { id: 'template-id', name: 'Welcome', path: 'emails/welcome.tsx' },
       ],
@@ -143,6 +147,45 @@ describe('preview HTTP handler', () => {
     });
     expect(rendered.status).toBe(200);
     await expect(rendered.json()).resolves.toMatchObject({ text: 'Hello' });
+  });
+
+  it('validates and delegates authenticated test sends', async () => {
+    const headers = {
+      'content-type': 'application/json',
+      'x-chakra-email-preview-token': token,
+    };
+    const sent = await fetch(`${baseUrl}/api/send`, {
+      body: JSON.stringify({
+        id: 'template-id',
+        props: { firstName: 'Ada' },
+        subject: 'Welcome Ada',
+        to: ' ada@example.com ',
+        variant: 'friendly',
+      }),
+      headers,
+      method: 'POST',
+    });
+
+    expect(sent.status).toBe(200);
+    await expect(sent.json()).resolves.toEqual({
+      id: 'sent-id',
+      message: 'Delivered.',
+    });
+    expect(send).toHaveBeenCalledWith({
+      id: 'template-id',
+      props: { firstName: 'Ada' },
+      subject: 'Welcome Ada',
+      to: 'ada@example.com',
+      variant: 'friendly',
+    });
+
+    const invalid = await fetch(`${baseUrl}/api/send`, {
+      body: JSON.stringify({ id: 'template-id', to: 'not-an-email' }),
+      headers,
+      method: 'POST',
+    });
+    expect(invalid.status).toBe(400);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('streams invalidation events over authenticated SSE', async () => {

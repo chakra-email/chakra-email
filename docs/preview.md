@@ -53,6 +53,9 @@ are omitted, discovery defaults to `./emails` below the resolved root.
 | `assets`    | Directory of static files made available by the local preview server. |
 | `host`      | Bind address; defaults to the loopback-only address `127.0.0.1`.      |
 | `port`      | Listening port; defaults to `4100`.                                   |
+| `renderer`  | Optional server-side email renderer adapter.                          |
+| `testSend`  | Optional server-side test-delivery adapter.                           |
+| `theme`     | JSON-safe theme and recipe overrides for the browser workspace.       |
 
 A configured `assets` directory may be absent while a project is being set up.
 The server still starts, and requests for missing assets return `404`.
@@ -281,6 +284,42 @@ await exportTemplates({
 });
 ```
 
+## Test Sending
+
+The preview can render the active template and hand it to any delivery
+provider through an optional server-only adapter:
+
+```ts
+import { Resend } from 'resend';
+import { defineConfig } from '@chakra-email/preview';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export default defineConfig({
+  testSend: {
+    async send({ html, subject, text, to }) {
+      const { data, error } = await resend.emails.send({
+        from: 'Preview <preview@example.com>',
+        to,
+        subject,
+        html,
+        text,
+      });
+
+      if (error) throw new Error(error.message);
+      return { id: data?.id };
+    },
+  },
+});
+```
+
+Configuring `testSend` adds a test-delivery form to the inspector. Leaving it
+out removes that UI and the endpoint remains unavailable. The transport also
+receives template metadata, effective props, and the selected variant, so an
+application can add logging or provider-specific metadata without a package
+adapter. Provider credentials remain in the server process and are never
+included in the browser configuration.
+
 ## Email Lint Checks
 
 Every rendered template is linted before the response reaches the browser. The
@@ -320,6 +359,10 @@ Treat preview props as local source code too. Do not put production credentials,
 access tokens, customer addresses, or other sensitive data in configuration,
 template fixtures, or the JSON props editor.
 
+A configured test-send transport is an external side effect. Use a dedicated
+development sender and recipient allow-list where the provider supports one;
+the preview validates request shape but cannot enforce provider account policy.
+
 ## Remote Image Privacy
 
 Remote images can reveal a developer's IP address, user agent, and request
@@ -334,9 +377,9 @@ in a delivered email, so replace it with an absolute public URL or attachment
 ## MVP Scope
 
 The `0.1.0` preview focuses on local template discovery, rendering, variants,
-and editable props. It is not currently:
+editable props, exports, and provider-neutral test sends. It is not currently:
 
-- an email-delivery or test-send service;
+- an email-delivery provider or inbox placement service;
 - a drag-and-drop visual editor;
 - a mailbox-client emulator or screenshot matrix;
 - a remote-image privacy proxy;

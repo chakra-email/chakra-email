@@ -11,6 +11,8 @@ import type {
   PreviewRenderRequest,
   PreviewRenderResponse,
   PreviewTemplatesResponse,
+  PreviewTestSendRequest,
+  PreviewTestSendResponse,
 } from './protocol.js';
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -47,6 +49,7 @@ export interface PreviewHttpDependencies {
   events: EventHub;
   getRegistry(): TemplateRegistry;
   render(request: PreviewRenderRequest): Promise<PreviewRenderResponse>;
+  send?(request: PreviewTestSendRequest): Promise<PreviewTestSendResponse>;
   token: string;
   uiRoot: string;
 }
@@ -201,6 +204,34 @@ function parseRenderRequest(value: unknown): PreviewRenderRequest {
   };
 }
 
+function parseTestSendRequest(value: unknown): PreviewTestSendRequest {
+  const renderRequest = parseRenderRequest(value);
+  const body = value as Record<string, unknown>;
+  if (typeof body.to !== 'string') {
+    throw new Error('Test send requires a recipient.');
+  }
+  const to = body.to.trim();
+  if (
+    to.length > 320 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(to) ||
+    /[\r\n]/u.test(to)
+  ) {
+    throw new Error('Enter a valid test recipient email address.');
+  }
+  if (body.subject !== undefined && typeof body.subject !== 'string') {
+    throw new Error('Test send subject must be a string.');
+  }
+  const subject = body.subject?.trim();
+  if (subject && (subject.length > 998 || /[\r\n]/u.test(subject))) {
+    throw new Error('Test send subject is invalid.');
+  }
+  return {
+    ...renderRequest,
+    ...(subject ? { subject } : {}),
+    to,
+  };
+}
+
 function safePath(root: string, requestPath: string): string | undefined {
   let decoded: string;
   try {
@@ -335,9 +366,65 @@ export function createPreviewHttpHandler(
             return;
           }
           const body: PreviewTemplatesResponse = {
+            capabilities: { testSend: Boolean(dependencies.send) },
             templates: dependencies.getRegistry().templates,
           };
           sendJson(response, 200, body);
+          return;
+        }
+
+        if (url.pathname === '/api/send') {
+          if (method !== 'POST') {
+            response.setHeader('allow', 'POST');
+            sendText(response, 405, 'Method not allowed.');
+            return;
+          }
+          if (!dependencies.send) {
+            sendJson(response, 404, {
+              error: { message: 'Test sending is not configured.' },
+            });
+            return;
+          }
+          if (!isSameOriginRequest(request)) {
+            sendJson(response, 403, {
+              error: { message: 'Cross-origin request rejected.' },
+            });
+            return;
+          }
+          if (
+            !request.headers['content-type']?.startsWith('application/json')
+          ) {
+            sendJson(response, 415, {
+              error: { message: 'Expected application/json.' },
+            });
+            return;
+          }
+          let sendRequest: PreviewTestSendRequest;
+          try {
+            sendRequest = parseTestSendRequest(await readJsonBody(request));
+          } catch (error) {
+            sendJson(
+              response,
+              400,
+              serializeError(error, dependencies.config.root),
+            );
+            return;
+          }
+          if (!dependencies.getRegistry().byId.has(sendRequest.id)) {
+            sendJson(response, 404, {
+              error: { message: 'Template was not found.' },
+            });
+            return;
+          }
+          try {
+            sendJson(response, 200, await dependencies.send(sendRequest));
+          } catch (error) {
+            sendJson(
+              response,
+              502,
+              serializeError(error, dependencies.config.root),
+            );
+          }
           return;
         }
 
