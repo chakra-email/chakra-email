@@ -6,6 +6,7 @@ Chakra Email components render email-safe HTML and accept Chakra-style style pro
 
 - `Html` - root document element.
 - `Head` - common email metadata.
+- `Font` - theme-aware font stacks and optional safe HTTP(S) web-font declarations. Place it inside `Head`.
 - `Preview` - hidden inbox preview text.
 - `Body` - email body wrapper.
 

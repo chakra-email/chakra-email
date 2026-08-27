@@ -229,7 +229,7 @@ allowlists still provide the final output safeguard.
 
 | Markdown or email need | Components                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------------ |
-| Document shell         | `Html`, `Head`, `Preview`, `Body`                                                                      |
+| Document shell         | `Html`, `Head`, `Font`, `Preview`, `Body`                                                              |
 | Layout                 | `Container`, `Section`, `Row`, `Column`, `Box`, `Stack`, `Spacer`                                      |
 | Text                   | `Text`, `Heading`, `Link`, `Badge`                                                                     |
 | Markdown blocks        | `Blockquote`, `Code`, `Pre`, `Hr`                                                                      |

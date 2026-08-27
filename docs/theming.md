@@ -158,7 +158,7 @@ Multipart slot recipes are:
 
 The keys are available from `chakraEmailSlotRecipeKeys`, and the complete default map is exported as `chakraEmailSlotRecipes`. `Table` propagates its `size` and `variant` selections to all nested table slots.
 
-`Head` has no recipe because it only emits document metadata and has no visual style surface.
+`Head` and `Font` have no recipes because they emit document metadata and CSS rather than visual component markup. `Font` still resolves `fontFamily` and `fallbackFontFamily` values from the nearest theme, so font tokens remain centrally customizable.
 
 ## Chakra UI v2-Style Themes
 

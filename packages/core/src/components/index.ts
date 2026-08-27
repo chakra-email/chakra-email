@@ -6,6 +6,7 @@ export * from './Button.js';
 export * from './Code.js';
 export * from './Column.js';
 export * from './Container.js';
+export * from './Font.js';
 export * from './Head.js';
 export * from './Heading.js';
 export * from './Hr.js';

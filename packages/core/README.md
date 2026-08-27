@@ -22,6 +22,7 @@ npm install @chakra-email/core react react-dom
 ## Includes
 
 - React email primitives.
+- Theme-aware font stacks and safe optional web-font declarations.
 - Markdown-body primitives for blockquotes, code, preformatted blocks, and tables.
 - Email-safe Chakra-style style prop mapping.
 - Chakra v3 token object and semantic token resolution.
