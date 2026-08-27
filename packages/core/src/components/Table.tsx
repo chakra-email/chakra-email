@@ -89,6 +89,7 @@ export function Table({ variant, size, children, ...props }: TableProps) {
 
   return (
     <table
+      data-text-format="dataTable"
       {...elementProps}
       cellPadding={0}
       cellSpacing={0}

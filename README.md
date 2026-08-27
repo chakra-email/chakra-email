@@ -240,13 +240,14 @@ allowlists still provide the final output safeguard.
 ## Rendering
 
 ```tsx
-import { render, renderPlainText } from 'chakra-email';
+import { render, renderEmail, renderPlainText } from 'chakra-email';
 
 const html = await render(<Email />, { pretty: true });
 const text = await renderPlainText(<Email />);
+const output = await renderEmail(<Email />, { pretty: true });
 ```
 
-`render` outputs static HTML with an email doctype. `renderPlainText` creates a plain-text version from the rendered email.
+`render` outputs static HTML with an email doctype. `renderPlainText` creates a plain-text version from the rendered email. `renderEmail` produces matching HTML and plain text from one React render.
 
 ## Packages
 

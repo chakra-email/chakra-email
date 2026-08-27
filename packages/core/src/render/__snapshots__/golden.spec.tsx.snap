@@ -5,25 +5,21 @@ exports[`golden output snapshots > release notes email plain text 1`] = `
 
 Highlights from this release:
 
-Faster rendering pipeline
+ * Faster rendering pipeline
+ * New render() options
+ * Improved plain-text output
 
-New render() options
-
-Improved plain-text output
-
-Upgrade the package
-
-Run your test suite
+ 1. Upgrade the package
+ 2. Run your test suite
 
 Email rendering should be boring and predictable.
 
-npm install chakra-email@latest npm test
+npm install chakra-email@latest
+npm test
 
-Feature Status
-
-Pretty output Stable
-
-Plain text Stable"
+Feature         Status
+Pretty output   Stable
+Plain text      Stable"
 `;
 
 exports[`golden output snapshots > release notes email pretty HTML 1`] = `
@@ -53,7 +49,7 @@ exports[`golden output snapshots > release notes email pretty HTML 1`] = `
 <li style="margin-bottom:8px">Run your test suite</li>
 </ol>
 <blockquote style="color:#4A5568;padding-left:16px;margin:0 0 16px;border-left:4px solid #E2E8F0">Email rendering should be boring and predictable.</blockquote><pre style="background-color:#EDF2F7;color:#171923;padding:16px;margin:0 0 16px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.5;border-radius:6px;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word">npm install chakra-email@latest
-npm test</pre><table cellPadding="0" cellSpacing="0" border="0" width="100%" style="margin:0 0 16px;width:100%;border-collapse:collapse;border-spacing:0">
+npm test</pre><table data-text-format="dataTable" cellPadding="0" cellSpacing="0" border="0" width="100%" style="margin:0 0 16px;width:100%;border-collapse:collapse;border-spacing:0">
 <thead>
 <tr>
 <th style="background-color:#F7FAFC;color:#171923;padding:12px;font-weight:600;text-align:left;vertical-align:top;border:1px solid #E2E8F0">Feature</th>
@@ -80,7 +76,9 @@ npm test</pre><table cellPadding="0" cellSpacing="0" border="0" width="100%" sty
 `;
 
 exports[`golden output snapshots > welcome email plain text 1`] = `
-"Acme logo Welcome!
+"Acme logo
+
+Welcome!
 
 Thanks for joining us. Your account is ready.
 

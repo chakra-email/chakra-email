@@ -39,7 +39,12 @@ import {
   Table,
   Text,
 } from '@chakra-email/core/components';
-import { render, renderPlainText } from '@chakra-email/core/render';
+import {
+  chakraEmailRenderer,
+  render,
+  renderEmail,
+  renderPlainText,
+} from '@chakra-email/core/render';
 import {
   ThemeProvider,
   chakraEmailRecipeKeys,
