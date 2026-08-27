@@ -16,6 +16,7 @@ export type TemplateModule = Record<string, unknown> & { default?: unknown };
 
 export interface RenderTemplateOptions {
   module: TemplateModule;
+  pretty?: boolean;
   props?: unknown;
   renderer?: EmailRenderer;
   template: RegisteredTemplate;
@@ -148,7 +149,7 @@ export async function renderTemplate(
   const element = createTemplateElement(component, props);
   const renderer = options.renderer ?? chakraEmailRenderer;
   const [output, source] = await Promise.all([
-    renderer.render(element, { pretty: true }),
+    renderer.render(element, { pretty: options.pretty ?? true }),
     readFile(options.template.absolutePath, 'utf8'),
   ]);
   const { html, text } = output;

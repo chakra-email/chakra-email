@@ -18,6 +18,12 @@ export type LintCategory =
   | 'deliverability'
   | 'markup';
 
+export type CompatibilityReference = {
+  feature: string;
+  source: 'Can I Email';
+  url: string;
+};
+
 export type TemplateSummary = {
   id: string;
   name: string;
@@ -38,6 +44,7 @@ export type RenderResult = {
 export type LintFinding = {
   category: LintCategory;
   column?: number;
+  compatibility?: CompatibilityReference;
   element?: string;
   line?: number;
   message: string;
@@ -65,6 +72,7 @@ export type PreviewApplicationOptions = {
   fetch?: Fetcher;
   createEventSource?: EventSourceFactory;
   copyText?: (value: string) => Promise<void>;
+  downloadText?: (value: string, filename: string, mimeType: string) => void;
 };
 
 export type ApplicationState = {
@@ -102,6 +110,17 @@ function escapeAttribute(value: string): string {
 
 function formatJson(value: JsonRecord): string {
   return JSON.stringify(value, null, 2);
+}
+
+function downloadFilename(name: string, extension: string): string {
+  const stem = name
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, '-')
+    .replace(/^-|-$/gu, '')
+    .slice(0, 80);
+  return `${stem || 'email'}.${extension}`;
 }
 
 const workspaceColorModeStorageKey =
@@ -188,6 +207,7 @@ function parseRenderResult(value: unknown): RenderResult {
   }
 
   const lint = value['lint'].flatMap((candidate): LintFinding[] => {
+    const compatibility = candidateCompatibility(candidate);
     if (
       !isRecord(candidate) ||
       ![
@@ -206,7 +226,8 @@ function parseRenderResult(value: unknown): RenderResult {
       (candidate['column'] !== undefined &&
         typeof candidate['column'] !== 'number') ||
       (candidate['element'] !== undefined &&
-        typeof candidate['element'] !== 'string')
+        typeof candidate['element'] !== 'string') ||
+      compatibility === null
     ) {
       return [];
     }
@@ -215,6 +236,7 @@ function parseRenderResult(value: unknown): RenderResult {
       {
         category: candidate['category'] as LintCategory,
         column: candidate['column'] as number | undefined,
+        compatibility,
         element: candidate['element'] as string | undefined,
         line: candidate['line'] as number | undefined,
         message: candidate['message'],
@@ -239,6 +261,24 @@ function parseRenderResult(value: unknown): RenderResult {
     props: value['props'],
     variants: value['variants'],
   };
+}
+
+function candidateCompatibility(
+  candidate: unknown,
+): CompatibilityReference | null | undefined {
+  if (!isRecord(candidate) || candidate['compatibility'] === undefined) {
+    return undefined;
+  }
+  const compatibility = candidate['compatibility'];
+  if (
+    !isRecord(compatibility) ||
+    typeof compatibility['feature'] !== 'string' ||
+    compatibility['source'] !== 'Can I Email' ||
+    typeof compatibility['url'] !== 'string'
+  ) {
+    return null;
+  }
+  return compatibility as CompatibilityReference;
 }
 
 async function responseError(response: Response): Promise<Error> {
@@ -289,6 +329,22 @@ async function defaultCopyText(value: string): Promise<void> {
   }
 }
 
+function defaultDownloadText(
+  value: string,
+  filename: string,
+  mimeType: string,
+): void {
+  const url = URL.createObjectURL(new Blob([value], { type: mimeType }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.hidden = true;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function withPreviewContentSecurityPolicy(
   html: string,
   remoteImages: boolean,
@@ -333,6 +389,11 @@ export class PreviewApplication {
   private readonly request: Fetcher;
   private readonly createEventSource: EventSourceFactory;
   private readonly copyText: (value: string) => Promise<void>;
+  private readonly downloadText: (
+    value: string,
+    filename: string,
+    mimeType: string,
+  ) => void;
   private reactRoot: Root | null = null;
   private eventSource: EventSourceLike | null = null;
   private renderSequence = 0;
@@ -370,6 +431,7 @@ export class PreviewApplication {
       options.createEventSource ??
       ((url) => new EventSource(url) as EventSourceLike);
     this.copyText = options.copyText ?? defaultCopyText;
+    this.downloadText = options.downloadText ?? defaultDownloadText;
   }
 
   public async start(): Promise<void> {
@@ -678,6 +740,46 @@ export class PreviewApplication {
     }
   }
 
+  private downloadCurrentOutput(): void {
+    const result = this.state.result;
+    if (!result) {
+      return;
+    }
+
+    const output =
+      this.state.activeTab === 'text'
+        ? {
+            extension: 'txt',
+            mimeType: 'text/plain;charset=utf-8',
+            value: result.text,
+          }
+        : this.state.activeTab === 'source'
+          ? {
+              extension: 'tsx',
+              mimeType: 'text/plain;charset=utf-8',
+              value: result.source,
+            }
+          : {
+              extension: 'html',
+              mimeType: 'text/html;charset=utf-8',
+              value: result.html,
+            };
+
+    try {
+      this.downloadText(
+        output.value,
+        downloadFilename(result.name, output.extension),
+        output.mimeType,
+      );
+    } catch (error) {
+      this.state.error =
+        error instanceof Error
+          ? error.message
+          : 'Could not download the output.';
+      this.render();
+    }
+  }
+
   private connectEvents(): void {
     try {
       const eventSource = this.createEventSource(
@@ -804,6 +906,9 @@ export class PreviewApplication {
           },
           onCopy: () => {
             void this.copyCurrentOutput();
+          },
+          onDownload: () => {
+            this.downloadCurrentOutput();
           },
           onRetry: this.retry,
           onDismissError: this.dismissError,

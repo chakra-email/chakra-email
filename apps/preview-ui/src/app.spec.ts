@@ -52,6 +52,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
   eventSource: FakeEventSource;
   fetcher: ReturnType<typeof vi.fn>;
   copyText: ReturnType<typeof vi.fn>;
+  downloadText: ReturnType<typeof vi.fn>;
   renderRequests: RenderRequest[];
   setTemplates: (templates: Array<Record<string, string>>) => void;
 } {
@@ -70,6 +71,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
   const renderRequests: RenderRequest[] = [];
   const eventSource = new FakeEventSource();
   const copyText = vi.fn(async () => undefined);
+  const downloadText = vi.fn(() => undefined);
   const fetcher = vi.fn(
     async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       if (input === '/api/templates') {
@@ -101,6 +103,11 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
             },
             {
               category: 'compatibility',
+              compatibility: {
+                feature: 'CSS display:grid',
+                source: 'Can I Email',
+                url: 'https://www.caniemail.com/features/css-display-grid/',
+              },
               message: 'The email is missing a viewport meta tag.',
               ruleId: 'viewport-meta',
               severity: 'warning',
@@ -129,6 +136,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
     fetch: fetcher,
     createEventSource: vi.fn(() => eventSource),
     copyText,
+    downloadText,
     ...overrides,
   });
 
@@ -137,6 +145,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
     eventSource,
     fetcher,
     copyText,
+    downloadText,
     renderRequests,
     setTemplates(nextTemplates) {
       templates = nextTemplates;
@@ -306,6 +315,9 @@ describe('PreviewApplication', () => {
     expect(document.querySelector('.lint-panel')?.textContent).toContain(
       'HTML line 1',
     );
+    expect(
+      document.querySelector<HTMLAnchorElement>('.lint-panel a')?.href,
+    ).toBe('https://www.caniemail.com/features/css-display-grid/');
 
     harness.application.destroy();
   });
@@ -313,6 +325,15 @@ describe('PreviewApplication', () => {
   it('switches output tabs with keyboard navigation and copies the active output', async () => {
     const harness = createHarness();
     await harness.application.start();
+
+    document
+      .querySelector<HTMLButtonElement>('[data-action="download"]')
+      ?.click();
+    expect(harness.downloadText).toHaveBeenCalledWith(
+      expect.stringContaining('<h1>Hello</h1>'),
+      'welcome-email.html',
+      'text/html;charset=utf-8',
+    );
 
     const htmlTab = getElement<HTMLButtonElement>('[data-tab="html"]');
     htmlTab.click();
@@ -346,6 +367,15 @@ describe('PreviewApplication', () => {
       'Plain text',
     );
 
+    document
+      .querySelector<HTMLButtonElement>('[data-action="download"]')
+      ?.click();
+    expect(harness.downloadText).toHaveBeenCalledWith(
+      'Hello from the plain-text email.',
+      'welcome-email.txt',
+      'text/plain;charset=utf-8',
+    );
+
     document.querySelector<HTMLButtonElement>('[data-action="copy"]')?.click();
     await vi.waitFor(() => {
       expect(harness.copyText).toHaveBeenLastCalledWith(
@@ -359,6 +389,15 @@ describe('PreviewApplication', () => {
     );
     await flush();
     expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
+
+    document
+      .querySelector<HTMLButtonElement>('[data-action="download"]')
+      ?.click();
+    expect(harness.downloadText).toHaveBeenLastCalledWith(
+      'export default function WelcomeEmail() { return <Html />; }',
+      'welcome-email.tsx',
+      'text/plain;charset=utf-8',
+    );
 
     const sourceTab = getElement<HTMLButtonElement>('[data-tab="source"]');
     sourceTab.dispatchEvent(
@@ -380,6 +419,26 @@ describe('PreviewApplication', () => {
         expect.stringContaining('function WelcomeEmail'),
       );
     });
+
+    harness.application.destroy();
+  });
+
+  it('surfaces download failures without discarding the rendered email', async () => {
+    const harness = createHarness({
+      downloadText: () => {
+        throw new Error('Downloads are blocked.');
+      },
+    });
+    await harness.application.start();
+
+    document
+      .querySelector<HTMLButtonElement>('[data-action="download"]')
+      ?.click();
+
+    expect(document.querySelector('.error-banner')?.textContent).toContain(
+      'Downloads are blocked.',
+    );
+    expect(document.querySelector('#email-preview-frame')).not.toBeNull();
 
     harness.application.destroy();
   });

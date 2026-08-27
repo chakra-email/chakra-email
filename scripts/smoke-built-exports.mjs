@@ -3,7 +3,13 @@ const exportChecks = new Map([
   ['@chakra-email/markdown', ['Markdown']],
   [
     '@chakra-email/preview',
-    ['createPreviewServer', 'defineConfig', 'lintRenderedEmail'],
+    [
+      'createPreviewServer',
+      'defineConfig',
+      'exportTemplates',
+      'lintRenderedEmail',
+      'previewCompatibilityReferences',
+    ],
   ],
   ['@chakra-email/react-email', ['reactEmailRenderer']],
   [

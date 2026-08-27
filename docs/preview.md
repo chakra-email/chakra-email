@@ -146,6 +146,20 @@ chakra-email-preview --config chakra-email.config.ts
 | `--help`, `-h`          | Show command usage.                                 |
 | `--version`, `-v`       | Print the installed package version.                |
 
+Export deterministic artifacts with the same config and renderer:
+
+```bash
+chakra-email-preview export \
+  --config chakra-email.config.ts \
+  --out-dir dist/emails \
+  --format both
+```
+
+The exporter writes the default template and every named preview variant.
+`--default-only` omits variants, `--format` accepts `html`, `text`, or `both`,
+and `--compact` disables HTML pretty-printing. The browser workspace also has a
+Download action for the currently visible HTML, text, or source output.
+
 CLI host and port values override the configuration file. To preview from
 another device on a trusted local network, both a non-loopback host and the
 explicit acknowledgement are required:
@@ -254,12 +268,28 @@ The factory accepts:
 
 It returns a server with asynchronous `listen()` and `close()` methods.
 
+Build scripts can call `exportTemplates()` without starting the HTTP server:
+
+```ts
+import { exportTemplates } from '@chakra-email/preview';
+
+await exportTemplates({
+  configFile: './chakra-email.config.ts',
+  outDir: './dist/emails',
+  includeVariants: true,
+  format: 'both',
+});
+```
+
 ## Email Lint Checks
 
 Every rendered template is linted before the response reaches the browser. The
 **Client checks** panel reports errors, warnings, and informational findings
 with a rule ID, suggested fix, affected element, and rendered-HTML line when
 available. Results refresh when the template, variant, or edited props change.
+Where a rule maps cleanly to upstream compatibility data, the finding includes
+a stable link to the live Can I Email feature page instead of a copied support
+percentage that could become stale.
 
 The built-in checks cover:
 

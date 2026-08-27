@@ -215,6 +215,20 @@ The CLI accepts:
 
 Host and port flags take precedence over values in the configuration file.
 
+The workspace toolbar can download the active HTML, plain-text, or source
+output. For repeatable build artifacts, export every template from the CLI:
+
+```bash
+chakra-email-preview export \
+  --config chakra-email.config.ts \
+  --out-dir dist/emails
+```
+
+Export includes the default props and every named preview variant. Use
+`--default-only` to omit variants, `--format html|text|both` to select output,
+or `--compact` to skip HTML pretty-printing. Output paths mirror template paths
+and variant filenames include a deterministic suffix to prevent collisions.
+
 ## Nx Libraries
 
 Attach a continuous, non-cacheable target to the Nx library that owns the
@@ -248,7 +262,7 @@ npm exec nx -- run @acme/emails:email-preview
 The target is continuous because the server remains active and watches local
 templates. It is not cacheable because it produces no reusable build artifact.
 
-## Programmatic Server
+## Programmatic API
 
 Use `createPreviewServer` when another development tool needs to own the server
 lifecycle:
@@ -274,12 +288,26 @@ The function accepts either `configFile` or an inline `config`, plus optional
 `cwd`, `host`, `port`, and `allowRemote` overrides. The returned server exposes
 `listen()` and `close()`.
 
+Use the same one-shot exporter from build scripts:
+
+```ts
+import { exportTemplates } from '@chakra-email/preview';
+
+const result = await exportTemplates({
+  configFile: './chakra-email.config.ts',
+  outDir: './dist/emails',
+  format: 'both',
+});
+```
+
 ## Email Lint Checks
 
 Each rendered template includes structured lint findings, and the browser
 shows them in the **Client checks** panel. Findings refresh with template,
 variant, and preview-prop changes and include severity, a stable rule ID,
-suggested remediation, and rendered-HTML location where available.
+suggested remediation, and rendered-HTML location where available. Relevant
+compatibility findings link to their live Can I Email feature page; the package
+does not copy support percentages that can become stale.
 
 The checks cover malformed or incomplete documents, missing metadata and
 alternative text, insecure URLs, unsupported interactive or embedded elements,

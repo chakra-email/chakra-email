@@ -4,18 +4,24 @@ import { realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { exportTemplates, type ExportFormat } from './export-templates.js';
 import { createPreviewServer } from './server.js';
 
 const HELP = `Chakra Email Preview
 
 Usage:
   chakra-email-preview [options]
+  chakra-email-preview export [options]
 
 Options:
   -c, --config <path>  Preview config file (default: chakra-email.config.*)
       --host <host>    Host to bind (default: 127.0.0.1)
   -p, --port <port>    Port to bind (default: 4100)
       --allow-remote   Explicitly allow a non-loopback host
+      --out-dir <path> Export destination (default: dist/emails)
+      --format <value> Export html, text, or both (default: both)
+      --default-only   Export templates without named preview variants
+      --compact        Do not pretty-print exported HTML
   -h, --help           Show this help
   -v, --version        Show the package version
 `;
@@ -43,20 +49,39 @@ function parsePort(value: string | undefined): number | undefined {
   return port;
 }
 
+function parseFormat(value: string | undefined): ExportFormat | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value !== 'html' && value !== 'text' && value !== 'both') {
+    throw new Error('--format must be html, text, or both.');
+  }
+  return value;
+}
+
 export async function runCli(argv = process.argv.slice(2)): Promise<void> {
-  const { values: options } = parseArgs({
-    allowPositionals: false,
+  const { positionals, values: options } = parseArgs({
+    allowPositionals: true,
     args: argv,
     options: {
       'allow-remote': { type: 'boolean' },
       config: { short: 'c', type: 'string' },
+      compact: { type: 'boolean' },
+      'default-only': { type: 'boolean' },
+      format: { type: 'string' },
       help: { short: 'h', type: 'boolean' },
       host: { type: 'string' },
+      'out-dir': { type: 'string' },
       port: { short: 'p', type: 'string' },
       version: { short: 'v', type: 'boolean' },
     },
     strict: true,
   });
+
+  const command = positionals[0];
+  if (positionals.length > 1 || (command && command !== 'export')) {
+    throw new Error(`Unknown command: ${positionals.join(' ')}`);
+  }
 
   if (options.help) {
     process.stdout.write(HELP);
@@ -64,6 +89,29 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
   }
   if (options.version) {
     process.stdout.write(`${await packageVersion()}\n`);
+    return;
+  }
+
+  if (command === 'export') {
+    if (
+      options['allow-remote'] ||
+      options.host !== undefined ||
+      options.port !== undefined
+    ) {
+      throw new Error(
+        '--host, --port, and --allow-remote apply only to the preview server.',
+      );
+    }
+    const exported = await exportTemplates({
+      configFile: options.config,
+      format: parseFormat(options.format),
+      includeVariants: !(options['default-only'] ?? false),
+      outDir: options['out-dir'],
+      pretty: !(options.compact ?? false),
+    });
+    process.stdout.write(
+      `Exported ${exported.templateCount} ${exported.templateCount === 1 ? 'template' : 'templates'} to ${exported.outDir} (${exported.files.length} ${exported.files.length === 1 ? 'file' : 'files'}).\n`,
+    );
     return;
   }
 

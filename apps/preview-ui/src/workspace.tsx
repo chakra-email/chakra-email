@@ -11,6 +11,7 @@ import {
   Grid,
   Heading,
   IconButton,
+  Link,
   NativeSelect,
   Portal,
   Skeleton,
@@ -112,6 +113,7 @@ export type PreviewWorkspaceProps = {
   onPropsTextChange(value: string): void;
   onApplyProps(): void;
   onCopy(): void;
+  onDownload(): void;
   onRetry(): void;
   onDismissError(): void;
 };
@@ -367,6 +369,19 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                     ? 'No issues'
                     : `${lint.length} ${lint.length === 1 ? 'issue' : 'issues'}`}
               </Badge>
+
+              <PreviewTooltip content={`Download the ${outputLabel} output`}>
+                <Button
+                  type="button"
+                  data-action="download"
+                  disabled={!state.result}
+                  css={styles.secondaryAction}
+                  onClick={props.onDownload}
+                >
+                  <Box aria-hidden="true">↓</Box>
+                  Download
+                </Button>
+              </PreviewTooltip>
 
               <PreviewTooltip
                 content={`Copy the ${outputLabel} output to the clipboard`}
@@ -791,6 +806,17 @@ function LintPanel({ findings }: { findings: LintFinding[] | null }) {
               <Text mt="1" color="preview.textMuted" fontSize="2xs">
                 {finding.suggestion}
               </Text>
+              {finding.compatibility ? (
+                <Link
+                  href={finding.compatibility.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  css={styles.lintReference}
+                >
+                  {finding.compatibility.feature} on{' '}
+                  {finding.compatibility.source} ↗
+                </Link>
+              ) : null}
               {finding.line || finding.element ? (
                 <Text
                   mt="2"

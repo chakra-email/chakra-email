@@ -1,4 +1,5 @@
 import type { JsonObject } from './config.js';
+import type { PreviewCompatibilityReference } from './compatibility.js';
 
 export interface PreviewTemplate {
   id: string;
@@ -28,6 +29,7 @@ export type PreviewLintCategory =
 export interface PreviewLintFinding {
   category: PreviewLintCategory;
   column?: number;
+  compatibility?: PreviewCompatibilityReference;
   element?: string;
   line?: number;
   message: string;

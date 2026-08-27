@@ -1,5 +1,11 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -107,6 +113,7 @@ import { Markdown } from '@chakra-email/markdown';
 import {
   createPreviewServer,
   defineConfig,
+  exportTemplates,
   lintRenderedEmail,
 } from '@chakra-email/preview';
 import { reactEmailRenderer } from '@chakra-email/react-email';
@@ -118,6 +125,7 @@ if (!React.version.startsWith('18.')) {
 
 if (
   typeof createPreviewServer !== 'function' ||
+  typeof exportTemplates !== 'function' ||
   defineConfig({ port: 0 }).port !== 0 ||
   !lintRenderedEmail('<img src="https://example.com/logo.png">').some(
     (finding) => finding.ruleId === 'image-alt'
@@ -226,6 +234,7 @@ const previewExports = require('@chakra-email/preview');
 if (
   typeof previewExports.createPreviewServer !== 'function' ||
   typeof previewExports.defineConfig !== 'function' ||
+  typeof previewExports.exportTemplates !== 'function' ||
   typeof previewExports.lintRenderedEmail !== 'function'
 ) {
   throw new Error('@chakra-email/preview did not expose its require(esm) API.');
@@ -288,6 +297,7 @@ import {
 import {
   createPreviewServer,
   defineConfig,
+  exportTemplates,
   lintRenderedEmail,
   type PreviewLintFinding,
   type PreviewConfig,
@@ -330,6 +340,7 @@ void reactEmailRenderer();
 void <CodeBlock {...codeBlockProps} />;
 void <Markdown {...markdownProps} />;
 void createPreviewServer({ config: previewConfig, port: 0 });
+void exportTemplates;
 const lintFindings: PreviewLintFinding[] = lintRenderedEmail('<main>Test</main>');
 void lintFindings;
 void [
@@ -525,6 +536,35 @@ try {
     );
   }
   console.log('ok packed preview binary help and version');
+  execFileSync(
+    previewBin,
+    [
+      'export',
+      '--config',
+      'chakra-email.config.mjs',
+      '--out-dir',
+      'exports',
+      '--format',
+      'both',
+      '--default-only',
+    ],
+    { cwd: consumerDirectory, stdio: 'inherit' },
+  );
+  const exportedHtml = readFileSync(
+    join(consumerDirectory, 'exports', 'preview-template.html'),
+    'utf8',
+  );
+  const exportedText = readFileSync(
+    join(consumerDirectory, 'exports', 'preview-template.txt'),
+    'utf8',
+  );
+  if (
+    !exportedHtml.includes('Hello Packed preview') ||
+    !exportedText.includes('Hello Packed preview')
+  ) {
+    throw new Error('Packed preview CLI export did not render its fixture.');
+  }
+  console.log('ok packed preview CLI export');
   execFileSync(process.execPath, ['smoke.mjs'], {
     cwd: consumerDirectory,
     stdio: 'inherit',

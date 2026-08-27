@@ -40,6 +40,7 @@ export const previewWorkspaceSlotRecipe = defineSlotRecipe({
     'viewportControl',
     'remoteControl',
     'lintSummary',
+    'secondaryAction',
     'primaryAction',
     'content',
   ],
@@ -207,6 +208,19 @@ export const previewWorkspaceSlotRecipe = defineSlotRecipe({
       borderRadius: 'md',
       bg: 'preview.panel',
       fontSize: '2xs',
+    },
+    secondaryAction: {
+      minH: '10',
+      px: '3',
+      gap: '2',
+      borderWidth: '1px',
+      borderColor: 'preview.borderStrong',
+      borderRadius: 'md',
+      color: 'preview.textSubtle',
+      bg: 'preview.panel',
+      fontSize: 'xs',
+      fontWeight: 'bold',
+      _hover: { color: 'preview.text', bg: 'preview.hover' },
     },
     primaryAction: {
       minH: '10',
@@ -521,6 +535,7 @@ export const previewInspectorSlotRecipe = defineSlotRecipe({
     'lintEmpty',
     'lintList',
     'lintItem',
+    'lintReference',
   ],
   base: {
     root: {
@@ -607,6 +622,14 @@ export const previewInspectorSlotRecipe = defineSlotRecipe({
       borderColor: 'preview.border',
       borderRadius: 'md',
       bg: 'preview.soft',
+    },
+    lintReference: {
+      display: 'inline-block',
+      mt: '2',
+      color: 'preview.accent',
+      fontSize: '2xs',
+      fontWeight: 'bold',
+      textDecoration: 'underline',
     },
   },
 });
