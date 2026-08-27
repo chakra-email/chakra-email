@@ -10,8 +10,8 @@ import {
 import type { DocsPage } from '@chakra-docs/core';
 import { createSystem, defaultConfig } from '@chakra-ui/react';
 import {
-  PostkitProse,
   PostkitProvider,
+  Prose,
   createPostkitMdxComponents,
   createPostkitRemarkPlugins,
 } from '@postkit/react';
@@ -167,7 +167,7 @@ function DocsMarkdown({
   }
 
   return (
-    <PostkitProse>
+    <Prose>
       <ReactMarkdown
         components={components}
         remarkPlugins={remarkPlugins}
@@ -175,7 +175,7 @@ function DocsMarkdown({
       >
         {page.body ?? ''}
       </ReactMarkdown>
-    </PostkitProse>
+    </Prose>
   );
 }
 
