@@ -105,3 +105,15 @@ export interface EmailSlotRecipeDefinition {
     >
   >;
 }
+
+/** Portable public configuration without Chakra's recursive system types. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ChakraEmailThemeConfigSection = Readonly<Record<string, any>>;
+
+export interface ChakraEmailThemeConfig {
+  readonly theme: {
+    readonly recipes: ChakraEmailThemeConfigSection;
+    readonly semanticTokens: ChakraEmailThemeConfigSection;
+    readonly slotRecipes: ChakraEmailThemeConfigSection;
+  };
+}
