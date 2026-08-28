@@ -57,6 +57,10 @@ Every visually styled component resolves its defaults from a named recipe. Compo
 
 Use the exported keys to override a recipe without depending on its string name:
 
+Theme-only modules should import from `chakra-email/theme` so TypeScript does
+not load component and rendering declarations. Component modules can continue
+to use the `chakra-email` root.
+
 ```tsx
 import {
   ChakraEmailProvider,
@@ -64,7 +68,7 @@ import {
   chakraEmailSlotRecipeKeys,
   defineRecipe,
   defineSlotRecipe,
-} from 'chakra-email';
+} from 'chakra-email/theme';
 
 const emailTheme = {
   semanticTokens: {
@@ -115,7 +119,10 @@ import {
   defineConfig,
   defineRecipe,
 } from '@chakra-ui/react';
-import { chakraEmailRecipeKeys, chakraEmailThemeConfig } from 'chakra-email';
+import {
+  chakraEmailRecipeKeys,
+  chakraEmailThemeConfig,
+} from 'chakra-email/theme';
 
 export const system = createSystem(
   defaultConfig,

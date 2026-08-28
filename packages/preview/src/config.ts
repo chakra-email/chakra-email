@@ -1,7 +1,7 @@
 import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { createJiti } from 'jiti';
-import type { EmailRenderer } from '@chakra-email/core';
+import type { EmailRenderer } from '@chakra-email/core/render';
 
 export type JsonPrimitive = boolean | null | number | string;
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];

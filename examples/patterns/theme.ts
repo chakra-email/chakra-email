@@ -1,4 +1,4 @@
-import { defineTheme } from 'chakra-email';
+import { defineTheme } from 'chakra-email/theme';
 
 /** Replace this palette to brand every copyable pattern. */
 export const patternTheme = defineTheme({

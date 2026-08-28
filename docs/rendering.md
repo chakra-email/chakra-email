@@ -1,11 +1,13 @@
 # Rendering
 
 Chakra Email renders React elements to static email HTML with React DOM server rendering.
+Server and build-only modules should import from `chakra-email/render`; the root
+entry remains available when a module also renders Chakra Email components.
 
 ## HTML
 
 ```tsx
-import { render } from 'chakra-email';
+import { render } from 'chakra-email/render';
 import { WelcomeEmail } from './WelcomeEmail';
 
 const html = await render(<WelcomeEmail />, { pretty: true });
@@ -16,7 +18,7 @@ const html = await render(<WelcomeEmail />, { pretty: true });
 ## Plain Text
 
 ```tsx
-import { renderPlainText } from 'chakra-email';
+import { renderPlainText } from 'chakra-email/render';
 
 const text = await renderPlainText(<WelcomeEmail />);
 ```
@@ -27,7 +29,7 @@ Use `renderEmail` when a provider accepts both bodies. It renders the React tree
 once so dynamic values cannot drift between the HTML and plain-text output:
 
 ```tsx
-import { renderEmail } from 'chakra-email';
+import { renderEmail } from 'chakra-email/render';
 
 const { html, text } = await renderEmail(<WelcomeEmail />, { pretty: true });
 ```

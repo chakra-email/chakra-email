@@ -4,17 +4,17 @@ import {
   DocsPagination,
   DocsProvider,
   DocsSearch,
-  chakraDocsThemeConfig,
   type DocsLinkProps,
 } from '@chakra-docs/chakra';
+import { chakraDocsThemeConfig } from '@chakra-docs/chakra/theme';
 import type { DocsPage } from '@chakra-docs/core';
 import { createSystem, defaultConfig } from '@chakra-ui/react';
 import {
   PostkitProvider,
   Prose,
   createPostkitMdxComponents,
-  createPostkitRemarkPlugins,
 } from '@postkit/react';
+import { createPostkitRemarkPlugins } from '@postkit/react/remark';
 import { createPostkitShikiAdapter } from '@postkit/shiki';
 import {
   createElement,

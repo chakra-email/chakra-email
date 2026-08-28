@@ -254,7 +254,7 @@ allowlists still provide the final output safeguard.
 ## Rendering
 
 ```tsx
-import { render, renderEmail, renderPlainText } from 'chakra-email';
+import { render, renderEmail, renderPlainText } from 'chakra-email/render';
 
 const html = await render(<Email />, { pretty: true });
 const text = await renderPlainText(<Email />);

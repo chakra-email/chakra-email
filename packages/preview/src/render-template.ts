@@ -1,5 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import { chakraEmailRenderer, type EmailRenderer } from '@chakra-email/core';
+import {
+  chakraEmailRenderer,
+  type EmailRenderer,
+} from '@chakra-email/core/render';
 import {
   cloneElement,
   createElement,

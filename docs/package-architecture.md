@@ -17,7 +17,7 @@ The renderer is shared by both public adapters. Keeping it in `@chakra-email/cor
 The runtime packages expose render utilities through their root exports and `./render` subpaths:
 
 ```ts
-import { render } from 'chakra-email';
+import { render } from 'chakra-email/render';
 import { renderPlainText } from 'chakra-email/render';
 ```
 

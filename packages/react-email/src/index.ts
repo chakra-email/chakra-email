@@ -1,4 +1,4 @@
-import type { EmailRenderer } from '@chakra-email/core';
+import type { EmailRenderer } from '@chakra-email/core/render';
 import { pretty, render, toPlainText } from 'react-email';
 
 /**
