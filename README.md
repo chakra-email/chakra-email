@@ -296,6 +296,15 @@ Most applications should start with `chakra-email`.
 - [Preview workspace](examples/preview)
 - [Copyable transactional patterns](examples/patterns)
 
+## Agent skill
+
+The repository publishes a portable
+[`compose-chakra-email`](skills/compose-chakra-email) skill for agents that are
+composing, theming, previewing, rendering, migrating, or troubleshooting Chakra
+Email templates. Install it from this repository with a compatible Agent Skills
+client, or ask Codex's `$skill-installer` to install the skill from its GitHub
+directory.
+
 ## FAQ
 
 ### Is this Chakra UI for email?

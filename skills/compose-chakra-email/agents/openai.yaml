@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Compose Chakra Email'
+  short_description: 'Compose and theme portable email templates'
+  default_prompt: 'Use $compose-chakra-email to build a themeable transactional email workflow in my application.'
