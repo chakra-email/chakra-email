@@ -43,6 +43,9 @@ jobs:
       - run: npm ci
       - run: npm run release:check
 
+      - name: Check public theme declaration performance
+        run: npm run types:performance:check
+
       - name: Upload coverage to Codecov
         if: matrix.node-label == 24
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5

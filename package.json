@@ -63,6 +63,7 @@
     "test:coverage": "npm exec nx -- run-many -t test -- --coverage",
     "test:release": "npm exec nx -- run chakra-email-monorepo:release-validation",
     "typecheck": "npm exec nx -- run-many -t typecheck",
+    "types:performance:check": "npm exec nx -- run chakra-email:build && node scripts/check-theme-types.mjs",
     "yalc:publish": "npm exec nx -- run chakra-email-monorepo:yalc-publish",
     "yalc:push": "npm exec nx -- run chakra-email-monorepo:yalc-push"
   },

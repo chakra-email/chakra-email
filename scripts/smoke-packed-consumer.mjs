@@ -312,13 +312,17 @@ import { Body, Html, Text, render } from 'chakra-email';
 import * as ChakraComponents from 'chakra-email/components';
 import * as ChakraRender from 'chakra-email/render';
 import * as ChakraSystem from 'chakra-email/system';
-import * as ChakraTheme from 'chakra-email/theme';
+import {
+  chakraEmailThemeConfig,
+  type ChakraEmailThemeConfig,
+} from 'chakra-email/theme';
 
 const CoreProvider: ComponentType<ThemeProviderProps> = ThemeProvider;
 const V2Provider: ComponentType<ChakraEmailV2ProviderProps> =
   ChakraEmailV2Provider;
 const codeBlockProps: CodeBlockProps = { code: 'const typed = true;' };
 const markdownProps: MarkdownProps = { children: '# Typed markdown' };
+const packedThemeConfig: ChakraEmailThemeConfig = chakraEmailThemeConfig;
 const email: ReactElement = (
   <CoreProvider>
     <V2Provider>
@@ -358,7 +362,7 @@ void [
   ChakraComponents,
   ChakraRender,
   ChakraSystem,
-  ChakraTheme,
+  packedThemeConfig,
   V2Components,
   V2Render,
   V2System,
