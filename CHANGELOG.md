@@ -1,3 +1,23 @@
+## Unreleased
+
+### Added
+
+- Strict, configurable URL policies with focused `/security` entry points and
+  typed, content-free rendering errors.
+- Optional UTF-8 output limits and bounded Markdown source, line, AST-node, and
+  nesting controls.
+- Schema-validated Markdown directives for controlled, non-executable custom
+  components.
+- Exact reverse-proxy host allowlisting for the local preview server.
+- Template-derived preview subjects in the workspace, test sending, and
+  deterministic export manifests.
+
+### Changed
+
+- React 19 image preload hints are removed from every core rendering path.
+- Release-blocking dependency advisories were resolved and guarded by the
+  existing high-severity audit gate.
+
 ## 0.1.0 (2026-07-02) - Initial Release
 
 Initial public release candidate.

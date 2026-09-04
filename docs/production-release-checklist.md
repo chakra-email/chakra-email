@@ -95,6 +95,12 @@ preview tool.
 
 ## Release Verification
 
+- [ ] A release-preparation commit aligns every public package manifest and the
+      lockfile to the new immutable version. The Release Action validates this
+      committed version; it does not create or commit a version bump.
+- [ ] The changelog's Unreleased notes are moved under that version and release
+      date before the release-preparation commit is merged.
+
 - [ ] `npm run release:check` passes on the exact release commit under Node 22
       and Node 24.
 - [ ] The Node 20.19 / React 18 compatibility job passes on that same commit.

@@ -75,6 +75,11 @@ const html = await render(
 
 Pass `html` to any email delivery provider. Use `renderPlainText` when the provider also accepts a plain-text alternative.
 
+Import the focused `chakra-email/security` entry point to configure strict URL
+handling, fail-closed `EmailRenderError` codes, and final HTML/text byte limits.
+The default URL policy omits relative, credentialed, control-bearing,
+malformed, unsupported, and oversized URLs.
+
 ## Theme-Level Component Styling
 
 All visually styled components use exported recipes. Multipart components such as `Button`, `Container`, `List`, `Preview`, `Section`, `Stack`, and `Table` use slot recipes so their internal email-safe markup can be styled independently. Compose `chakraEmailThemeConfig` into a Chakra UI `createSystem()` configuration, or pass `recipes` and `slotRecipes` directly to `ChakraEmailProvider`.

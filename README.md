@@ -17,6 +17,7 @@ Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](http
 
 - **A familiar styling model** — compose templates with Chakra-style props and reusable theme tokens.
 - **Email-safe output** — render static inline HTML and plain text without relying on browser-only layout or interaction.
+- **Configurable safety boundaries** — apply strict URL policies, Markdown admission limits, and rendered-output byte ceilings.
 - **A complete local workflow** — preview templates, edit representative props, exercise variants, and catch common email issues before sending.
 
 ## Install
@@ -262,6 +263,11 @@ const output = await renderEmail(<Email />, { pretty: true });
 ```
 
 `render` outputs static HTML with an email doctype. `renderPlainText` creates a plain-text version from the rendered email. `renderEmail` produces matching HTML and plain text from one React render.
+
+Security-focused applications can import `EmailRenderError`,
+`strictEmailSecurityPolicy`, and `strictEmailOutputLimits` from
+`chakra-email/security`. URL policy can be set per component, provider, or
+render call; output limits apply to final UTF-8 HTML and plain text.
 
 ## Packages
 

@@ -19,7 +19,12 @@ The runtime packages expose render utilities through their root exports and `./r
 ```ts
 import { render } from 'chakra-email/render';
 import { renderPlainText } from 'chakra-email/render';
+import { EmailRenderError } from 'chakra-email/security';
 ```
+
+The focused `./security` subpaths keep URL policy, output limits, and typed
+operational errors available without coupling shared configuration code to
+component declarations.
 
 ## Why Preview Is A Separate Package
 
@@ -36,8 +41,8 @@ Potential future splits can be added without changing the main package API:
 - `@chakra-email/components` if component-only installs become common.
 - `@chakra-email/render` if render-only tooling becomes common.
 
-For the initial release, these seven packages keep runtime adapters, shared
-rendering, and development tooling behind clear boundaries.
+These seven packages keep runtime adapters, shared rendering, and development
+tooling behind clear boundaries.
 
 ## Local Package Testing With Yalc
 

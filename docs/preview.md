@@ -11,8 +11,7 @@ preview server is not included in production email output.
 npm install --save-dev @chakra-email/preview
 ```
 
-The initial release is `0.1.0`, and its executable is
-`chakra-email-preview`.
+Its executable is `chakra-email-preview`.
 
 ## Configuration
 
@@ -28,6 +27,7 @@ export default defineConfig({
   exclude: ['**/*.{test,spec}.{ts,tsx}', '**/__fixtures__/**'],
   assets: './public',
   host: '127.0.0.1',
+  allowedHosts: ['chakra-email.test'],
   port: 4100,
 });
 ```
@@ -44,18 +44,19 @@ This makes the configuration independent of whether the CLI starts at the
 workspace root or inside the email project. When both `templates` and `include`
 are omitted, discovery defaults to `./emails` below the resolved root.
 
-| Option      | Purpose                                                               |
-| ----------- | --------------------------------------------------------------------- |
-| `root`      | Base directory for template discovery and asset paths.                |
-| `templates` | Directory containing template modules.                                |
-| `include`   | Glob patterns for modules that should be discovered.                  |
-| `exclude`   | Glob patterns removed from the discovered module set.                 |
-| `assets`    | Directory of static files made available by the local preview server. |
-| `host`      | Bind address; defaults to the loopback-only address `127.0.0.1`.      |
-| `port`      | Listening port; defaults to `4100`.                                   |
-| `renderer`  | Optional server-side email renderer adapter.                          |
-| `testSend`  | Optional server-side test-delivery adapter.                           |
-| `theme`     | JSON-safe theme and recipe overrides for the browser workspace.       |
+| Option         | Purpose                                                               |
+| -------------- | --------------------------------------------------------------------- |
+| `root`         | Base directory for template discovery and asset paths.                |
+| `templates`    | Directory containing template modules.                                |
+| `include`      | Glob patterns for modules that should be discovered.                  |
+| `exclude`      | Glob patterns removed from the discovered module set.                 |
+| `assets`       | Directory of static files made available by the local preview server. |
+| `host`         | Bind address; defaults to the loopback-only address `127.0.0.1`.      |
+| `allowedHosts` | Exact trusted reverse-proxy hostnames; wildcards and ports fail.      |
+| `port`         | Listening port; defaults to `4100`.                                   |
+| `renderer`     | Optional server-side email renderer adapter.                          |
+| `testSend`     | Optional server-side test-delivery adapter.                           |
+| `theme`        | JSON-safe theme and recipe overrides for the browser workspace.       |
 
 A configured `assets` directory may be absent while a project is being set up.
 The server still starts, and requests for missing assets return `404`.
@@ -92,6 +93,9 @@ export const previewVariants = {
   },
 } satisfies Record<string, Partial<AccountEmailProps>>;
 
+export const previewSubject = (props: AccountEmailProps) =>
+  `${props.firstName}, your account is ${props.status}`;
+
 export default function AccountEmail({ firstName, status }: AccountEmailProps) {
   return (
     <Html>
@@ -113,6 +117,10 @@ The effective component props are merged in this order:
 
 Later sources override earlier ones. A variant can therefore contain a partial
 props object that changes only the scenario-specific values.
+
+`previewSubject` accepts a string or a synchronous/async function of the fully
+merged props. It is validated as an email subject, displayed in the preview,
+used as the default test-send subject, and included in exported metadata.
 
 If a module does not export named `previewProps`, the server also recognizes a
 `PreviewProps` value attached to the default component:
@@ -162,6 +170,9 @@ The exporter writes the default template and every named preview variant.
 `--default-only` omits variants, `--format` accepts `html`, `text`, or `both`,
 and `--compact` disables HTML pretty-printing. The browser workspace also has a
 Download action for the currently visible HTML, text, or source output.
+Every export writes a deterministic `manifest.json` containing source paths,
+template IDs, variants, subjects, and relative artifact paths. The
+programmatic API accepts `manifest: false` when it is not needed.
 
 CLI host and port values override the configuration file. To preview from
 another device on a trusted local network, both a non-loopback host and the
@@ -175,6 +186,19 @@ chakra-email-preview \
 ```
 
 Do not use this as a public server.
+
+When Springbar, Caddy, or another local reverse proxy supplies a routed Host
+header, list that hostname explicitly without changing the loopback bind:
+
+```ts
+export default defineConfig({
+  host: '127.0.0.1',
+  allowedHosts: ['chakra-email.test'],
+});
+```
+
+This is an exact DNS-rebinding exception, not a wildcard or an authentication
+mechanism.
 
 ## npm Script
 
@@ -320,6 +344,43 @@ application can add logging or provider-specific metadata without a package
 adapter. Provider credentials remain in the server process and are never
 included in the browser configuration.
 
+Mailpit works through the same provider-neutral contract. Install Nodemailer
+in the consuming project and connect to Mailpit's local SMTP port:
+
+```ts
+import nodemailer from 'nodemailer';
+import { defineConfig } from '@chakra-email/preview';
+
+const smtp = nodemailer.createTransport({
+  host: '127.0.0.1',
+  port: 1025,
+  secure: false,
+});
+const recipients = new Set(['developer@example.test']);
+
+export default defineConfig({
+  testSend: {
+    async send(message) {
+      if (!recipients.has(message.to.toLowerCase())) {
+        throw new Error('Recipient is not allowed for local preview.');
+      }
+      const result = await smtp.sendMail({
+        from: 'preview@example.test',
+        to: message.to,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      });
+      return { id: result.messageId };
+    },
+  },
+});
+```
+
+Do not expose a provider-backed test-send endpoint publicly. Use development
+credentials, a recipient allowlist, and a trusted network even when
+`allowedHosts` is configured.
+
 ## Email Lint Checks
 
 Every rendered template is linted before the response reaches the browser. The
@@ -354,6 +415,8 @@ process. Do not load templates from an untrusted repository, and do not expose
 the server to the internet. The random per-process request token is a local
 request guard, not multi-user authentication. `--allow-remote` removes a bind
 safety check; it does not add access control, TLS, or sandboxing.
+Likewise, `allowedHosts` permits only named Host headers; it does not authenticate
+the caller.
 
 Treat preview props as local source code too. Do not put production credentials,
 access tokens, customer addresses, or other sensitive data in configuration,
@@ -374,10 +437,9 @@ control while iterating. A preview-local asset URL is not automatically valid
 in a delivered email, so replace it with an absolute public URL or attachment
 `cid:` before sending.
 
-## MVP Scope
+## Scope
 
-The `0.1.0` preview focuses on local template discovery, rendering, variants,
-editable props, exports, and provider-neutral test sends. It is not currently:
+The preview is not currently:
 
 - an email-delivery provider or inbox placement service;
 - a drag-and-drop visual editor;

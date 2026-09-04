@@ -9,6 +9,11 @@ import { renderEmail } from 'chakra-email';
 
 const { html, text } = await renderEmail(<AccountEmail {...props} />, {
   pretty: process.env.NODE_ENV !== 'production',
+  outputLimits: { maxHtmlBytes: 2_000_000, maxTextBytes: 2_000_000 },
+  urlPolicy: {
+    link: { onInvalidUrl: 'throw' },
+    image: { onInvalidUrl: 'throw' },
+  },
 });
 ```
 
@@ -17,6 +22,10 @@ Use `render` for HTML-only output and `renderPlainText` when plain text must be
 generated separately. Plain-text conversion accepts `html-to-text` options.
 Add `data-skip-in-text="true"` only to content that should deliberately remain
 HTML-only.
+
+For untrusted or tenant-authored content, prefer fail-closed URL policies and
+UTF-8 output byte limits. Catch `EmailRenderError` by its stable `code`; do not
+include source Markdown, rejected URLs, or rendered bodies in operational logs.
 
 Delivery providers own envelopes and transport concerns. Keep sender identity,
 recipients, attachments, provider tags, tracking, idempotency, retries, and
@@ -28,6 +37,8 @@ Use `@chakra-email/markdown` when a ready-made GFM mapping is useful. Use
 `@chakra-email/code-block` for fenced code and supply a synchronous Prism,
 Shiki, or custom highlighter only when syntax highlighting is needed. Keep raw
 HTML disabled unless the content pipeline sanitizes it before rendering.
+For untrusted Markdown, set `limits="strict"` and use a schema-validated
+`directives` registry instead of MDX for controlled buttons or callouts.
 
 Use `@chakra-email/react-email` when preview or export tooling must follow React
 Email rendering behavior:
@@ -58,6 +69,7 @@ export default defineConfig({
   include: ['**/*.email.{ts,tsx}'],
   assets: './public',
   host: '127.0.0.1',
+  allowedHosts: ['chakra-email.test'],
   port: 4100,
 });
 ```
@@ -66,6 +78,8 @@ Templates default-export their component. Export serializable `previewProps`
 for the base case and `previewVariants` containing only scenario-specific
 overrides. Component-level `PreviewProps` is a React Email compatibility
 fallback; a named `previewProps` export takes precedence.
+Export `previewSubject` to derive a subject from the fully merged props; it
+flows through the UI, test-send adapter, and deterministic export manifest.
 
 The preview UI theme is a JSON-serializable Chakra fragment. Override its
 exported `previewSlotRecipeKeys` rather than relying on internal class names.
@@ -85,8 +99,9 @@ chakra-email-preview --config chakra-email.config.ts
 chakra-email-preview export --config chakra-email.config.ts --out-dir dist/emails
 ```
 
-The exporter can include named variants and produce HTML, text, or both. The
-browser workspace can download its active output. Preview lint findings include
+The exporter can include named variants and produce HTML, text, or both, plus a
+subject-aware `manifest.json`. The browser workspace can download its active
+output. Preview lint findings include
 advisory accessibility, markup, deliverability, and compatibility checks; they
 do not replace mailbox-client testing.
 
@@ -107,6 +122,11 @@ Keep the provider SDK and credentials in the consuming project. Use a dedicated
 development sender and recipient allow-list when possible. Configuring the
 transport does not itself authorize an agent to send a message; perform that
 external side effect only when the user explicitly requests it.
+
+For a Springbar or Caddy route, keep the server bound to loopback and add the
+exact routed hostname to `allowedHosts`. This is not authentication. A local
+Mailpit/Nodemailer adapter should still enforce a recipient allowlist, use only
+development credentials, and never be exposed publicly.
 
 ## Validate before production
 

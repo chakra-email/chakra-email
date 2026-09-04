@@ -87,8 +87,10 @@ Delivered email has no dependable document base URL.
 - Do not infer production asset URLs from the preview server's `/assets/`
   paths.
 
-Relative, protocol-relative, malformed, and unsupported component URLs are
-omitted rather than guessed.
+Relative, protocol-relative, credentialed, control-bearing, malformed,
+oversized, and unsupported component URLs are omitted rather than guessed.
+Use the focused `chakra-email/security` entry point for renderer-wide policy,
+fail-closed errors, and output limits.
 
 ## Choose a migration path
 

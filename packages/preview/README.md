@@ -10,8 +10,8 @@ Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](http
 
 `@chakra-email/preview` discovers template modules in your repository, renders
 their default exports, and lets you exercise representative props without
-adding preview code to your production application. Version `0.1.0` provides
-the `chakra-email-preview` CLI and a programmatic server API.
+adding preview code to your production application. It provides the
+`chakra-email-preview` CLI and a programmatic server API.
 
 ## Install
 
@@ -46,6 +46,7 @@ export default defineConfig({
   exclude: ['**/*.{test,spec}.{ts,tsx}', '**/__fixtures__/**'],
   assets: './public',
   host: '127.0.0.1',
+  allowedHosts: ['chakra-email.test'],
   port: 4100,
   theme: {
     semanticTokens: {
@@ -93,6 +94,8 @@ file. `templates` and `assets` are resolved relative to `root`; `include` and
 - `exclude` removes matching modules from discovery.
 - `assets` selects the static asset directory used by the preview server.
 - `host` defaults to the loopback-only address `127.0.0.1`.
+- `allowedHosts` accepts exact reverse-proxy hostnames such as
+  `chakra-email.test`; wildcards and ports are rejected.
 - `port` defaults to `4100`.
 - `theme` accepts a JSON-serializable Chakra theme fragment for the preview UI,
   including `tokens`, `semanticTokens`, `recipes`, and `slotRecipes`.
@@ -147,6 +150,9 @@ export const previewVariants = {
   },
 } satisfies Record<string, Partial<WelcomeEmailProps>>;
 
+export const previewSubject = (props: WelcomeEmailProps) =>
+  `Welcome ${props.firstName}`;
+
 export default function WelcomeEmail({ firstName, plan }: WelcomeEmailProps) {
   return (
     <Html>
@@ -164,6 +170,10 @@ export default function WelcomeEmail({ firstName, plan }: WelcomeEmailProps) {
 is merged over that base, and props entered in the preview JSON editor are
 merged last. Variant values can therefore contain only the fields that differ
 from the base case.
+
+`previewSubject` may be a string or a synchronous/async function. Functions
+receive those fully merged props. The subject appears in the workspace,
+prefills test sending, and is recorded in the export manifest.
 
 For compatibility with templates that follow the React Email convention, a
 component-level `PreviewProps` value is used when the module has no named
@@ -216,6 +226,9 @@ The CLI accepts:
 - `--version`, `-v` to print the package version.
 
 Host and port flags take precedence over values in the configuration file.
+For Springbar, Caddy, or another local reverse proxy, keep the bind address on
+loopback and add the routed hostname to `allowedHosts`. This changes only exact
+Host-header validation; it does not enable wildcards or remote binding.
 
 The workspace toolbar can download the active HTML, plain-text, or source
 output. For repeatable build artifacts, export every template from the CLI:
@@ -230,6 +243,9 @@ Export includes the default props and every named preview variant. Use
 `--default-only` to omit variants, `--format html|text|both` to select output,
 or `--compact` to skip HTML pretty-printing. Output paths mirror template paths
 and variant filenames include a deterministic suffix to prevent collisions.
+The exporter also writes `manifest.json` with template IDs, source paths,
+variants, derived subjects, and relative artifact paths. Programmatic callers
+can set `manifest: false` when another build system owns the manifest.
 
 ## Test-send adapters
 
@@ -265,6 +281,48 @@ Provider SDKs and credentials stay in the consuming project. The adapter runs
 only in the preview server and is not serialized into the browser UI. The
 preview package does not send anything unless a developer submits the local
 test-send form.
+
+For Mailpit, keep Nodemailer in the consuming project rather than preview core:
+
+```ts
+import nodemailer from 'nodemailer';
+import { defineConfig } from '@chakra-email/preview';
+
+const smtp = nodemailer.createTransport({
+  host: '127.0.0.1',
+  port: 1025,
+  secure: false,
+});
+const allowedRecipients = new Set(
+  (process.env.EMAIL_PREVIEW_RECIPIENTS ?? '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+export default defineConfig({
+  allowedHosts: ['emails.example.test'],
+  testSend: {
+    async send(message) {
+      if (!allowedRecipients.has(message.to.toLowerCase())) {
+        throw new Error('Recipient is not allowed for local preview.');
+      }
+      const result = await smtp.sendMail({
+        from: 'preview@example.test',
+        to: message.to,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      });
+      return { id: result.messageId };
+    },
+  },
+});
+```
+
+An allowed proxy host is not authentication. Keep test sending on a trusted
+development network, use a recipient allowlist, and never expose a
+provider-backed send endpoint through a public preview route.
 
 ## Nx Libraries
 
@@ -379,12 +437,10 @@ fixtures or image hosts you trust while developing.
 Preview-local assets are not production email URLs; use deliberate absolute
 public or `cid:` sources before sending a message.
 
-## MVP Limits
+## Scope limits
 
-Version `0.1.0` focuses on local template discovery, rendering, prop editing,
-and variants. It does not currently provide:
+The preview does not currently provide:
 
-- email delivery or test sending;
 - a drag-and-drop or visual template editor;
 - mailbox-client emulation, screenshots, or compatibility certification;
 - remote-image proxying or anonymization;

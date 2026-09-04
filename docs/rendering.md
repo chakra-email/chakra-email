@@ -34,6 +34,9 @@ import { renderEmail } from 'chakra-email/render';
 const { html, text } = await renderEmail(<WelcomeEmail />, { pretty: true });
 ```
 
+React 19 image preload hints are removed centrally before any HTML, plain-text,
+preview, or export result is returned.
+
 You can also request plain text through `render`:
 
 ```tsx
@@ -51,6 +54,33 @@ const text = await renderPlainText(<WelcomeEmail />, {
 Add `data-skip-in-text="true"` to rendered content that should remain in the
 HTML version but be omitted from the plain-text version. Chakra Email's semantic
 `Table` component is formatted as a readable data table automatically.
+
+## URL and output policies
+
+`Link`, `Button`, and `Img` use strict URL defaults. They reject credentials,
+raw or encoded control characters, surrounding whitespace, malformed or
+relative URLs, unsupported protocols, and URLs over 2,048 UTF-8 bytes. Invalid
+URLs are omitted by default. Transactional systems can fail closed for the
+whole render:
+
+```tsx
+import { strictEmailOutputLimits } from 'chakra-email/security';
+import { renderEmail } from 'chakra-email/render';
+
+const output = await renderEmail(<WelcomeEmail />, {
+  outputLimits: strictEmailOutputLimits,
+  urlPolicy: {
+    link: { onInvalidUrl: 'throw' },
+    image: { onInvalidUrl: 'throw' },
+  },
+});
+```
+
+Use `EmailSecurityPolicyProvider` for a subtree or `urlPolicy` on an individual
+`Link`, `Button`, or `Img`. Only opt into additional protocols or credentials
+when a delivery contract explicitly requires them. Rejections use
+`EmailRenderError` codes such as `UNSAFE_URL` and `OUTPUT_TOO_LARGE`; messages
+never include the rejected URL or rendered content.
 
 ## Renderer adapters
 

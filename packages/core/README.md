@@ -29,6 +29,7 @@ npm install @chakra-email/core react react-dom
 - Chakra v2-style flat theme scale compatibility.
 - Email-safe component recipes and multipart slot recipes.
 - HTML and plain-text render helpers.
+- Strict, configurable URL policies and bounded-output helpers.
 
 ## Exports
 
@@ -46,6 +47,11 @@ import {
   renderEmail,
   renderPlainText,
 } from '@chakra-email/core/render';
+import {
+  EmailRenderError,
+  strictEmailOutputLimits,
+  strictEmailSecurityPolicy,
+} from '@chakra-email/core/security';
 import {
   ThemeProvider,
   chakraEmailRecipeKeys,
