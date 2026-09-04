@@ -5,6 +5,7 @@ import { toPlainText, type PlainTextOptions } from './text.js';
 
 const emailDoctype =
   '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">';
+const linkElementPattern = /<link\b[^>]*>/giu;
 
 export interface RenderOptions {
   pretty?: boolean;
@@ -37,8 +38,26 @@ function withEmailDoctype(html: string): string {
   return `${emailDoctype}${html}`;
 }
 
+function hasAttribute(tag: string, name: string, value: string): boolean {
+  return new RegExp(
+    `\\s${name}\\s*=\\s*(?:"${value}"|'${value}'|${value})(?=\\s|/?>)`,
+    'iu',
+  ).test(tag);
+}
+
+/** React 19 emits browser-only resource hints for images during SSR. */
+function stripImagePreloadHints(html: string): string {
+  return html.replace(linkElementPattern, (tag) =>
+    hasAttribute(tag, 'rel', 'preload') && hasAttribute(tag, 'as', 'image')
+      ? ''
+      : tag,
+  );
+}
+
 function renderMarkup(element: ReactElement): string {
-  return withEmailDoctype(renderToStaticMarkup(element));
+  return withEmailDoctype(
+    stripImagePreloadHints(renderToStaticMarkup(element)),
+  );
 }
 
 export async function render(

@@ -134,11 +134,9 @@ function ReleaseNotesEmail() {
   );
 }
 
-// The HTML snapshots are generated against React 19, which hoists image
-// preload links and reorders <head> metadata compared to React 18. Both
-// outputs are valid email HTML, so the HTML snapshots only run on React 19
-// (the version CI generates them with); the plain-text snapshots are
-// identical on both and always run.
+// The HTML snapshots are generated against React 19, which reorders <head>
+// metadata compared to React 18. Browser-only image preload hints are removed
+// by the renderer; snapshots remain pinned to the React version CI uses.
 const isReact19 = reactVersion.startsWith('19.');
 
 describe('golden output snapshots', () => {

@@ -94,7 +94,6 @@ exports[`golden output snapshots > welcome email pretty HTML 1`] = `
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<link rel="preload" as="image" href="https://example.com/logo.png"/>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <title>Welcome to Acme</title>
 </head>

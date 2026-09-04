@@ -92,6 +92,26 @@ describe('render utilities', () => {
     expect(result.text).toBe('Render 1');
   });
 
+  it('removes browser-only image preloads from every HTML render path', async () => {
+    const email = (
+      <Html>
+        <Head>
+          <link rel="preload" as="font" href="https://example.com/font.woff2" />
+        </Head>
+        <Body>
+          <Img src="https://example.com/logo.png" alt="Example" />
+        </Body>
+      </Html>
+    );
+
+    const html = await render(email);
+    const renderedEmail = await renderEmail(email);
+
+    expect(html).not.toContain('rel="preload" as="image"');
+    expect(renderedEmail.html).not.toContain('rel="preload" as="image"');
+    expect(html).toContain('rel="preload" as="font"');
+  });
+
   it('supports plain-text skips and consumer conversion options', () => {
     const html =
       '<p>Keep</p><p data-skip-in-text="true">Skip</p><h1>Heading</h1>';
