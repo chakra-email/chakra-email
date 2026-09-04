@@ -30,6 +30,7 @@ describe('preview HTTP handler', () => {
     const config = normalizeConfig(
       {
         assets: 'public',
+        allowedHosts: ['chakra-email.test'],
         host: '127.0.0.1',
         port: 0,
         templates: 'emails',
@@ -275,5 +276,24 @@ describe('preview HTTP handler', () => {
       },
     );
     expect(status).toBe(400);
+  });
+
+  it('accepts only explicitly configured reverse-proxy hostnames', async () => {
+    async function requestWithHost(host: string) {
+      return new Promise<number | undefined>((resolveStatus, reject) => {
+        const request = get(
+          `${baseUrl}/api/health`,
+          { headers: { host } },
+          (response) => {
+            response.resume();
+            resolveStatus(response.statusCode);
+          },
+        );
+        request.once('error', reject);
+      });
+    }
+
+    await expect(requestWithHost('chakra-email.test')).resolves.toBe(200);
+    await expect(requestWithHost('docs.chakra-email.test')).resolves.toBe(400);
   });
 });

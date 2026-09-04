@@ -55,6 +55,8 @@ export interface PreviewConfig {
   assets?: string;
   /** Host to bind. Non-loopback hosts require an explicit server opt-in. */
   host?: string;
+  /** Exact reverse-proxy hostnames accepted in request Host headers. */
+  allowedHosts?: readonly string[];
   /** Port to bind. Use `0` to select an available port programmatically. */
   port?: number;
   /** Serializable Chakra theme overrides for the preview workspace UI. */
@@ -66,6 +68,7 @@ export interface PreviewConfig {
 }
 
 export interface ResolvedPreviewConfig {
+  allowedHosts: readonly string[];
   assets: string;
   configFile?: string;
   exclude: readonly string[];
@@ -135,6 +138,47 @@ function normalizePort(port: number | undefined): number {
     throw new Error('Preview port must be an integer between 0 and 65535.');
   }
   return value;
+}
+
+function normalizeAllowedHosts(
+  allowedHosts: readonly string[] | undefined,
+): readonly string[] {
+  if (allowedHosts === undefined) {
+    return [];
+  }
+
+  const normalized = allowedHosts.map((value) => {
+    if (
+      value.length === 0 ||
+      value !== value.trim() ||
+      value.includes('*') ||
+      /[/\\\s@?#]/u.test(value) ||
+      value.includes('://')
+    ) {
+      throw new Error(
+        'Each allowedHosts entry must be an exact hostname or IP address.',
+      );
+    }
+
+    try {
+      const parsed = new URL(`http://${value}`);
+      if (
+        parsed.port ||
+        parsed.username ||
+        parsed.password ||
+        parsed.pathname !== '/'
+      ) {
+        throw new Error('invalid host');
+      }
+      return parsed.hostname.toLowerCase().replace(/^\[|\]$/gu, '');
+    } catch {
+      throw new Error(
+        'Each allowedHosts entry must be an exact hostname or IP address.',
+      );
+    }
+  });
+
+  return [...new Set(normalized)];
 }
 
 function normalizeTheme(
@@ -220,6 +264,7 @@ export function normalizeConfig(
   }
 
   return {
+    allowedHosts: normalizeAllowedHosts(config.allowedHosts),
     assets,
     configFile,
     exclude: [

@@ -130,6 +130,7 @@ function isAllowedHost(
   const configured = config.host.toLowerCase().replace(/^\[|\]$/gu, '');
   if (
     hostname === configured ||
+    config.allowedHosts.includes(hostname) ||
     (isLoopback(configured) && isLoopback(hostname))
   ) {
     return true;

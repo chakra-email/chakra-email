@@ -29,6 +29,7 @@ describe('preview config', () => {
     const config = normalizeConfig({ root: '.', templates: 'src' }, configFile);
 
     expect(config).toMatchObject({
+      allowedHosts: [],
       assets: '/workspace/libs/emails/public',
       host: '127.0.0.1',
       port: 4100,
@@ -82,6 +83,14 @@ describe('preview config', () => {
     ).toBe(testSend);
   });
 
+  it('normalizes exact trusted reverse-proxy hosts', () => {
+    expect(
+      normalizeConfig({
+        allowedHosts: ['CHAKRA-EMAIL.TEST', '127.0.0.1', 'chakra-email.test'],
+      }).allowedHosts,
+    ).toEqual(['chakra-email.test', '127.0.0.1']);
+  });
+
   it('rejects a circular preview theme', () => {
     const theme: Record<string, unknown> = {};
     theme['self'] = theme;
@@ -98,6 +107,9 @@ describe('preview config', () => {
     [{ templates: '../private' }, 'templates directory'],
     [{ assets: '../private' }, 'assets'],
     [{ host: 'http://localhost' }, 'hostname'],
+    [{ allowedHosts: ['*.example.test'] }, 'exact hostname'],
+    [{ allowedHosts: ['example.test:4100'] }, 'exact hostname'],
+    [{ allowedHosts: [' https://example.test'] }, 'exact hostname'],
     [{ port: 65_536 }, 'integer'],
     [{ include: [] }, 'include'],
     [{ testSend: {} as never }, 'send(message)'],
