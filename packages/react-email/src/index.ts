@@ -1,4 +1,7 @@
-import type { EmailRenderer } from '@chakra-email/core/render';
+import {
+  stripBrowserOnlyEmailHints,
+  type EmailRenderer,
+} from '@chakra-email/core/render';
 import {
   assertEmailOutputLimits,
   EmailSecurityPolicyProvider,
@@ -19,7 +22,7 @@ export function reactEmailRenderer(): EmailRenderer {
             children: element,
           })
         : element;
-      const rendered = await render(renderable);
+      const rendered = stripBrowserOnlyEmailHints(await render(renderable));
       const [html, text] = await Promise.all([
         options.pretty ? pretty(rendered) : rendered,
         Promise.resolve(toPlainText(rendered, options.plainTextOptions)),

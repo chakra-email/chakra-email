@@ -22,3 +22,7 @@ export default defineConfig({
 The adapter can render templates composed from React Email components, Chakra
 Email components, or both. React Email remains an optional peer dependency and
 is not installed by `@chakra-email/core` or `@chakra-email/preview`.
+
+Renderer-wide Chakra Email `urlPolicy` and `outputLimits` options are forwarded
+by the adapter. React 19's browser-oriented image preload hints are removed
+before adapter output is returned.

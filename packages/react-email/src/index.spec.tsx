@@ -1,5 +1,5 @@
 import { Button as ChakraButton } from '@chakra-email/core';
-import { Body, Html, Link, Section, Text } from 'react-email';
+import { Body, Html, Img, Link, Section, Text } from 'react-email';
 import { describe, expect, it } from 'vitest';
 import { reactEmailRenderer } from './index.js';
 
@@ -64,5 +64,14 @@ describe('reactEmailRenderer', () => {
         outputLimits: { maxTextBytes: 10 },
       }),
     ).rejects.toMatchObject({ code: 'OUTPUT_TOO_LARGE' });
+  });
+
+  it('removes React image preload hints from adapter output', async () => {
+    const output = await reactEmailRenderer().render(
+      <Img src="https://example.com/image.png" alt="Example" />,
+    );
+
+    expect(output.html).toContain('<img');
+    expect(output.html).not.toContain('rel="preload"');
   });
 });

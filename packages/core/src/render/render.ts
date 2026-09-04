@@ -60,8 +60,8 @@ function hasAttribute(tag: string, name: string, value: string): boolean {
   ).test(tag);
 }
 
-/** React 19 emits browser-only resource hints for images during SSR. */
-function stripImagePreloadHints(html: string): string {
+/** Removes browser-only resource hints that are not useful in delivered email. */
+export function stripBrowserOnlyEmailHints(html: string): string {
   return html.replace(linkElementPattern, (tag) =>
     hasAttribute(tag, 'rel', 'preload') && hasAttribute(tag, 'as', 'image')
       ? ''
@@ -80,7 +80,7 @@ function renderMarkup(
       })
     : element;
   return withEmailDoctype(
-    stripImagePreloadHints(renderToStaticMarkup(renderable)),
+    stripBrowserOnlyEmailHints(renderToStaticMarkup(renderable)),
   );
 }
 
