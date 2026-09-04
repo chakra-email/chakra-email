@@ -1,7 +1,9 @@
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
+  assertEmailOutputLimits,
   EmailSecurityPolicyProvider,
+  type EmailOutputLimits,
   type EmailSecurityPolicy,
 } from '../security/index.js';
 import { pretty as prettyHtml } from './pretty.js';
@@ -15,16 +17,19 @@ export interface RenderOptions {
   pretty?: boolean;
   plainText?: boolean;
   plainTextOptions?: PlainTextOptions;
+  outputLimits?: EmailOutputLimits;
   urlPolicy?: EmailSecurityPolicy;
 }
 
 export interface RenderEmailOptions {
   pretty?: boolean;
   plainTextOptions?: PlainTextOptions;
+  outputLimits?: EmailOutputLimits;
   urlPolicy?: EmailSecurityPolicy;
 }
 
 export interface RenderPlainTextOptions extends PlainTextOptions {
+  outputLimits?: Pick<EmailOutputLimits, 'maxTextBytes'>;
   urlPolicy?: EmailSecurityPolicy;
 }
 
@@ -87,9 +92,12 @@ export async function render(
   const output = options.pretty ? prettyHtml(html) : html;
 
   if (options.plainText) {
-    return toPlainText(output, options.plainTextOptions);
+    const text = toPlainText(output, options.plainTextOptions);
+    assertEmailOutputLimits({ text }, options.outputLimits);
+    return text;
   }
 
+  assertEmailOutputLimits({ html: output }, options.outputLimits);
   return output;
 }
 
@@ -99,18 +107,22 @@ export async function renderEmail(
 ): Promise<RenderedEmail> {
   const rendered = renderMarkup(element, options.urlPolicy);
 
-  return {
+  const result = {
     html: options.pretty ? prettyHtml(rendered) : rendered,
     text: toPlainText(rendered, options.plainTextOptions),
   };
+  assertEmailOutputLimits(result, options.outputLimits);
+  return result;
 }
 
 export async function renderPlainText(
   element: ReactElement,
   options: RenderPlainTextOptions = {},
 ): Promise<string> {
-  const { urlPolicy, ...plainTextOptions } = options;
-  return toPlainText(renderMarkup(element, urlPolicy), plainTextOptions);
+  const { outputLimits, urlPolicy, ...plainTextOptions } = options;
+  const text = toPlainText(renderMarkup(element, urlPolicy), plainTextOptions);
+  assertEmailOutputLimits({ text }, outputLimits);
+  return text;
 }
 
 export const chakraEmailRenderer: EmailRenderer = {

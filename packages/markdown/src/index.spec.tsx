@@ -1,4 +1,4 @@
-import { render, ThemeProvider } from '@chakra-email/core';
+import { EmailRenderError, render, ThemeProvider } from '@chakra-email/core';
 import { describe, expect, it } from 'vitest';
 import { Markdown } from './index.js';
 
@@ -111,5 +111,34 @@ const highlighted = true;
     expect(html).toContain('plain block');
     expect(html).toContain('aria-hidden="true"');
     expect(html).toContain('color:#0550ae');
+  });
+
+  it('enforces source byte and line limits before parsing', async () => {
+    await expect(
+      render(<Markdown limits={{ maxSourceBytes: 3 }}>{'éé'}</Markdown>),
+    ).rejects.toMatchObject({ code: 'SOURCE_TOO_LARGE' });
+    await expect(
+      render(<Markdown limits={{ maxLines: 2 }}>{'one\ntwo\nthree'}</Markdown>),
+    ).rejects.toMatchObject({ code: 'SOURCE_TOO_LARGE' });
+  });
+
+  it('bounds parsed node count and nesting depth', async () => {
+    await expect(
+      render(<Markdown limits={{ maxAstNodes: 3 }}>{'One\n\nTwo'}</Markdown>),
+    ).rejects.toMatchObject({ code: 'AST_TOO_LARGE' });
+    await expect(
+      render(
+        <Markdown limits={{ maxNestingDepth: 3 }}>{'> > > > Nested'}</Markdown>,
+      ),
+    ).rejects.toMatchObject({ code: 'NESTING_TOO_DEEP' });
+  });
+
+  it('offers strict limits and typed configuration errors', async () => {
+    const html = await render(<Markdown limits="strict">{'Safe'}</Markdown>);
+    expect(html).toContain('Safe');
+
+    await expect(
+      render(<Markdown limits={{ maxLines: 0 }}>{'Unsafe'}</Markdown>),
+    ).rejects.toBeInstanceOf(EmailRenderError);
   });
 });

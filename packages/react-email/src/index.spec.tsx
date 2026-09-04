@@ -57,4 +57,12 @@ describe('reactEmailRenderer', () => {
       ),
     ).rejects.toMatchObject({ code: 'UNSAFE_URL' });
   });
+
+  it('enforces final output limits', async () => {
+    await expect(
+      reactEmailRenderer().render(<Text>{'content '.repeat(10)}</Text>, {
+        outputLimits: { maxTextBytes: 10 },
+      }),
+    ).rejects.toMatchObject({ code: 'OUTPUT_TOO_LARGE' });
+  });
 });

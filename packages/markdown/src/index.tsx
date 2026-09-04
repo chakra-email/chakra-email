@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
   Text,
+  EmailRenderError,
   useSlotRecipeStyles,
 } from '@chakra-email/core';
 import {
@@ -35,6 +36,21 @@ import ReactMarkdown, {
 } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+export interface MarkdownLimits {
+  maxSourceBytes?: number;
+  maxLines?: number;
+  maxAstNodes?: number;
+  maxNestingDepth?: number;
+}
+
+export const strictMarkdownLimits: Readonly<Required<MarkdownLimits>> =
+  Object.freeze({
+    maxSourceBytes: 256 * 1_024,
+    maxLines: 10_000,
+    maxAstNodes: 5_000,
+    maxNestingDepth: 8,
+  });
+
 export interface MarkdownProps extends Omit<
   ReactMarkdownOptions,
   'children' | 'components' | 'remarkPlugins'
@@ -43,6 +59,8 @@ export interface MarkdownProps extends Omit<
   components?: Components;
   /** Enables tables, task lists, strikethrough, and autolinks. */
   gfm?: boolean;
+  /** Optional admission limits. Use `"strict"` for the exported strict preset. */
+  limits?: MarkdownLimits | 'strict';
   remarkPlugins?: ReactMarkdownOptions['remarkPlugins'];
   size?: string;
   codeHighlighter?: CodeHighlighter;
@@ -54,6 +72,117 @@ export interface MarkdownProps extends Omit<
 }
 
 export const chakraEmailMarkdownRecipeKey = 'chakraEmailMarkdown';
+
+interface MarkdownAstNode {
+  children?: MarkdownAstNode[];
+}
+
+function byteLength(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
+}
+
+function validateLimit(value: number | undefined, name: string): void {
+  if (value !== undefined && (!Number.isSafeInteger(value) || value <= 0)) {
+    throw new EmailRenderError(
+      'INVALID_COMPONENT_PROP',
+      `${name} must be a positive safe integer.`,
+    );
+  }
+}
+
+function resolveMarkdownLimits(
+  limits: MarkdownProps['limits'],
+): MarkdownLimits | undefined {
+  const resolved = limits === 'strict' ? strictMarkdownLimits : limits;
+  if (!resolved) {
+    return undefined;
+  }
+
+  validateLimit(resolved.maxSourceBytes, 'maxSourceBytes');
+  validateLimit(resolved.maxLines, 'maxLines');
+  validateLimit(resolved.maxAstNodes, 'maxAstNodes');
+  validateLimit(resolved.maxNestingDepth, 'maxNestingDepth');
+  return resolved;
+}
+
+function assertMarkdownSourceLimits(
+  source: string,
+  limits: MarkdownLimits | undefined,
+): void {
+  if (!limits) {
+    return;
+  }
+
+  const sourceBytes = byteLength(source);
+  if (
+    limits.maxSourceBytes !== undefined &&
+    sourceBytes > limits.maxSourceBytes
+  ) {
+    throw new EmailRenderError(
+      'SOURCE_TOO_LARGE',
+      'Markdown source exceeds the configured byte limit.',
+      {
+        details: {
+          actualBytes: sourceBytes,
+          limitBytes: limits.maxSourceBytes,
+        },
+      },
+    );
+  }
+
+  const lineCount = source.length === 0 ? 0 : source.split(/\r\n?|\n/u).length;
+  if (limits.maxLines !== undefined && lineCount > limits.maxLines) {
+    throw new EmailRenderError(
+      'SOURCE_TOO_LARGE',
+      'Markdown source exceeds the configured line limit.',
+      {
+        details: { actualLines: lineCount, limitLines: limits.maxLines },
+      },
+    );
+  }
+}
+
+function createMarkdownLimitPlugin(limits: MarkdownLimits) {
+  return () => (tree: MarkdownAstNode) => {
+    let nodeCount = 0;
+
+    function visit(node: MarkdownAstNode, depth: number): void {
+      nodeCount += 1;
+      if (limits.maxAstNodes !== undefined && nodeCount > limits.maxAstNodes) {
+        throw new EmailRenderError(
+          'AST_TOO_LARGE',
+          'Markdown syntax tree exceeds the configured node limit.',
+          {
+            details: {
+              actualNodes: nodeCount,
+              limitNodes: limits.maxAstNodes,
+            },
+          },
+        );
+      }
+      if (
+        limits.maxNestingDepth !== undefined &&
+        depth > limits.maxNestingDepth
+      ) {
+        throw new EmailRenderError(
+          'NESTING_TOO_DEEP',
+          'Markdown syntax tree exceeds the configured nesting limit.',
+          {
+            details: {
+              actualDepth: depth,
+              limitDepth: limits.maxNestingDepth,
+            },
+          },
+        );
+      }
+      for (const child of node.children ?? []) {
+        visit(child, depth + 1);
+      }
+    }
+
+    visit(tree, 0);
+  };
+}
 
 function languageFromClassName(className: string | undefined) {
   return /^language-(.+)$/.exec(className ?? '')?.[1];
@@ -173,6 +302,7 @@ export function Markdown({
   children,
   components,
   gfm = true,
+  limits,
   remarkPlugins,
   size,
   codeHighlighter,
@@ -180,13 +310,19 @@ export function Markdown({
   codeBlockProps,
   ...options
 }: MarkdownProps) {
+  const resolvedLimits = resolveMarkdownLimits(limits);
+  assertMarkdownSourceLimits(children, resolvedLimits);
   const styles = useSlotRecipeStyles(chakraEmailMarkdownRecipeKey, { size });
   const emailComponents = createEmailComponents(styles, {
     codeBlockLineNumbers,
     codeBlockProps,
     codeHighlighter,
   });
-  const plugins = [...(gfm ? [remarkGfm] : []), ...(remarkPlugins ?? [])];
+  const plugins: NonNullable<ReactMarkdownOptions['remarkPlugins']> = [
+    ...(gfm ? [remarkGfm] : []),
+    ...(resolvedLimits ? [createMarkdownLimitPlugin(resolvedLimits)] : []),
+    ...(remarkPlugins ?? []),
+  ];
 
   return (
     <Box style={styles.root}>

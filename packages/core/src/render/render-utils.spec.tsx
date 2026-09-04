@@ -92,6 +92,34 @@ describe('render utilities', () => {
     expect(result.text).toBe('Render 1');
   });
 
+  it('enforces final HTML and text byte limits', async () => {
+    const email = <Text>{'é'.repeat(10)}</Text>;
+
+    await expect(
+      render(email, { outputLimits: { maxHtmlBytes: 10 } }),
+    ).rejects.toMatchObject({
+      code: 'OUTPUT_TOO_LARGE',
+      details: { output: 'html' },
+    });
+    await expect(
+      renderEmail(email, { outputLimits: { maxTextBytes: 10 } }),
+    ).rejects.toMatchObject({
+      code: 'OUTPUT_TOO_LARGE',
+      details: { output: 'text' },
+    });
+    await expect(
+      renderPlainText(email, { outputLimits: { maxTextBytes: 10 } }),
+    ).rejects.toMatchObject({ code: 'OUTPUT_TOO_LARGE' });
+  });
+
+  it('rejects invalid output limit configuration', async () => {
+    await expect(
+      render(<Text>Content</Text>, {
+        outputLimits: { maxHtmlBytes: 0 },
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_COMPONENT_PROP' });
+  });
+
   it('removes browser-only image preloads from every HTML render path', async () => {
     const email = (
       <Html>

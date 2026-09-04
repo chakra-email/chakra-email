@@ -1,5 +1,8 @@
 import type { EmailRenderer } from '@chakra-email/core/render';
-import { EmailSecurityPolicyProvider } from '@chakra-email/core/security';
+import {
+  assertEmailOutputLimits,
+  EmailSecurityPolicyProvider,
+} from '@chakra-email/core/security';
 import { createElement } from 'react';
 import { pretty, render, toPlainText } from 'react-email';
 
@@ -22,7 +25,9 @@ export function reactEmailRenderer(): EmailRenderer {
         Promise.resolve(toPlainText(rendered, options.plainTextOptions)),
       ]);
 
-      return { html, text };
+      const output = { html, text };
+      assertEmailOutputLimits(output, options.outputLimits);
+      return output;
     },
   };
 }
