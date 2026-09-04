@@ -54,6 +54,9 @@ export const previewVariants = {
   },
 } satisfies Record<string, Partial<WelcomeEmailProps>>;
 
+export const previewSubject = (props: WelcomeEmailProps) =>
+  `Welcome to ${props.workspaceName}`;
+
 const previewTheme = defineTheme({
   colors: {
     ink: {

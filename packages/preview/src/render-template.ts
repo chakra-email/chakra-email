@@ -16,6 +16,9 @@ import type { RegisteredTemplate } from './discovery.js';
 import { lintRenderedEmail } from './lint-email.js';
 
 export type TemplateModule = Record<string, unknown> & { default?: unknown };
+export type PreviewSubject<Props = JsonObject> =
+  | string
+  | ((props: Props) => string | Promise<string>);
 
 export interface RenderTemplateOptions {
   module: TemplateModule;
@@ -118,6 +121,38 @@ function createTemplateElement(
   return createElement(component as ElementType, props);
 }
 
+function containsControlCharacter(value: string): boolean {
+  return [...value].some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 0x1f || codePoint === 0x7f;
+  });
+}
+
+async function resolvePreviewSubject(
+  value: unknown,
+  props: JsonObject,
+  fallback: string,
+): Promise<string> {
+  if (value === undefined) {
+    return fallback;
+  }
+  const result = typeof value === 'function' ? await value(props) : value;
+  if (typeof result !== 'string') {
+    throw new Error(
+      'previewSubject must be a string or a function returning one.',
+    );
+  }
+  const subject = result.trim();
+  if (
+    subject.length === 0 ||
+    new TextEncoder().encode(subject).byteLength > 998 ||
+    containsControlCharacter(subject)
+  ) {
+    throw new Error('previewSubject must be a valid email subject.');
+  }
+  return subject;
+}
+
 export async function renderTemplate(
   options: RenderTemplateOptions,
 ): Promise<PreviewRenderResponse> {
@@ -151,9 +186,14 @@ export async function renderTemplate(
   const props = { ...baseProps, ...variantProps, ...customProps };
   const element = createTemplateElement(component, props);
   const renderer = options.renderer ?? chakraEmailRenderer;
-  const [output, source] = await Promise.all([
+  const [output, source, subject] = await Promise.all([
     renderer.render(element, { pretty: options.pretty ?? true }),
     readFile(options.template.absolutePath, 'utf8'),
+    resolvePreviewSubject(
+      options.module.previewSubject,
+      props,
+      options.template.name,
+    ),
   ]);
   const { html, text } = output;
 
@@ -164,6 +204,7 @@ export async function renderTemplate(
     name: options.template.name,
     props,
     source,
+    subject,
     text,
     variants: variantNames,
   };

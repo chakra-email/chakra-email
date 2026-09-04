@@ -209,7 +209,7 @@ export async function createPreviewServer(
         const result = await config.testSend?.send({
           html: rendered.html,
           props: rendered.props,
-          subject: request.subject?.trim() || rendered.name,
+          subject: request.subject?.trim() || rendered.subject,
           template: {
             id: template.id,
             name: template.name,

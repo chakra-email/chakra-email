@@ -126,6 +126,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
           ],
           text: 'Hello from the plain-text email.',
           source: 'export default function WelcomeEmail() { return <Html />; }',
+          subject: `Welcome ${String(props['name'] ?? '')}`.trim(),
           props,
           variants: ['reminder', 'long-copy'],
         });
@@ -224,6 +225,9 @@ describe('PreviewApplication', () => {
     expect(document.querySelector('h1')?.textContent).toContain(
       'Welcome email',
     );
+    expect(document.querySelector('.preview-subject')?.textContent).toContain(
+      'Welcome Ada',
+    );
     expect(harness.fetcher).toHaveBeenNthCalledWith(1, '/api/templates', {
       headers: {
         accept: 'application/json',
@@ -274,6 +278,9 @@ describe('PreviewApplication', () => {
       expect(
         document.querySelector<HTMLTextAreaElement>('#preview-props')?.value,
       ).toContain('Grace');
+      expect(
+        document.querySelector<HTMLInputElement>('#test-send-subject')?.value,
+      ).toBe('Welcome Grace');
     });
 
     let editor = getElement<HTMLTextAreaElement>('#preview-props');
@@ -356,6 +363,7 @@ describe('PreviewApplication', () => {
     recipient.value = 'ada@example.com';
     recipient.dispatchEvent(new Event('input', { bubbles: true }));
     const subject = getElement<HTMLInputElement>('#test-send-subject');
+    expect(subject.value).toBe('Welcome Ada');
     subject.value = 'A preview for Ada';
     subject.dispatchEvent(new Event('input', { bubbles: true }));
     getElement<HTMLButtonElement>('[data-action="test-send"]').click();

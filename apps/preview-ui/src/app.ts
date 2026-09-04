@@ -37,6 +37,7 @@ export type RenderResult = {
   lint: LintFinding[];
   text: string;
   source: string;
+  subject: string;
   props: JsonRecord;
   variants: string[];
 };
@@ -97,6 +98,7 @@ export type ApplicationState = {
   canTestSend: boolean;
   sendTo: string;
   sendSubject: string;
+  sendSubjectDirty: boolean;
   sending: boolean;
   sendError: string | null;
   sendMessage: string | null;
@@ -214,6 +216,7 @@ function parseRenderResult(value: unknown): RenderResult {
     !Array.isArray(value['lint']) ||
     typeof value['text'] !== 'string' ||
     typeof value['source'] !== 'string' ||
+    typeof value['subject'] !== 'string' ||
     !isRecord(value['props']) ||
     !Array.isArray(value['variants']) ||
     !value['variants'].every((variant) => typeof variant === 'string')
@@ -273,6 +276,7 @@ function parseRenderResult(value: unknown): RenderResult {
     lint,
     text: value['text'],
     source: value['source'],
+    subject: value['subject'],
     props: value['props'],
     variants: value['variants'],
   };
@@ -438,6 +442,7 @@ export class PreviewApplication {
     canTestSend: false,
     sendTo: '',
     sendSubject: '',
+    sendSubjectDirty: false,
     sending: false,
     sendError: null,
     sendMessage: null,
@@ -535,6 +540,7 @@ export class PreviewApplication {
 
   private readonly changeSendSubject = (value: string): void => {
     this.state.sendSubject = value;
+    this.state.sendSubjectDirty = true;
     this.state.sendError = null;
     this.state.sendMessage = null;
     this.render();
@@ -571,6 +577,8 @@ export class PreviewApplication {
     this.state.propsError = null;
     this.state.sendError = null;
     this.state.sendMessage = null;
+    this.state.sendSubject = '';
+    this.state.sendSubjectDirty = false;
     void this.renderCurrent({ replaceEditor: true });
   }
 
@@ -622,6 +630,8 @@ export class PreviewApplication {
         this.state.appliedProps = null;
         this.state.propsDirty = false;
         this.state.propsError = null;
+        this.state.sendSubject = '';
+        this.state.sendSubjectDirty = false;
       }
 
       this.render();
@@ -697,6 +707,9 @@ export class PreviewApplication {
       this.state.result = result;
       this.state.rendering = false;
       this.state.appliedProps = result.props;
+      if (!this.state.sendSubjectDirty) {
+        this.state.sendSubject = result.subject;
+      }
 
       if (
         this.state.selectedVariant &&

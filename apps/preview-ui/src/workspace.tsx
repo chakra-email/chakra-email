@@ -285,6 +285,11 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                   selectedTemplate?.name ??
                   'Choose a template'}
               </Heading>
+              {state.result?.subject ? (
+                <Text className="preview-subject" css={styles.subject}>
+                  Subject: {state.result.subject}
+                </Text>
+              ) : null}
               {selectedTemplate?.path ? (
                 <Code css={styles.path}>{selectedTemplate.path}</Code>
               ) : null}
@@ -748,7 +753,7 @@ function Inspector(props: PreviewWorkspaceProps) {
                 id="test-send-subject"
                 name="subject"
                 value={state.sendSubject}
-                placeholder={state.result?.name ?? 'Template name'}
+                placeholder={state.result?.subject ?? 'Template subject'}
                 css={styles.sendInput}
                 onInput={(event) =>
                   props.onSendSubjectChange(event.currentTarget.value)

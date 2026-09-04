@@ -20,6 +20,8 @@ export { exportTemplates } from './export-templates.js';
 export type {
   ExportedTemplateFile,
   ExportFormat,
+  ExportManifest,
+  ExportManifestEntry,
   ExportTemplatesOptions,
   ExportTemplatesResult,
 } from './export-templates.js';
@@ -47,3 +49,4 @@ export type {
   PreviewTestSendRequest,
   PreviewTestSendResponse,
 } from './protocol.js';
+export type { PreviewSubject, TemplateModule } from './render-template.js';

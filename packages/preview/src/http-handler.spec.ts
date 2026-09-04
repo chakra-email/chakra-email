@@ -62,6 +62,7 @@ describe('preview HTTP handler', () => {
       name: template.name,
       props: {},
       source: 'export default Welcome;',
+      subject: 'Welcome',
       text: 'Hello',
       variants: [],
     };

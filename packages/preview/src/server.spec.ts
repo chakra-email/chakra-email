@@ -46,6 +46,7 @@ describe('createPreviewServer', () => {
         html: string;
         lint: Array<{ ruleId: string }>;
         source: string;
+        subject: string;
         text: string;
         variants: string[];
       };
@@ -57,6 +58,7 @@ describe('createPreviewServer', () => {
       );
       expect(rendered.text.toLowerCase()).toContain('trial');
       expect(rendered.source).toContain('previewVariants');
+      expect(rendered.subject).toBe('Welcome to Field Notes');
       expect(rendered.variants).toEqual(['new-founder', 'trial-ending']);
 
       const index = await fetch(address.url);
@@ -120,7 +122,7 @@ describe('createPreviewServer', () => {
       expect(send).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining('<!DOCTYPE html'),
-          subject: 'Emails / Welcome',
+          subject: 'Welcome to Field Notes',
           text: expect.stringContaining('2 days remaining'),
           to: 'test@example.com',
           variant: 'trial-ending',

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 import {
   loadPreviewConfig,
   normalizeConfig,
@@ -24,6 +24,8 @@ export interface ExportTemplatesOptions {
   includeVariants?: boolean;
   /** Pretty-print HTML output. Defaults to true. */
   pretty?: boolean;
+  /** Write a deterministic `manifest.json`. Defaults to true. */
+  manifest?: boolean;
 }
 
 export interface ExportedTemplateFile {
@@ -35,8 +37,26 @@ export interface ExportedTemplateFile {
 
 export interface ExportTemplatesResult {
   files: ExportedTemplateFile[];
+  manifestPath?: string;
   outDir: string;
   templateCount: number;
+}
+
+export interface ExportManifestEntry {
+  files: {
+    html?: string;
+    text?: string;
+  };
+  name: string;
+  sourcePath: string;
+  subject: string;
+  templateId: string;
+  variant?: string;
+}
+
+export interface ExportManifest {
+  templates: ExportManifestEntry[];
+  version: 1;
 }
 
 async function resolveExportConfig(
@@ -67,6 +87,10 @@ function variantSuffix(variant: string): string {
   return `--${readable || 'variant'}-${hash}`;
 }
 
+function relativePosix(from: string, path: string): string {
+  return relative(from, path).split(sep).join('/');
+}
+
 async function writeOutput(path: string, contents: string): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, contents, 'utf8');
@@ -78,6 +102,7 @@ export async function exportTemplates(
 ): Promise<ExportTemplatesResult> {
   const format = options.format ?? 'both';
   const includeVariants = options.includeVariants ?? true;
+  const includeManifest = options.manifest ?? true;
   const pretty = options.pretty ?? true;
 
   if (format !== 'both' && format !== 'html' && format !== 'text') {
@@ -90,6 +115,7 @@ export async function exportTemplates(
 
   const loader = await createTemplateModuleLoader(config, () => undefined);
   const files: ExportedTemplateFile[] = [];
+  const manifestEntries: ExportManifestEntry[] = [];
 
   try {
     for (const templateSummary of registry.templates) {
@@ -118,6 +144,7 @@ export async function exportTemplates(
             })
           : defaultOutput;
         const stem = `${templateStem(template.path)}${variant ? variantSuffix(variant) : ''}`;
+        const manifestFiles: ExportManifestEntry['files'] = {};
 
         if (format === 'both' || format === 'html') {
           const path = resolve(outDir, `${stem}.html`);
@@ -128,6 +155,7 @@ export async function exportTemplates(
             templateId: template.id,
             variant,
           });
+          manifestFiles.html = relativePosix(outDir, path);
         }
 
         if (format === 'both' || format === 'text') {
@@ -139,12 +167,34 @@ export async function exportTemplates(
             templateId: template.id,
             variant,
           });
+          manifestFiles.text = relativePosix(outDir, path);
         }
+
+        manifestEntries.push({
+          files: manifestFiles,
+          name: output.name,
+          sourcePath: template.path,
+          subject: output.subject,
+          templateId: template.id,
+          variant,
+        });
       }
     }
   } finally {
     await loader.close();
   }
 
-  return { files, outDir, templateCount: registry.templates.length };
+  let manifestPath: string | undefined;
+  if (includeManifest) {
+    manifestPath = resolve(outDir, 'manifest.json');
+    const manifest: ExportManifest = { templates: manifestEntries, version: 1 };
+    await writeOutput(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  }
+
+  return {
+    files,
+    manifestPath,
+    outDir,
+    templateCount: registry.templates.length,
+  };
 }

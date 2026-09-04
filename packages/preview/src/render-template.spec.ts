@@ -57,7 +57,41 @@ describe('renderTemplate', () => {
     );
     expect(result.text).toContain('Hello Grace (3)');
     expect(result.source).toContain('function Welcome');
+    expect(result.subject).toBe('Welcome');
     expect(result.variants).toEqual(['friendly']);
+  });
+
+  it('derives a subject from the fully merged preview props', async () => {
+    const result = await renderTemplate({
+      module: {
+        default: ({ name }: { name?: string }) =>
+          createElement('p', null, name),
+        previewProps: { name: 'Ada' },
+        previewSubject: async (props: Record<string, unknown>) =>
+          `Welcome ${String(props['name'])}`,
+      },
+      props: { name: 'Grace' },
+      template,
+    });
+
+    expect(result.subject).toBe('Welcome Grace');
+  });
+
+  it.each([
+    ['', 'valid email subject'],
+    ['Hello\r\nBcc: hidden@example.com', 'valid email subject'],
+    ['é'.repeat(500), 'valid email subject'],
+    [42, 'string or a function'],
+  ])('rejects invalid preview subjects %#', async (previewSubject, message) => {
+    await expect(
+      renderTemplate({
+        module: {
+          default: () => createElement('p'),
+          previewSubject,
+        },
+        template,
+      }),
+    ).rejects.toThrow(message);
   });
 
   it('supports React Email-style Component.PreviewProps', async () => {

@@ -110,7 +110,7 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
       pretty: !(options.compact ?? false),
     });
     process.stdout.write(
-      `Exported ${exported.templateCount} ${exported.templateCount === 1 ? 'template' : 'templates'} to ${exported.outDir} (${exported.files.length} ${exported.files.length === 1 ? 'file' : 'files'}).\n`,
+      `Exported ${exported.templateCount} ${exported.templateCount === 1 ? 'template' : 'templates'} to ${exported.outDir} (${exported.files.length + (exported.manifestPath ? 1 : 0)} files).\n`,
     );
     return;
   }

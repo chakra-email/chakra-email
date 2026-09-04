@@ -18,6 +18,7 @@ describe('exportTemplates', () => {
 
       expect(result.templateCount).toBe(1);
       expect(result.files).toHaveLength(6);
+      expect(result.manifestPath).toBe(join(outDir, 'manifest.json'));
       expect(
         result.files.map((file) => relative(outDir, file.path)).sort(),
       ).toEqual([
@@ -38,6 +39,30 @@ describe('exportTemplates', () => {
       );
       expect(trialText).toBeTypeOf('string');
       expect(trialText).toMatch(/trial/iu);
+      const manifest = JSON.parse(
+        await readFile(join(outDir, 'manifest.json'), 'utf8'),
+      ) as {
+        templates: Array<{
+          files: { html?: string; text?: string };
+          subject: string;
+          variant?: string;
+        }>;
+        version: number;
+      };
+      expect(manifest.version).toBe(1);
+      expect(manifest.templates).toHaveLength(3);
+      expect(manifest.templates).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            files: {
+              html: 'emails/welcome--trial-ending-05c75065.html',
+              text: 'emails/welcome--trial-ending-05c75065.txt',
+            },
+            subject: 'Welcome to Field Notes',
+            variant: 'trial-ending',
+          }),
+        ]),
+      );
     } finally {
       await rm(outDir, { force: true, recursive: true });
     }
@@ -54,6 +79,7 @@ describe('exportTemplates', () => {
         },
         format: 'text',
         includeVariants: false,
+        manifest: false,
         outDir,
         pretty: false,
       });
@@ -65,6 +91,10 @@ describe('exportTemplates', () => {
           variant: undefined,
         }),
       ]);
+      expect(result.manifestPath).toBeUndefined();
+      await expect(
+        readFile(join(outDir, 'manifest.json'), 'utf8'),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
     } finally {
       await rm(outDir, { force: true, recursive: true });
     }

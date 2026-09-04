@@ -31,8 +31,11 @@ describe('runCli export', () => {
       expect(
         await readFile(join(outDir, 'emails/welcome.txt'), 'utf8'),
       ).toMatch(/welcome/iu);
+      await expect(
+        readFile(join(outDir, 'manifest.json'), 'utf8'),
+      ).resolves.toMatch('Welcome to Northstar Studio');
       expect(stdout).toHaveBeenCalledWith(
-        expect.stringMatching(/Exported 1 template.+1 file/u),
+        expect.stringMatching(/Exported 1 template.+2 files/u),
       );
     } finally {
       await rm(outDir, { force: true, recursive: true });

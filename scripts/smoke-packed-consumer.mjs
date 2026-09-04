@@ -311,8 +311,10 @@ import {
   defineConfig,
   exportTemplates,
   lintRenderedEmail,
+  type ExportManifest,
   type PreviewLintFinding,
   type PreviewConfig,
+  type PreviewSubject,
   type PreviewTestTransport,
 } from '@chakra-email/preview';
 import { reactEmailRenderer } from '@chakra-email/react-email';
@@ -344,6 +346,8 @@ const directives: MarkdownDirectiveRegistry = {
 };
 const packedThemeConfig: ChakraEmailThemeConfig = chakraEmailThemeConfig;
 const urlPolicy: EmailSecurityPolicy = { link: { onInvalidUrl: 'throw' } };
+const subject: PreviewSubject<{ name: string }> = ({ name }) => 'Hello ' + name;
+const manifest: ExportManifest = { templates: [], version: 1 };
 const email: ReactElement = (
   <CoreProvider>
     <V2Provider>
@@ -386,7 +390,9 @@ void [
   ChakraSystem,
   packedThemeConfig,
   directives,
+  manifest,
   strictMarkdownLimits,
+  subject,
   urlPolicy,
   V2Components,
   V2Render,
@@ -403,6 +409,7 @@ void [
 import { Body, Html, Text } from 'chakra-email';
 
 export const previewProps = { name: 'Packed preview' };
+export const previewSubject = ({ name }) => 'Hello ' + name;
 
 export default function PackedPreviewEmail({ name }) {
   return React.createElement(
@@ -500,7 +507,11 @@ try {
     body: JSON.stringify({ id }),
   });
   const rendered = await renderResponse.json();
-  if (!renderResponse.ok || !rendered.html?.includes('Hello Packed preview')) {
+  if (
+    !renderResponse.ok ||
+    !rendered.html?.includes('Hello Packed preview') ||
+    rendered.subject !== 'Hello Packed preview'
+  ) {
     throw new Error('Packed preview did not render its fixture.');
   }
 

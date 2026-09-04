@@ -223,7 +223,11 @@ function parseTestSendRequest(value: unknown): PreviewTestSendRequest {
     throw new Error('Test send subject must be a string.');
   }
   const subject = body.subject?.trim();
-  if (subject && (subject.length > 998 || /[\r\n]/u.test(subject))) {
+  if (
+    subject &&
+    (new TextEncoder().encode(subject).byteLength > 998 ||
+      /[\r\n]/u.test(subject))
+  ) {
     throw new Error('Test send subject is invalid.');
   }
   return {

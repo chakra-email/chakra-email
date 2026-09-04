@@ -58,6 +58,7 @@ export interface PreviewRenderResponse {
   name: string;
   props: JsonObject;
   source: string;
+  subject: string;
   text: string;
   variants: string[];
 }
