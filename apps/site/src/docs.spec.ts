@@ -30,12 +30,19 @@ describe('documentation manifest', () => {
   });
 
   it('resolves documentation links to manifest routes and repository fallbacks', () => {
+    expect(resolveMarkdownHref(undefined)).toBeUndefined();
+    expect(resolveMarkdownHref('#install')).toBe('#install');
+    expect(resolveMarkdownHref('/docs/components')).toBe('/docs/components');
+    expect(resolveMarkdownHref('README')).toBe('README');
     expect(resolveMarkdownHref('markdown.md#URL Portability')).toBe(
       '/docs/markdown#url-portability',
     );
     expect(resolveMarkdownHref('./chakra-v2.md')).toBe('/docs/chakra-v2');
     expect(resolveMarkdownHref('email-client-test-matrix.md')).toBe(
       'https://github.com/chakra-email/chakra-email/blob/main/docs/email-client-test-matrix.md',
+    );
+    expect(resolveMarkdownHref('missing.md#More Details')).toBe(
+      'https://github.com/chakra-email/chakra-email/blob/main/docs/missing.md#more-details',
     );
     expect(resolveMarkdownHref('https://example.com/docs')).toBe(
       'https://example.com/docs',

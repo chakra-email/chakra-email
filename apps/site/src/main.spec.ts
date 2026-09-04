@@ -139,6 +139,31 @@ describe('documentation application', () => {
     expect(tabs.at(-2)?.getAttribute('aria-selected')).toBe('true');
   });
 
+  it('responds to browser history and preserves modified link behavior', async () => {
+    window.history.pushState({}, '', '/docs/markdown#url-portability');
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+
+    expect(document.querySelector('#docs article h2')?.textContent).toBe(
+      'Markdown',
+    );
+
+    const docsLink = document.querySelector<HTMLAnchorElement>(
+      '#docs nav a[href="/docs/getting-started"]',
+    );
+    docsLink?.setAttribute('target', '_blank');
+    const modifiedClick = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+    });
+    docsLink?.dispatchEvent(modifiedClick);
+
+    expect(modifiedClick.defaultPrevented).toBe(false);
+    expect(window.location.pathname).toBe('/docs/markdown');
+  });
+
   it('has no automated accessibility violations', async () => {
     const result = await axe.run(document, {
       resultTypes: ['violations'],
