@@ -1,4 +1,10 @@
-import { EmailRenderError, render, ThemeProvider } from '@chakra-email/core';
+import {
+  Button,
+  EmailRenderError,
+  render,
+  Section,
+  ThemeProvider,
+} from '@chakra-email/core';
 import { describe, expect, it } from 'vitest';
 import { Markdown } from './index.js';
 
@@ -140,5 +146,95 @@ const highlighted = true;
     await expect(
       render(<Markdown limits={{ maxLines: 0 }}>{'Unsafe'}</Markdown>),
     ).rejects.toBeInstanceOf(EmailRenderError);
+  });
+
+  it('renders schema-validated leaf and container directives', async () => {
+    const html = await render(
+      <Markdown
+        directives={{
+          button: {
+            kind: 'leaf',
+            children: 'required',
+            attributes: {
+              href: { type: 'url', required: true },
+              variant: {
+                type: 'enum',
+                values: ['primary', 'secondary'],
+              },
+            },
+            render: ({ attributes, children }) => (
+              <Button href={String(attributes.href)}>{children}</Button>
+            ),
+          },
+          callout: {
+            kind: 'container',
+            children: 'required',
+            attributes: {
+              tone: { type: 'enum', values: ['info', 'warning'] },
+            },
+            render: ({ attributes, children }) => (
+              <Section data-tone={attributes.tone}>{children}</Section>
+            ),
+          },
+        }}
+      >{`::button[Review account]{href="https://example.com/review" variant="primary"}
+
+:::callout{tone="warning"}
+Renew soon.
+:::`}</Markdown>,
+    );
+
+    expect(html).toContain('href="https://example.com/review"');
+    expect(html).toContain('Review account');
+    expect(html).toContain('data-tone="warning"');
+    expect(html).toContain('Renew soon.');
+  });
+
+  it('keeps directive syntax inert unless a trusted registry is supplied', async () => {
+    const html = await render(
+      <Markdown>{'::button[Review]{href="javascript:alert(1)"}'}</Markdown>,
+    );
+
+    expect(html).toContain('::button');
+    expect(html).not.toContain('<a');
+  });
+
+  it('fails closed for unsafe URLs and undeclared directive input', async () => {
+    const button = {
+      kind: 'leaf' as const,
+      children: 'required' as const,
+      attributes: {
+        href: { type: 'url' as const, required: true },
+      },
+      render: ({ children }: { children: React.ReactNode }) => children,
+    };
+
+    await expect(
+      render(
+        <Markdown directives={{ button }}>
+          {'::button[Unsafe]{href="javascript:alert(1)"}'}
+        </Markdown>,
+      ),
+    ).rejects.toMatchObject({ code: 'UNSAFE_URL' });
+    await expect(
+      render(
+        <Markdown directives={{ button }}>
+          {'::button[Unknown]{href="https://example.com" tone="warning"}'}
+        </Markdown>,
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_COMPONENT_PROP',
+      details: { reason: 'unknown-attribute' },
+    });
+    await expect(
+      render(
+        <Markdown directives={{ button }}>
+          {'::callout[Unknown]{href="https://example.com"}'}
+        </Markdown>,
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_COMPONENT_PROP',
+      details: { reason: 'unknown-directive' },
+    });
   });
 });

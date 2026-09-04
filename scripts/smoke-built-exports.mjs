@@ -1,6 +1,9 @@
 const exportChecks = new Map([
   ['@chakra-email/code-block', ['CodeBlock', 'plainTextHighlighter']],
-  ['@chakra-email/markdown', ['Markdown']],
+  [
+    '@chakra-email/markdown',
+    ['Markdown', 'createMarkdownDirectiveSupport', 'strictMarkdownLimits'],
+  ],
   [
     '@chakra-email/preview',
     [

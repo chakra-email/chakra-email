@@ -291,7 +291,12 @@ console.log('ok packed require(esm) runtime and subpaths');
     `import type { ComponentType, ReactElement } from 'react';
 import { ThemeProvider, type ThemeProviderProps } from '@chakra-email/core';
 import { CodeBlock, type CodeBlockProps } from '@chakra-email/code-block';
-import { Markdown, type MarkdownProps } from '@chakra-email/markdown';
+import {
+  Markdown,
+  strictMarkdownLimits,
+  type MarkdownDirectiveRegistry,
+  type MarkdownProps,
+} from '@chakra-email/markdown';
 import * as CoreComponents from '@chakra-email/core/components';
 import * as CoreRender from '@chakra-email/core/render';
 import { type EmailSecurityPolicy } from '@chakra-email/core/security';
@@ -331,6 +336,12 @@ const V2Provider: ComponentType<ChakraEmailV2ProviderProps> =
   ChakraEmailV2Provider;
 const codeBlockProps: CodeBlockProps = { code: 'const typed = true;' };
 const markdownProps: MarkdownProps = { children: '# Typed markdown' };
+const directives: MarkdownDirectiveRegistry = {
+  callout: {
+    kind: 'container',
+    render: ({ children }) => children,
+  },
+};
 const packedThemeConfig: ChakraEmailThemeConfig = chakraEmailThemeConfig;
 const urlPolicy: EmailSecurityPolicy = { link: { onInvalidUrl: 'throw' } };
 const email: ReactElement = (
@@ -374,6 +385,8 @@ void [
   ChakraSecurity,
   ChakraSystem,
   packedThemeConfig,
+  directives,
+  strictMarkdownLimits,
   urlPolicy,
   V2Components,
   V2Render,

@@ -60,6 +60,7 @@
     "@chakra-email/code-block": "^0.1.0",
     "@chakra-email/core": "^0.1.0",
     "react-markdown": "^10.1.0",
+    "remark-directive": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "tslib": "^2.3.0"
   },

@@ -35,6 +35,12 @@ import ReactMarkdown, {
   type Options as ReactMarkdownOptions,
 } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import {
+  createMarkdownDirectiveSupport,
+  type MarkdownDirectiveRegistry,
+} from './directives.js';
+
+export * from './directives.js';
 
 export interface MarkdownLimits {
   maxSourceBytes?: number;
@@ -69,6 +75,8 @@ export interface MarkdownProps extends Omit<
     CodeBlockProps,
     'code' | 'language' | 'highlighter' | 'lineNumbers'
   >;
+  /** A trusted, schema-validated registry for non-executable directives. */
+  directives?: MarkdownDirectiveRegistry;
 }
 
 export const chakraEmailMarkdownRecipeKey = 'chakraEmailMarkdown';
@@ -308,6 +316,7 @@ export function Markdown({
   codeHighlighter,
   codeBlockLineNumbers,
   codeBlockProps,
+  directives,
   ...options
 }: MarkdownProps) {
   const resolvedLimits = resolveMarkdownLimits(limits);
@@ -318,9 +327,13 @@ export function Markdown({
     codeBlockProps,
     codeHighlighter,
   });
+  const directiveSupport = directives
+    ? createMarkdownDirectiveSupport(directives)
+    : undefined;
   const plugins: NonNullable<ReactMarkdownOptions['remarkPlugins']> = [
     ...(gfm ? [remarkGfm] : []),
     ...(resolvedLimits ? [createMarkdownLimitPlugin(resolvedLimits)] : []),
+    ...(directiveSupport?.remarkPlugins ?? []),
     ...(remarkPlugins ?? []),
   ];
 
@@ -328,7 +341,11 @@ export function Markdown({
     <Box style={styles.root}>
       <ReactMarkdown
         {...options}
-        components={{ ...emailComponents, ...components }}
+        components={{
+          ...emailComponents,
+          ...directiveSupport?.components,
+          ...components,
+        }}
         remarkPlugins={plugins}
       >
         {children}
