@@ -1,4 +1,6 @@
 import type { EmailRenderer } from '@chakra-email/core/render';
+import { EmailSecurityPolicyProvider } from '@chakra-email/core/security';
+import { createElement } from 'react';
 import { pretty, render, toPlainText } from 'react-email';
 
 /**
@@ -8,7 +10,13 @@ import { pretty, render, toPlainText } from 'react-email';
 export function reactEmailRenderer(): EmailRenderer {
   return {
     async render(element, options = {}) {
-      const rendered = await render(element);
+      const renderable = options.urlPolicy
+        ? createElement(EmailSecurityPolicyProvider, {
+            policy: options.urlPolicy,
+            children: element,
+          })
+        : element;
+      const rendered = await render(renderable);
       const [html, text] = await Promise.all([
         options.pretty ? pretty(rendered) : rendered,
         Promise.resolve(toPlainText(rendered, options.plainTextOptions)),

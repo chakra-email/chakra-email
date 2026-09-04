@@ -5,35 +5,18 @@ import {
   type BaseChakraEmailProps,
 } from '../system/index.js';
 import { chakraEmailRecipeKeys } from '../theme/index.js';
+import {
+  sanitizeEmailUrl,
+  useEmailUrlPolicy,
+  type EmailUrlPolicy,
+} from '../security/index.js';
 import { getLegacyWidthAttribute } from './layout-styles.js';
 
-const SAFE_IMAGE_PROTOCOLS = new Set(['http', 'https', 'cid']);
-const IMAGE_PROTOCOL_PATTERN = /^([a-z][a-z0-9+.-]*):/i;
-
-export function sanitizeImageSrc(src: string): string | undefined {
-  const normalizedSrc = src.trimStart();
-  const protocol =
-    IMAGE_PROTOCOL_PATTERN.exec(normalizedSrc)?.[1]?.toLowerCase();
-
-  if (protocol === undefined || !SAFE_IMAGE_PROTOCOLS.has(protocol)) {
-    return undefined;
-  }
-
-  if (protocol === 'cid') {
-    const contentId = normalizedSrc.slice(protocol.length + 1).trim();
-    return contentId && !/\s/.test(contentId) ? src : undefined;
-  }
-
-  if (!normalizedSrc.toLowerCase().startsWith(`${protocol}://`)) {
-    return undefined;
-  }
-
-  try {
-    const url = new URL(normalizedSrc);
-    return url.protocol === `${protocol}:` && url.hostname ? src : undefined;
-  } catch {
-    return undefined;
-  }
+export function sanitizeImageSrc(
+  src: string,
+  policy?: EmailUrlPolicy,
+): string | undefined {
+  return sanitizeEmailUrl(src, { kind: 'image', policy });
 }
 
 function getLegacyPixelDimension(
@@ -52,12 +35,21 @@ export interface ImgProps
     > {
   src: string;
   alt: string;
+  urlPolicy?: EmailUrlPolicy;
   width?: string | number;
   height?: string | number;
 }
 
-export function Img({ src, alt, width, height, ...props }: ImgProps) {
+export function Img({
+  src,
+  alt,
+  urlPolicy,
+  width,
+  height,
+  ...props
+}: ImgProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
+  const sanitizeUrl = useEmailUrlPolicy('image', urlPolicy);
   const styles = useRecipeStyles(chakraEmailRecipeKeys.img, undefined, {
     width,
     height,
@@ -69,7 +61,7 @@ export function Img({ src, alt, width, height, ...props }: ImgProps) {
   return (
     <img
       {...elementProps}
-      src={sanitizeImageSrc(src)}
+      src={sanitizeUrl(src)}
       alt={alt}
       width={legacyWidth}
       height={legacyHeight}

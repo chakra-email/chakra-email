@@ -49,6 +49,11 @@
       "import": "./dist/render.js",
       "default": "./dist/render.js"
     },
+    "./security": {
+      "types": "./dist/security.d.ts",
+      "import": "./dist/security.js",
+      "default": "./dist/security.js"
+    },
     "./system": {
       "types": "./dist/system.d.ts",
       "import": "./dist/system.js",

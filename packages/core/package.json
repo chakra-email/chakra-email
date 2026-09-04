@@ -55,6 +55,11 @@
       "import": "./dist/render/index.js",
       "default": "./dist/render/index.js"
     },
+    "./security": {
+      "types": "./dist/security/index.d.ts",
+      "import": "./dist/security/index.js",
+      "default": "./dist/security/index.js"
+    },
     "./system": {
       "types": "./dist/system/index.d.ts",
       "import": "./dist/system/index.js",

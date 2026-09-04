@@ -35,13 +35,31 @@ describe('sanitizeHref', () => {
     '?page=2',
     'relative/path',
     '//example.com/protocol-relative',
+    'https://user:password@example.com/private',
+    'mailto:hello@example.com?subject=Hello%0d%0aBcc:other@example.com',
+    'tel:+15555550123%250aextension',
+    ' https://example.com/leading',
+    'https://example.com/trailing ',
+    'https://example.com/%ZZ',
+    '#',
   ])('rejects unsupported or non-portable hrefs: %s', (href) => {
     expect(sanitizeHref(href)).toBeUndefined();
   });
 
-  it('preserves an allowed URL byte-for-byte after validation', () => {
-    const href = ' \nHTTPS://example.com/path?q=hello world';
+  it('enforces byte limits and supports explicit policy overrides', () => {
+    const credentialed = 'https://user:password@example.com/private';
 
-    expect(sanitizeHref(href)).toBe(href);
+    expect(
+      sanitizeHref(`https://example.com/${'a'.repeat(2_100)}`),
+    ).toBeUndefined();
+    expect(sanitizeHref(credentialed, { allowCredentials: true })).toBe(
+      credentialed,
+    );
+    expect(
+      sanitizeHref('ftp://example.com/file', {
+        allowedProtocols: ['https:', 'ftp'],
+      }),
+    ).toBe('ftp://example.com/file');
+    expect(sanitizeHref('#section', { allowFragments: false })).toBeUndefined();
   });
 });

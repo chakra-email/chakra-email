@@ -192,14 +192,17 @@ if (
 const packageSubpaths = [
   '@chakra-email/core/components',
   '@chakra-email/core/render',
+  '@chakra-email/core/security',
   '@chakra-email/core/system',
   '@chakra-email/core/theme',
   'chakra-email/components',
   'chakra-email/render',
+  'chakra-email/security',
   'chakra-email/system',
   'chakra-email/theme',
   '@chakra-email/chakra-v2/components',
   '@chakra-email/chakra-v2/render',
+  '@chakra-email/chakra-v2/security',
   '@chakra-email/chakra-v2/system',
   '@chakra-email/chakra-v2/theme',
 ];
@@ -257,14 +260,17 @@ if (
 const packageSubpaths = [
   '@chakra-email/core/components',
   '@chakra-email/core/render',
+  '@chakra-email/core/security',
   '@chakra-email/core/system',
   '@chakra-email/core/theme',
   'chakra-email/components',
   'chakra-email/render',
+  'chakra-email/security',
   'chakra-email/system',
   'chakra-email/theme',
   '@chakra-email/chakra-v2/components',
   '@chakra-email/chakra-v2/render',
+  '@chakra-email/chakra-v2/security',
   '@chakra-email/chakra-v2/system',
   '@chakra-email/chakra-v2/theme',
 ];
@@ -288,6 +294,7 @@ import { CodeBlock, type CodeBlockProps } from '@chakra-email/code-block';
 import { Markdown, type MarkdownProps } from '@chakra-email/markdown';
 import * as CoreComponents from '@chakra-email/core/components';
 import * as CoreRender from '@chakra-email/core/render';
+import { type EmailSecurityPolicy } from '@chakra-email/core/security';
 import * as CoreSystem from '@chakra-email/core/system';
 import * as CoreTheme from '@chakra-email/core/theme';
 import {
@@ -306,11 +313,13 @@ import {
 import { reactEmailRenderer } from '@chakra-email/react-email';
 import * as V2Components from '@chakra-email/chakra-v2/components';
 import * as V2Render from '@chakra-email/chakra-v2/render';
+import * as V2Security from '@chakra-email/chakra-v2/security';
 import * as V2System from '@chakra-email/chakra-v2/system';
 import * as V2Theme from '@chakra-email/chakra-v2/theme';
 import { Body, Html, Text, render } from 'chakra-email';
 import * as ChakraComponents from 'chakra-email/components';
 import * as ChakraRender from 'chakra-email/render';
+import * as ChakraSecurity from 'chakra-email/security';
 import * as ChakraSystem from 'chakra-email/system';
 import {
   chakraEmailThemeConfig,
@@ -323,6 +332,7 @@ const V2Provider: ComponentType<ChakraEmailV2ProviderProps> =
 const codeBlockProps: CodeBlockProps = { code: 'const typed = true;' };
 const markdownProps: MarkdownProps = { children: '# Typed markdown' };
 const packedThemeConfig: ChakraEmailThemeConfig = chakraEmailThemeConfig;
+const urlPolicy: EmailSecurityPolicy = { link: { onInvalidUrl: 'throw' } };
 const email: ReactElement = (
   <CoreProvider>
     <V2Provider>
@@ -361,10 +371,13 @@ void [
   CoreTheme,
   ChakraComponents,
   ChakraRender,
+  ChakraSecurity,
   ChakraSystem,
   packedThemeConfig,
+  urlPolicy,
   V2Components,
   V2Render,
+  V2Security,
   V2System,
   V2Theme,
 ];

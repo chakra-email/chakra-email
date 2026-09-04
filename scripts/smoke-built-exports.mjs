@@ -40,6 +40,10 @@ const exportChecks = new Map([
     '@chakra-email/core/render',
     ['chakraEmailRenderer', 'render', 'renderEmail', 'renderPlainText'],
   ],
+  [
+    '@chakra-email/core/security',
+    ['EmailRenderError', 'sanitizeEmailUrl', 'strictEmailSecurityPolicy'],
+  ],
   ['@chakra-email/core/system', ['mapChakraPropsToStyles']],
   ['@chakra-email/core/theme', ['ThemeProvider', 'mergeTheme']],
   [
@@ -51,6 +55,7 @@ const exportChecks = new Map([
     ['Blockquote', 'Button', 'Code', 'Pre', 'Table', 'Text'],
   ],
   ['chakra-email/render', ['render', 'renderPlainText']],
+  ['chakra-email/security', ['EmailRenderError', 'sanitizeEmailUrl']],
   ['chakra-email/system', ['mapChakraPropsToStyles']],
   ['chakra-email/theme', ['ChakraEmailProvider', 'createChakraV3EmailTheme']],
   [
@@ -69,6 +74,10 @@ const exportChecks = new Map([
     ['Blockquote', 'Button', 'Code', 'Pre', 'Table', 'Text'],
   ],
   ['@chakra-email/chakra-v2/render', ['render', 'renderPlainText']],
+  [
+    '@chakra-email/chakra-v2/security',
+    ['EmailRenderError', 'sanitizeEmailUrl'],
+  ],
   ['@chakra-email/chakra-v2/system', ['mapChakraPropsToStyles']],
   [
     '@chakra-email/chakra-v2/theme',

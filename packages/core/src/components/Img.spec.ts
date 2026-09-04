@@ -24,14 +24,29 @@ describe('sanitizeImageSrc', () => {
     'h t t p s://example.com/logo.png',
     'cid:',
     'cid:logo image@example.com',
+    'https://user:password@example.com/logo.png',
+    'https://example.com/logo.png#fragment',
+    ' https://example.com/logo.png',
+    'https://example.com/logo.png ',
+    'https://example.com/%ZZ',
     '',
   ])('rejects unsupported, relative, or malformed sources: %s', (src) => {
     expect(sanitizeImageSrc(src)).toBeUndefined();
   });
 
-  it('preserves an allowed source byte-for-byte after validation', () => {
-    const src = ' \nHTTPS://example.com/logo image.png';
+  it('enforces byte limits and supports explicit policy overrides', () => {
+    const credentialed = 'https://user:password@example.com/logo.png';
 
-    expect(sanitizeImageSrc(src)).toBe(src);
+    expect(
+      sanitizeImageSrc(`https://example.com/${'a'.repeat(2_100)}.png`),
+    ).toBeUndefined();
+    expect(sanitizeImageSrc(credentialed, { allowCredentials: true })).toBe(
+      credentialed,
+    );
+    expect(
+      sanitizeImageSrc('https://example.com/logo.svg#mark', {
+        allowFragments: true,
+      }),
+    ).toBe('https://example.com/logo.svg#mark');
   });
 });

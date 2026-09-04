@@ -46,4 +46,15 @@ describe('reactEmailRenderer', () => {
 
     expect(output.text).toBe('Keep me (https://example.com/keep)');
   });
+
+  it('forwards URL policy to Chakra Email components', async () => {
+    await expect(
+      reactEmailRenderer().render(
+        <ChakraButton href="https://user:secret@example.com/private">
+          Private
+        </ChakraButton>,
+        { urlPolicy: { link: { onInvalidUrl: 'throw' } } },
+      ),
+    ).rejects.toMatchObject({ code: 'UNSAFE_URL' });
+  });
 });

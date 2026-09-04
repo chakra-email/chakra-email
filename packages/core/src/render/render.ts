@@ -1,5 +1,9 @@
-import type { ReactElement } from 'react';
+import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import {
+  EmailSecurityPolicyProvider,
+  type EmailSecurityPolicy,
+} from '../security/index.js';
 import { pretty as prettyHtml } from './pretty.js';
 import { toPlainText, type PlainTextOptions } from './text.js';
 
@@ -11,11 +15,17 @@ export interface RenderOptions {
   pretty?: boolean;
   plainText?: boolean;
   plainTextOptions?: PlainTextOptions;
+  urlPolicy?: EmailSecurityPolicy;
 }
 
 export interface RenderEmailOptions {
   pretty?: boolean;
   plainTextOptions?: PlainTextOptions;
+  urlPolicy?: EmailSecurityPolicy;
+}
+
+export interface RenderPlainTextOptions extends PlainTextOptions {
+  urlPolicy?: EmailSecurityPolicy;
 }
 
 export interface RenderedEmail {
@@ -54,9 +64,18 @@ function stripImagePreloadHints(html: string): string {
   );
 }
 
-function renderMarkup(element: ReactElement): string {
+function renderMarkup(
+  element: ReactElement,
+  urlPolicy?: EmailSecurityPolicy,
+): string {
+  const renderable = urlPolicy
+    ? createElement(EmailSecurityPolicyProvider, {
+        policy: urlPolicy,
+        children: element,
+      })
+    : element;
   return withEmailDoctype(
-    stripImagePreloadHints(renderToStaticMarkup(element)),
+    stripImagePreloadHints(renderToStaticMarkup(renderable)),
   );
 }
 
@@ -64,7 +83,7 @@ export async function render(
   element: ReactElement,
   options: RenderOptions = {},
 ): Promise<string> {
-  const html = renderMarkup(element);
+  const html = renderMarkup(element, options.urlPolicy);
   const output = options.pretty ? prettyHtml(html) : html;
 
   if (options.plainText) {
@@ -78,7 +97,7 @@ export async function renderEmail(
   element: ReactElement,
   options: RenderEmailOptions = {},
 ): Promise<RenderedEmail> {
-  const rendered = renderMarkup(element);
+  const rendered = renderMarkup(element, options.urlPolicy);
 
   return {
     html: options.pretty ? prettyHtml(rendered) : rendered,
@@ -88,9 +107,10 @@ export async function renderEmail(
 
 export async function renderPlainText(
   element: ReactElement,
-  options?: PlainTextOptions,
+  options: RenderPlainTextOptions = {},
 ): Promise<string> {
-  return toPlainText(renderMarkup(element), options);
+  const { urlPolicy, ...plainTextOptions } = options;
+  return toPlainText(renderMarkup(element, urlPolicy), plainTextOptions);
 }
 
 export const chakraEmailRenderer: EmailRenderer = {

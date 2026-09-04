@@ -7,8 +7,8 @@ import {
   type BaseChakraEmailProps,
 } from '../system/index.js';
 import { chakraEmailSlotRecipeKeys } from '../theme/index.js';
+import { useEmailUrlPolicy, type EmailUrlPolicy } from '../security/index.js';
 import { getMsoPaddingAlt, splitStyles } from './layout-styles.js';
-import { sanitizeHref } from './Link.js';
 
 export interface ButtonProps
   extends
@@ -21,6 +21,7 @@ export interface ButtonProps
   variant?: 'solid' | 'outline' | 'ghost' | 'link';
   size?: 'sm' | 'md' | 'lg';
   align?: 'left' | 'center' | 'right';
+  urlPolicy?: EmailUrlPolicy;
 }
 
 const buttonCellStyleKeys = [
@@ -49,10 +50,12 @@ export function Button({
   variant = 'solid',
   size = 'md',
   align = 'left',
+  urlPolicy,
   children,
   ...props
 }: ButtonProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
+  const sanitizeUrl = useEmailUrlPolicy('link', urlPolicy);
   const recipeStyles = useSlotRecipeStyles(chakraEmailSlotRecipeKeys.button, {
     size,
     variant,
@@ -102,7 +105,7 @@ export function Button({
             align="center"
             style={outlookCellStyles}
           >
-            <a {...elementProps} href={sanitizeHref(href)} style={anchorStyles}>
+            <a {...elementProps} href={sanitizeUrl(href)} style={anchorStyles}>
               {children}
             </a>
           </td>
