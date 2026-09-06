@@ -387,6 +387,29 @@ function defaultDownloadText(
   URL.revokeObjectURL(url);
 }
 
+/** Force only Chakra Email's generated rules; delivery output stays untouched. */
+export function withPreviewColorMode(
+  html: string,
+  mode: EmailColorMode,
+): string {
+  if (mode === 'system') return html;
+  const media = mode === 'dark' ? 'all' : 'not all';
+  const output = html.replace(
+    /(<style\b[^>]*\bdata-chakra-email-color-mode=["']system["'][^>]*>)([\s\S]*?)(<\/style\s*>)/giu,
+    (_match, start: string, css: string, end: string) =>
+      `${start}${css.replace(/@media\s*\(prefers-color-scheme:\s*dark\)/giu, `@media ${media}`)}${end}`,
+  );
+  const style = `<style data-chakra-email-preview-color-mode="${mode}">:root{color-scheme:only ${mode}}</style>`;
+  if (/<head\b[^>]*>/iu.test(output))
+    return output.replace(/<head\b[^>]*>/iu, (tag) => `${tag}${style}`);
+  if (/<html\b[^>]*>/iu.test(output))
+    return output.replace(
+      /<html\b[^>]*>/iu,
+      (tag) => `${tag}<head>${style}</head>`,
+    );
+  return `${style}${output}`;
+}
+
 export function withPreviewContentSecurityPolicy(
   html: string,
   remoteImages: boolean,
@@ -1030,7 +1053,10 @@ export class PreviewApplication {
     document.documentElement.dataset['theme'] = state.workspaceColorMode;
     document.documentElement.style.colorScheme = state.workspaceColorMode;
     const securedHtml = state.result
-      ? withPreviewContentSecurityPolicy(state.result.html, state.remoteImages)
+      ? withPreviewContentSecurityPolicy(
+          withPreviewColorMode(state.result.html, state.emailColorMode),
+          state.remoteImages,
+        )
       : null;
 
     flushSync(() => {

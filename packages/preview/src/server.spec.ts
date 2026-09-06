@@ -51,6 +51,8 @@ describe('createPreviewServer', () => {
         variants: string[];
       };
       expect(rendered.html).toContain('<!DOCTYPE html');
+      expect(rendered.html).toContain('data-chakra-email-color-mode="system"');
+      expect(rendered.html).toContain('prefers-color-scheme: dark');
       expect(rendered.lint).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ ruleId: 'document-title' }),

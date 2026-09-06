@@ -8,6 +8,11 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'node',
+    // The real Vite template loader uses native core modules; match that boundary
+    // instead of creating another copy of React contexts in Vitest's evaluator.
+    server: {
+      deps: { external: [/\/packages\/core\/dist\//u] },
+    },
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {

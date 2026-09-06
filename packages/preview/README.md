@@ -139,9 +139,12 @@ instead of stretching the page vertically; long emails scroll inside it.
   Drag the frame's bottom-right corner to resize it. **Reset size** restores
   the selected preset and default height. The footer describes the preset,
   not the dimensions of a manually resized frame.
-- Workspace light/dark mode remains independent of the email color-mode
-  simulation. Scripts and forms stay disabled, and remote images still
-  require explicit opt-in.
+- Workspace light/dark mode remains independent of the email color mode.
+  **Light** and **Dark** force Chakra Email's generated color rules in the
+  preview frame; **System** restores their media-query behavior. Arbitrary
+  authored media queries are not rewritten, and client-specific automatic color
+  inversion is not simulated. Fixed template colors remain fixed. Scripts and
+  forms stay disabled, and remote images still require explicit opt-in.
 
 These controls affect only the preview, not generated HTML, plaintext, or
 template source. Full template paths remain available on the template rows

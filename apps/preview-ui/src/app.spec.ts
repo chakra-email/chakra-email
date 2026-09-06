@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   PreviewApplication,
   withPreviewContentSecurityPolicy,
+  withPreviewColorMode,
   type PreviewApplicationOptions,
 } from './app';
 
@@ -103,7 +104,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
             : {}),
           id: request.id,
           name: request.id === 'welcome' ? 'Welcome email' : 'Order receipt',
-          html: '<!doctype html><html><head><style>@media (prefers-color-scheme: dark) { body { background: #111; } } @media (prefers-color-scheme: light) { body { background: #fff; } }</style></head><body><h1>Hello</h1><img src="https://images.example.test/hero.png"></body></html>',
+          html: '<!doctype html><html><head><style data-chakra-email-color-mode="system">@media (prefers-color-scheme: dark){.ce-mode-0{color:#fff!important}}</style><style>@media (prefers-color-scheme: dark) { body { background: #111; } } @media (prefers-color-scheme: light) { body { background: #fff; } }</style></head><body><h1>Hello</h1><img src="https://images.example.test/hero.png"></body></html>',
           lint: [
             ...(input === '/api/check-links'
               ? [
@@ -191,6 +192,24 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
 }
 
 describe('PreviewApplication', () => {
+  it('forces generated dark rules only in preview without rewriting authored media queries', () => {
+    const html =
+      '<html><head><style data-chakra-email-color-mode="system">@media (prefers-color-scheme: dark){.ce-mode-0{color:#fff!important}}</style><style>@media (prefers-color-scheme: dark){.custom{color:red}}</style></head><body>Preview</body></html>';
+    expect(withPreviewColorMode(html, 'system')).toBe(html);
+    const dark = withPreviewColorMode(html, 'dark');
+    expect(dark).toContain('@media all{.ce-mode-0');
+    expect(dark).toContain('@media (prefers-color-scheme: dark){.custom');
+    expect(dark).toContain(':root{color-scheme:only dark}');
+    expect(withPreviewColorMode(html, 'light')).toContain(
+      '@media not all{.ce-mode-0',
+    );
+    expect(
+      withPreviewColorMode('<html><body>Fragment</body></html>', 'light'),
+    ).toContain('<head><style');
+    expect(withPreviewColorMode('<p>Fragment</p>', 'dark')).toContain(
+      'data-chakra-email-preview-color-mode="dark"',
+    );
+  });
   beforeEach(() => {
     const storedValues = new Map<string, string>();
     Object.defineProperty(window, 'localStorage', {
@@ -848,7 +867,23 @@ describe('PreviewApplication', () => {
     expect(iframe.style.colorScheme).toBe('only dark');
     expect(iframe.srcdoc).toContain('(prefers-color-scheme: dark)');
     expect(iframe.srcdoc).toContain('(prefers-color-scheme: light)');
-    expect(iframe.srcdoc).not.toContain('data-chakra-email-preview-color-mode');
+    expect(iframe.srcdoc).toContain(
+      'data-chakra-email-preview-color-mode="dark"',
+    );
+    expect(iframe.srcdoc).toContain('@media all{.ce-mode-0');
+    getElement<HTMLButtonElement>('[data-action="download"]').click();
+    getElement<HTMLButtonElement>('[data-action="copy"]').click();
+    await vi.waitFor(() => expect(harness.copyText).toHaveBeenCalled());
+    for (const output of [
+      harness.copyText.mock.calls[0]?.[0],
+      harness.downloadText.mock.calls[0]?.[0],
+    ]) {
+      expect(output).toContain(
+        '@media (prefers-color-scheme: dark){.ce-mode-0',
+      );
+      expect(output).not.toContain('data-chakra-email-preview-color-mode');
+      expect(output).not.toContain('@media all');
+    }
     expect(
       window.localStorage.getItem('chakra-email.preview.email-color-mode'),
     ).toBe('dark');
@@ -859,6 +894,10 @@ describe('PreviewApplication', () => {
     expect(iframe.style.colorScheme).toBe('light dark');
     expect(iframe.srcdoc).toContain('(prefers-color-scheme: dark)');
     expect(iframe.srcdoc).toContain('(prefers-color-scheme: light)');
+    expect(iframe.srcdoc).toContain(
+      '@media (prefers-color-scheme: dark){.ce-mode-0',
+    );
+    expect(iframe.srcdoc).not.toContain('data-chakra-email-preview-color-mode');
 
     harness.application.destroy();
   });

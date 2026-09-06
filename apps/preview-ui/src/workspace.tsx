@@ -91,12 +91,14 @@ const emailColorModes: ReadonlyArray<{
   {
     id: 'light',
     label: 'Light',
-    tooltip: 'Simulate a light color preference in the email preview',
+    tooltip:
+      'Preview authored light styles; client-specific color inversion is not simulated',
   },
   {
     id: 'dark',
     label: 'Dark',
-    tooltip: 'Simulate a dark color preference in the email preview',
+    tooltip:
+      'Preview authored dark styles; client-specific color inversion is not simulated',
   },
 ];
 
