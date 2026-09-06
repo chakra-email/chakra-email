@@ -124,6 +124,61 @@ configuration resilient to future package changes.
 A missing `assets` directory does not prevent the server from starting; requests
 for files that are not present return `404`.
 
+## Preview workspace
+
+The workspace uses a compact header and format toolbar, a flat template list,
+and a centered email canvas. The frame stays within the available workspace
+instead of stretching the page vertically; long emails scroll inside it.
+
+- Header panel buttons show or hide templates and preview settings. Hiding
+  settings preserves unapplied JSON edits, variants, and test-send fields.
+  Escape from either panel closes it and returns focus to its toggle.
+- Small screens start with both panels closed. Opening a panel uses the
+  available workspace; selecting a template returns to the email canvas.
+- Desktop (680px), Mobile (390px), and Fit presets change the preview width.
+  Drag the frame's bottom-right corner to resize it. **Reset size** restores
+  the selected preset and default height. The footer describes the preset,
+  not the dimensions of a manually resized frame.
+- Workspace light/dark mode remains independent of the email color-mode
+  simulation. Scripts and forms stay disabled, and remote images still
+  require explicit opt-in.
+
+These controls affect only the preview, not generated HTML, plaintext, or
+template source. Full template paths remain available on the template rows
+and active title through their native tooltips.
+
+The existing recipe keys remain supported. The workspace recipe also exposes
+an `inspectorPanel` slot and `templatesOpen` / `inspectorOpen` variants. The
+viewer recipe exposes a `stage` slot for the centered area surrounding the
+frame. For example:
+
+```ts
+theme: {
+  slotRecipes: {
+    [previewSlotRecipeKeys.viewer]: {
+      base: {
+        stage: { p: { base: '2', md: '6' } },
+        frame: { borderRadius: '0', boxShadow: 'none' },
+      },
+    },
+    [previewSlotRecipeKeys.workspace]: {
+      variants: {
+        inspectorOpen: {
+          true: {
+            content: {
+              gridTemplateColumns: {
+                base: 'minmax(0, 1fr)',
+                md: 'minmax(0, 1fr) 320px',
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+}
+```
+
 ## Template Modules
 
 A template module must default-export the React email component:
