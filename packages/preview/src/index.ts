@@ -26,6 +26,11 @@ export type {
   ExportTemplatesResult,
 } from './export-templates.js';
 export { lintRenderedEmail } from './lint-email.js';
+export { createEmailLinkChecker } from './check-links.js';
+export type {
+  PreviewLinkCheckConfig,
+  PreviewLinkCheckResult,
+} from './check-links.js';
 export {
   compatibilityReferenceForRule,
   previewCompatibilityReferences,

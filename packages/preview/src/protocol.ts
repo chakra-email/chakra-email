@@ -9,6 +9,7 @@ export interface PreviewTemplate {
 
 export interface PreviewTemplatesResponse {
   capabilities: {
+    linkCheck?: boolean;
     testSend: boolean;
   };
   templates: PreviewTemplate[];
@@ -33,6 +34,7 @@ export interface PreviewTestSendResponse {
 export type PreviewLintSeverity = 'error' | 'warning' | 'info';
 
 export type PreviewLintCategory =
+  | 'links'
   | 'accessibility'
   | 'compatibility'
   | 'content'
@@ -52,6 +54,7 @@ export interface PreviewLintFinding {
 }
 
 export interface PreviewRenderResponse {
+  linkCheck?: { checked: number; skipped: number };
   html: string;
   id: string;
   lint: PreviewLintFinding[];

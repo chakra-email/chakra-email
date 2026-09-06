@@ -2,6 +2,10 @@ import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { createJiti } from 'jiti';
 import type { EmailRenderer } from '@chakra-email/core/render';
+import {
+  normalizeLinkCheck,
+  type PreviewLinkCheckConfig,
+} from './check-links.js';
 
 export type JsonPrimitive = boolean | null | number | string;
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
@@ -43,6 +47,8 @@ export interface PreviewTestTransport {
 export type PreviewThemeConfig = JsonObject;
 
 export interface PreviewConfig {
+  /** Enables explicit network link checks for an exact hostname allowlist. */
+  linkCheck?: PreviewLinkCheckConfig;
   /** Directory all preview paths are contained by. Relative to the config file. */
   root?: string;
   /** One or more template directories. Relative to `root`. Defaults to `emails`. */
@@ -68,6 +74,7 @@ export interface PreviewConfig {
 }
 
 export interface ResolvedPreviewConfig {
+  linkCheck?: PreviewLinkCheckConfig;
   allowedHosts: readonly string[];
   assets: string;
   configFile?: string;
@@ -265,6 +272,10 @@ export function normalizeConfig(
 
   return {
     allowedHosts: normalizeAllowedHosts(config.allowedHosts),
+    linkCheck:
+      config.linkCheck === undefined
+        ? undefined
+        : normalizeLinkCheck(config.linkCheck),
     assets,
     configFile,
     exclude: [

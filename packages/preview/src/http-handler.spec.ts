@@ -31,6 +31,7 @@ describe('preview HTTP handler', () => {
       {
         assets: 'public',
         allowedHosts: ['chakra-email.test'],
+        linkCheck: { allowedHosts: ['example.org'] },
         host: '127.0.0.1',
         port: 0,
         templates: 'emails',
@@ -133,7 +134,7 @@ describe('preview HTTP handler', () => {
       headers: { 'x-chakra-email-preview-token': token },
     });
     await expect(templates.json()).resolves.toEqual({
-      capabilities: { testSend: true },
+      capabilities: { testSend: true, linkCheck: true },
       templates: [
         { id: 'template-id', name: 'Welcome', path: 'emails/welcome.tsx' },
       ],
@@ -258,6 +259,60 @@ describe('preview HTTP handler', () => {
         })
       ).status,
     ).toBe(400);
+  });
+
+  it('checks only registered rendered templates behind token, origin, method and body guards', async () => {
+    const headers = {
+      'content-type': 'application/json',
+      'x-chakra-email-preview-token': token,
+    };
+    const body = JSON.stringify({ id: 'template-id' });
+    const checked = await fetch(`${baseUrl}/api/check-links`, {
+      method: 'POST',
+      headers,
+      body,
+    });
+    expect(checked.status).toBe(200);
+    expect(await checked.json()).toMatchObject({
+      html: '<p>Hello</p>',
+      lint: [],
+      linkCheck: { checked: 0, skipped: 0 },
+    });
+    const normal = await fetch(`${baseUrl}/api/render`, {
+      method: 'POST',
+      headers,
+      body,
+    });
+    expect(await normal.json()).not.toHaveProperty('linkCheck');
+    for (const [init, status] of [
+      [{ method: 'POST', body }, 401],
+      [{ method: 'GET', headers }, 405],
+      [
+        {
+          method: 'POST',
+          headers: { ...headers, origin: 'https://evil.example' },
+          body,
+        },
+        403,
+      ],
+      [
+        {
+          method: 'POST',
+          headers: { 'x-chakra-email-preview-token': token },
+          body,
+        },
+        415,
+      ],
+      [{ method: 'POST', headers, body: '{}' }, 400],
+      [
+        { method: 'POST', headers, body: JSON.stringify({ id: 'missing' }) },
+        404,
+      ],
+    ] as const) {
+      expect((await fetch(`${baseUrl}/api/check-links`, init)).status).toBe(
+        status,
+      );
+    }
   });
 
   it('rejects DNS-rebinding Host headers', async () => {

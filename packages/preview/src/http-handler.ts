@@ -6,6 +6,7 @@ import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import type { ResolvedPreviewConfig } from './config.js';
 import type { TemplateRegistry } from './discovery.js';
 import type { EventHub } from './event-hub.js';
+import { createEmailLinkChecker } from './check-links.js';
 import type {
   PreviewErrorResponse,
   PreviewRenderRequest,
@@ -318,6 +319,10 @@ function setUiSecurityHeaders(response: ServerResponse): void {
 export function createPreviewHttpHandler(
   dependencies: PreviewHttpDependencies,
 ): (request: IncomingMessage, response: ServerResponse) => Promise<void> {
+  const checkLinks = dependencies.config.linkCheck
+    ? createEmailLinkChecker(dependencies.config.linkCheck)
+    : undefined;
+  let checkingLinks = false;
   return async (request, response) => {
     try {
       if (
@@ -371,7 +376,10 @@ export function createPreviewHttpHandler(
             return;
           }
           const body: PreviewTemplatesResponse = {
-            capabilities: { testSend: Boolean(dependencies.send) },
+            capabilities: {
+              testSend: Boolean(dependencies.send),
+              ...(checkLinks ? { linkCheck: true } : {}),
+            },
             templates: dependencies.getRegistry().templates,
           };
           sendJson(response, 200, body);
@@ -433,7 +441,11 @@ export function createPreviewHttpHandler(
           return;
         }
 
-        if (url.pathname === '/api/render') {
+        if (
+          url.pathname === '/api/render' ||
+          url.pathname === '/api/check-links'
+        ) {
+          const isLinkCheck = url.pathname === '/api/check-links';
           if (method !== 'POST') {
             response.setHeader('allow', 'POST');
             sendText(response, 405, 'Method not allowed.');
@@ -470,14 +482,41 @@ export function createPreviewHttpHandler(
             });
             return;
           }
+          if (isLinkCheck && !checkLinks) {
+            sendJson(response, 404, {
+              error: { message: 'Link checking is not configured.' },
+            });
+            return;
+          }
+          if (isLinkCheck && checkingLinks) {
+            sendJson(response, 409, {
+              error: { message: 'A link check is already running.' },
+            });
+            return;
+          }
+          if (isLinkCheck) checkingLinks = true;
           try {
-            sendJson(response, 200, await dependencies.render(renderRequest));
+            const rendered = await dependencies.render(renderRequest);
+            if (isLinkCheck && checkLinks) {
+              const { findings, checked, skipped } = await checkLinks(
+                rendered.html,
+              );
+              sendJson(response, 200, {
+                ...rendered,
+                lint: [...rendered.lint, ...findings],
+                linkCheck: { checked, skipped },
+              });
+            } else {
+              sendJson(response, 200, rendered);
+            }
           } catch (error) {
             sendJson(
               response,
               422,
               serializeError(error, dependencies.config.root),
             );
+          } finally {
+            if (isLinkCheck) checkingLinks = false;
           }
           return;
         }
