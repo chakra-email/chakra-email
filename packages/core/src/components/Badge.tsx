@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import {
   splitStyleProps,
   useRecipeStyles,
@@ -16,7 +17,10 @@ export function Badge({ children, ...props }: BadgeProps) {
   );
 
   return (
-    <span {...elementProps} style={styles}>
+    <span
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </span>
   );

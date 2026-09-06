@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import {
   splitStyleProps,
   useRecipeStyles,
@@ -20,7 +21,11 @@ export function Body({ children, ...props }: BodyProps) {
     : {};
 
   return (
-    <body {...elementProps} {...legacyBackgroundAttribute} style={styles}>
+    <body
+      {...elementProps}
+      {...legacyBackgroundAttribute}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </body>
   );

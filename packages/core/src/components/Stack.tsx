@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import { Children, type ReactNode, type TableHTMLAttributes } from 'react';
 import {
   mergeInlineStyles,
@@ -41,12 +42,12 @@ export function Stack({
       cellPadding={0}
       border={0}
       width={legacyWidth}
-      style={styles}
+      {...getEmailStyleProps(styles, elementProps.className)}
     >
       <tbody>
         {items.map((item, index) => (
           <tr key={index}>
-            <td style={recipeStyles.item}>
+            <td {...getEmailStyleProps(recipeStyles.item)}>
               {item}
               {index < items.length - 1 && (
                 <>

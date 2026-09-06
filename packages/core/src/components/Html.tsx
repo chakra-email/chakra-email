@@ -1,8 +1,8 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import {
   Children,
   cloneElement,
   isValidElement,
-  type CSSProperties,
   type ReactElement,
   type ReactNode,
 } from 'react';
@@ -64,7 +64,7 @@ export function Html({ lang = 'en', dir, children, ...props }: HtmlProps) {
       {...elementProps}
       lang={lang}
       dir={dir}
-      style={styles as CSSProperties}
+      {...getEmailStyleProps(styles, elementProps.className)}
     >
       {placePreviewsInBody(children)}
     </html>

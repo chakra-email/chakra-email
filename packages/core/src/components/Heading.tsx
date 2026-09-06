@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { ElementType } from 'react';
 import {
   splitStyleProps,
@@ -24,7 +25,10 @@ export function Heading({
   const HeadingElement = Component as ElementType;
 
   return (
-    <HeadingElement {...elementProps} style={styles}>
+    <HeadingElement
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </HeadingElement>
   );

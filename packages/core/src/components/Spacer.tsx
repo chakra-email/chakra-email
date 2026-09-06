@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import {
   resolveSpacing,
   splitStyleProps,
@@ -22,7 +23,10 @@ export function Spacer({ size = 4, ...props }: SpacerProps) {
   });
 
   return (
-    <div {...elementProps} style={styles}>
+    <div
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       &nbsp;
     </div>
   );

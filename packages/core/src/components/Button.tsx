@@ -1,3 +1,7 @@
+import {
+  getEmailStyleProps,
+  updateEmailStyleModes,
+} from '../system/color-mode.js';
 import type { AnchorHTMLAttributes, CSSProperties } from 'react';
 import {
   mergeInlineStyles,
@@ -74,17 +78,20 @@ export function Button({
   const cellStyles = mergeInlineStyles(recipeStyles.cell, cellOverrides);
   const anchorStyles = mergeInlineStyles(recipeStyles.link, anchorOverrides);
 
-  if (variant === 'outline' && !cellStyles.border) {
-    cellStyles.border = `1px solid ${cellStyles.borderColor ?? anchorStyles.color ?? '#6366f1'}`;
-  }
+  updateEmailStyleModes(cellStyles, (styles) => {
+    if (variant === 'outline' && !styles.border)
+      styles.border = `1px solid ${styles.borderColor ?? 'currentColor'}`;
+  });
 
   const outlookPadding = getMsoPaddingAlt(anchorStyles);
-  const outlookCellStyles: CSSProperties & { msoPaddingAlt?: string } = {
-    ...cellStyles,
-    ...(outlookPadding ? { msoPaddingAlt: outlookPadding } : {}),
-  };
-  anchorStyles.display ??= 'inline-block';
-  anchorStyles.textDecoration ??= 'none';
+  const outlookCellStyles = mergeInlineStyles(
+    cellStyles,
+    outlookPadding ? ({ msoPaddingAlt: outlookPadding } as CSSProperties) : {},
+  );
+  updateEmailStyleModes(anchorStyles, (styles) => {
+    styles.display ??= 'inline-block';
+    styles.textDecoration ??= 'none';
+  });
   const legacyBackgroundAttribute = cellStyles.backgroundColor
     ? { bgcolor: cellStyles.backgroundColor.toString() }
     : {};
@@ -96,16 +103,20 @@ export function Button({
       cellPadding={0}
       border={0}
       align={align}
-      style={tableStyles}
+      {...getEmailStyleProps(tableStyles)}
     >
       <tbody>
         <tr>
           <td
             {...legacyBackgroundAttribute}
             align="center"
-            style={outlookCellStyles}
+            {...getEmailStyleProps(outlookCellStyles)}
           >
-            <a {...elementProps} href={sanitizeUrl(href)} style={anchorStyles}>
+            <a
+              {...elementProps}
+              href={sanitizeUrl(href)}
+              {...getEmailStyleProps(anchorStyles, elementProps.className)}
+            >
               {children}
             </a>
           </td>

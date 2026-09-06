@@ -1,3 +1,7 @@
+import {
+  getEmailStyleProps,
+  updateEmailStyleModes,
+} from '../system/color-mode.js';
 import type {
   HTMLAttributes,
   TableHTMLAttributes,
@@ -95,7 +99,7 @@ export function Table({ variant, size, children, ...props }: TableProps) {
       cellSpacing={0}
       border={0}
       width={legacyWidth}
-      style={styles}
+      {...getEmailStyleProps(styles, elementProps.className)}
     >
       <TableRecipeContext.Provider value={recipeSelection}>
         {children}
@@ -113,7 +117,10 @@ export function TableHead({ children, ...props }: TableHeadProps) {
   );
 
   return (
-    <thead {...elementProps} style={styles}>
+    <thead
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </thead>
   );
@@ -128,7 +135,10 @@ export function TableBody({ children, ...props }: TableBodyProps) {
   );
 
   return (
-    <tbody {...elementProps} style={styles}>
+    <tbody
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </tbody>
   );
@@ -143,7 +153,10 @@ export function TableFoot({ children, ...props }: TableFootProps) {
   );
 
   return (
-    <tfoot {...elementProps} style={styles}>
+    <tfoot
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </tfoot>
   );
@@ -158,7 +171,10 @@ export function TableRow({ children, ...props }: TableRowProps) {
   );
 
   return (
-    <tr {...elementProps} style={styles}>
+    <tr
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </tr>
   );
@@ -176,11 +192,16 @@ export function TableHeader({
     recipeStyles.columnHeader,
     useChakraStyles(borderColor ? { borderColor, ...styleProps } : styleProps),
   );
-  styles.border ??= `1px solid ${styles.borderColor ?? resolveBorderColor(undefined, theme)}`;
-  delete styles.borderColor;
+  updateEmailStyleModes(styles, (value) => {
+    value.border ??= `1px solid ${value.borderColor ?? resolveBorderColor(undefined, theme)}`;
+    delete value.borderColor;
+  });
 
   return (
-    <th {...elementProps} style={styles}>
+    <th
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </th>
   );
@@ -194,11 +215,16 @@ export function TableCell({ borderColor, children, ...props }: TableCellProps) {
     recipeStyles.cell,
     useChakraStyles(borderColor ? { borderColor, ...styleProps } : styleProps),
   );
-  styles.border ??= `1px solid ${styles.borderColor ?? resolveBorderColor(undefined, theme)}`;
-  delete styles.borderColor;
+  updateEmailStyleModes(styles, (value) => {
+    value.border ??= `1px solid ${value.borderColor ?? resolveBorderColor(undefined, theme)}`;
+    delete value.borderColor;
+  });
 
   return (
-    <td {...elementProps} style={styles}>
+    <td
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </td>
   );
@@ -213,7 +239,10 @@ export function TableCaption({ children, ...props }: TableCaptionProps) {
   );
 
   return (
-    <caption {...elementProps} style={styles}>
+    <caption
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </caption>
   );

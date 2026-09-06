@@ -1,4 +1,8 @@
 import {
+  getEmailStyleProps,
+  updateEmailStyleModes,
+} from '../system/color-mode.js';
+import {
   resolveColor,
   splitStyleProps,
   useRecipeStyles,
@@ -39,8 +43,15 @@ export function Hr({ borderColor, ...props }: HrProps) {
     undefined,
     borderColor ? { borderColor, ...styleProps } : styleProps,
   );
-  styles.borderTop ??= `1px solid ${styles.borderColor ?? resolveBorderColor(undefined, theme)}`;
-  delete styles.borderColor;
+  updateEmailStyleModes(styles, (value) => {
+    value.borderTop ??= `1px solid ${value.borderColor ?? resolveBorderColor(undefined, theme)}`;
+    delete value.borderColor;
+  });
 
-  return <hr {...elementProps} style={styles} />;
+  return (
+    <hr
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    />
+  );
 }

@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { AnchorHTMLAttributes } from 'react';
 import {
   splitStyleProps,
@@ -40,7 +41,11 @@ export function Link({ href, urlPolicy, children, ...props }: LinkProps) {
   );
 
   return (
-    <a {...elementProps} href={sanitizeUrl(href)} style={styles}>
+    <a
+      {...elementProps}
+      href={sanitizeUrl(href)}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </a>
   );

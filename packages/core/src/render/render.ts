@@ -8,12 +8,15 @@ import {
 } from '../security/index.js';
 import { pretty as prettyHtml } from './pretty.js';
 import { toPlainText, type PlainTextOptions } from './text.js';
+import { createEmailColorModeRender } from '../system/color-mode.js';
+import type { EmailColorMode } from '../theme/types.js';
 
 const emailDoctype =
   '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">';
 const linkElementPattern = /<link\b[^>]*>/giu;
 
 export interface RenderOptions {
+  colorMode?: EmailColorMode;
   pretty?: boolean;
   plainText?: boolean;
   plainTextOptions?: PlainTextOptions;
@@ -22,6 +25,7 @@ export interface RenderOptions {
 }
 
 export interface RenderEmailOptions {
+  colorMode?: EmailColorMode;
   pretty?: boolean;
   plainTextOptions?: PlainTextOptions;
   outputLimits?: EmailOutputLimits;
@@ -29,6 +33,7 @@ export interface RenderEmailOptions {
 }
 
 export interface RenderPlainTextOptions extends PlainTextOptions {
+  colorMode?: EmailColorMode;
   outputLimits?: Pick<EmailOutputLimits, 'maxTextBytes'>;
   urlPolicy?: EmailSecurityPolicy;
 }
@@ -72,6 +77,7 @@ export function stripBrowserOnlyEmailHints(html: string): string {
 function renderMarkup(
   element: ReactElement,
   urlPolicy?: EmailSecurityPolicy,
+  colorMode?: EmailColorMode,
 ): string {
   const renderable = urlPolicy
     ? createElement(EmailSecurityPolicyProvider, {
@@ -79,8 +85,11 @@ function renderMarkup(
         children: element,
       })
     : element;
+  const modeRender = createEmailColorModeRender(renderable, colorMode);
   return withEmailDoctype(
-    stripBrowserOnlyEmailHints(renderToStaticMarkup(renderable)),
+    modeRender.finish(
+      stripBrowserOnlyEmailHints(renderToStaticMarkup(modeRender.element)),
+    ),
   );
 }
 
@@ -88,7 +97,7 @@ export async function render(
   element: ReactElement,
   options: RenderOptions = {},
 ): Promise<string> {
-  const html = renderMarkup(element, options.urlPolicy);
+  const html = renderMarkup(element, options.urlPolicy, options.colorMode);
   const output = options.pretty ? prettyHtml(html) : html;
 
   if (options.plainText) {
@@ -105,7 +114,7 @@ export async function renderEmail(
   element: ReactElement,
   options: RenderEmailOptions = {},
 ): Promise<RenderedEmail> {
-  const rendered = renderMarkup(element, options.urlPolicy);
+  const rendered = renderMarkup(element, options.urlPolicy, options.colorMode);
 
   const result = {
     html: options.pretty ? prettyHtml(rendered) : rendered,
@@ -119,8 +128,11 @@ export async function renderPlainText(
   element: ReactElement,
   options: RenderPlainTextOptions = {},
 ): Promise<string> {
-  const { outputLimits, urlPolicy, ...plainTextOptions } = options;
-  const text = toPlainText(renderMarkup(element, urlPolicy), plainTextOptions);
+  const { outputLimits, urlPolicy, colorMode, ...plainTextOptions } = options;
+  const text = toPlainText(
+    renderMarkup(element, urlPolicy, colorMode),
+    plainTextOptions,
+  );
   assertEmailOutputLimits({ text }, outputLimits);
   return text;
 }

@@ -69,7 +69,7 @@ function hasScaleToken(
 
 /**
  * Normalizes raw style prop input before any scale/token resolution. Email
- * output has no media queries, so responsive arrays/objects degrade to their
+ * responsive arrays/objects degrade to their
  * base value, numeric strings are treated as numbers, and anything unusable
  * resolves to undefined instead of throwing.
  */
@@ -117,7 +117,12 @@ function serializeCompositeTokenValue(
   return undefined;
 }
 
-function unwrapTokenValue(value: unknown): ResolvedTokenValue | undefined {
+function unwrapTokenValue(
+  value: unknown,
+  mode: EmailTheme['colorMode'],
+  depth = 0,
+): ResolvedTokenValue | undefined {
+  if (depth > maxResponsiveDepth) return undefined;
   if (typeof value === 'string' || typeof value === 'number') {
     return value;
   }
@@ -143,8 +148,11 @@ function unwrapTokenValue(value: unknown): ResolvedTokenValue | undefined {
 
     if (isRecord(tokenValue)) {
       const conditionalValue =
-        tokenValue.base ?? tokenValue._light ?? tokenValue.default;
-      const conditional = unwrapTokenValue(conditionalValue);
+        (mode === 'dark' ? tokenValue._dark : tokenValue._light) ??
+        tokenValue.base ??
+        tokenValue.default ??
+        tokenValue._light;
+      const conditional = unwrapTokenValue(conditionalValue, mode, depth + 1);
 
       if (conditional !== undefined) {
         return conditional;
@@ -154,7 +162,7 @@ function unwrapTokenValue(value: unknown): ResolvedTokenValue | undefined {
     }
   }
 
-  return unwrapTokenValue(value.DEFAULT);
+  return unwrapTokenValue(value.DEFAULT, mode, depth + 1);
 }
 
 function resolveTokenReferences(
@@ -192,7 +200,7 @@ function resolveFromScale(
   seen: Set<string>,
 ): ResolvedTokenValue | undefined {
   if (Array.isArray(scale) && typeof token === 'number') {
-    const value = unwrapTokenValue(scale[token]);
+    const value = unwrapTokenValue(scale[token], theme.colorMode);
     return value === undefined
       ? undefined
       : resolveTokenReferences(value, theme, seen);
@@ -202,7 +210,7 @@ function resolveFromScale(
     return undefined;
   }
 
-  const value = unwrapTokenValue(getScaleValue(scale, token));
+  const value = unwrapTokenValue(getScaleValue(scale, token), theme.colorMode);
 
   if (value === undefined) {
     return undefined;
@@ -265,6 +273,7 @@ function resolveByScaleName(
   switch (scaleName) {
     case 'colors':
       return (
+        resolveFromScale(theme.semanticTokens?.colors, token, theme, seen) ??
         resolveFromScale(theme.tokens?.colors, token, theme, seen) ??
         resolveFromScale(theme.colors, token, theme, seen)
       );

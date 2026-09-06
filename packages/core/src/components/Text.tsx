@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { ElementType } from 'react';
 import {
   splitStyleProps,
@@ -20,7 +21,10 @@ export function Text({ as: Component = 'p', children, ...props }: TextProps) {
   const TextElement = Component as ElementType;
 
   return (
-    <TextElement {...elementProps} style={styles}>
+    <TextElement
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </TextElement>
   );

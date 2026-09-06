@@ -15,7 +15,13 @@ import {
   resolveSpacing,
 } from './tokens.js';
 
-export interface ChakraEmailStyleProps {
+export interface ChakraEmailStyleProps extends ChakraEmailBaseStyleProps {
+  _light?: ChakraEmailBaseStyleProps;
+  _dark?: ChakraEmailBaseStyleProps;
+}
+
+/** Shallow mode overrides keep public style types bounded. */
+export interface ChakraEmailBaseStyleProps {
   bg?: string;
   bgColor?: string;
   background?: string;
@@ -66,6 +72,8 @@ export interface ChakraEmailStyleProps {
 }
 
 export const chakraStylePropNames = new Set<keyof ChakraEmailStyleProps>([
+  '_light',
+  '_dark',
   'bg',
   'bgColor',
   'background',
@@ -139,6 +147,14 @@ export function mapChakraPropsToStyles(
   props: ChakraEmailStyleProps,
   theme: EmailTheme,
 ): CSSProperties {
+  const { _light, _dark, ...base } = props;
+  const condition = theme.colorMode === 'dark' ? _dark : _light;
+  if (_light || _dark) {
+    return {
+      ...mapChakraPropsToStyles(base, theme),
+      ...mapChakraPropsToStyles(condition ?? {}, theme),
+    };
+  }
   const styles: CSSProperties = {};
 
   const backgroundColor = props.backgroundColor ?? props.bgColor ?? props.bg;

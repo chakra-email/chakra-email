@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { ReactNode } from 'react';
 import {
   mergeInlineStyles,
@@ -21,9 +22,13 @@ export function Preview({ children, ...props }: PreviewProps) {
   );
 
   return (
-    <div {...elementProps} aria-hidden="true" style={rootStyles}>
+    <div
+      {...elementProps}
+      aria-hidden="true"
+      {...getEmailStyleProps(rootStyles, elementProps.className)}
+    >
       {children}
-      <span style={recipeStyles.spacer}>
+      <span {...getEmailStyleProps(recipeStyles.spacer)}>
         &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
       </span>
     </div>

@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { ImgHTMLAttributes } from 'react';
 import {
   splitStyleProps,
@@ -65,7 +66,7 @@ export function Img({
       alt={alt}
       width={legacyWidth}
       height={legacyHeight}
-      style={styles}
+      {...getEmailStyleProps(styles, elementProps.className)}
     />
   );
 }

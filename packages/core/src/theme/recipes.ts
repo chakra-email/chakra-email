@@ -27,8 +27,12 @@ function mergeStyleLayers(
         continue;
       }
 
-      if (key === 'style' && isRecord(output.style) && isRecord(value)) {
-        output.style = { ...output.style, ...value };
+      if (
+        (key === 'style' || key === '_light' || key === '_dark') &&
+        isRecord(output[key]) &&
+        isRecord(value)
+      ) {
+        output[key] = { ...output[key], ...value };
         continue;
       }
 

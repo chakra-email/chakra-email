@@ -9,6 +9,12 @@ import {
   mapChakraPropsToStyles,
   type ChakraEmailStyleProps,
 } from './style-props.js';
+import {
+  emailDarkStyles,
+  emailStyleRender,
+  useEmailColorModeRender,
+  withEmailDarkStyles,
+} from './color-mode.js';
 
 export interface BaseChakraEmailProps extends ChakraEmailStyleProps {
   id?: string;
@@ -21,6 +27,10 @@ export function mergeInlineStyles(
   base: CSSProperties | undefined,
   override: CSSProperties | undefined,
 ): CSSProperties {
+  const render = emailStyleRender(override) ?? emailStyleRender(base);
+  const dark = render
+    ? mergeInlineStyles(emailDarkStyles(base), emailDarkStyles(override))
+    : undefined;
   const styles = { ...base };
 
   for (const property of Object.keys(override ?? {}) as Array<
@@ -30,7 +40,7 @@ export function mergeInlineStyles(
     styles[property] = override?.[property] as never;
   }
 
-  return styles;
+  return dark ? withEmailDarkStyles(styles, dark, render) : styles;
 }
 
 export function useChakraStyles(
@@ -38,15 +48,26 @@ export function useChakraStyles(
   defaults?: ChakraEmailStyleProps,
 ): CSSProperties {
   const theme = useTheme();
-
-  if (defaults === undefined) {
-    return mapChakraPropsToStyles(props, theme);
-  }
-
-  const defaultStyles = mapChakraPropsToStyles(defaults, theme);
-  const overrideStyles = mapChakraPropsToStyles(props, theme);
-
-  return mergeInlineStyles(defaultStyles, overrideStyles);
+  const render = useEmailColorModeRender();
+  const mode =
+    render?.mode !== undefined && render.mode !== 'system'
+      ? render.mode
+      : (theme.colorMode ?? 'system');
+  const resolve = (colorMode: 'light' | 'dark') => {
+    const resolvedTheme = { ...theme, colorMode };
+    const input =
+      colorMode === 'dark'
+        ? { ...props, style: emailDarkStyles(props.style) }
+        : props;
+    return mergeInlineStyles(
+      mapChakraPropsToStyles(defaults ?? {}, resolvedTheme),
+      mapChakraPropsToStyles(input, resolvedTheme),
+    );
+  };
+  const styles = resolve(mode === 'dark' ? 'dark' : 'light');
+  return mode === 'system'
+    ? withEmailDarkStyles(styles, resolve('dark'), render)
+    : styles;
 }
 
 export function useRecipeStyles(
@@ -64,11 +85,23 @@ export function useSlotRecipeStyles(
 ): Record<string, CSSProperties> {
   const theme = useTheme();
   const recipe = resolveSlotRecipe(theme.slotRecipes?.[key], selection);
+  const render = useEmailColorModeRender();
+  const mode =
+    render?.mode !== undefined && render.mode !== 'system'
+      ? render.mode
+      : (theme.colorMode ?? 'system');
 
   return Object.fromEntries(
     Object.entries(recipe).map(([slot, props]) => [
       slot,
-      mapChakraPropsToStyles(props, theme),
+      withEmailDarkStyles(
+        mapChakraPropsToStyles(props, {
+          ...theme,
+          colorMode: mode === 'dark' ? 'dark' : 'light',
+        }),
+        mapChakraPropsToStyles(props, { ...theme, colorMode: 'dark' }),
+        mode === 'system' ? render : undefined,
+      ),
     ]),
   );
 }

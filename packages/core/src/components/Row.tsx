@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { HTMLAttributes } from 'react';
 import {
   splitStyleProps,
@@ -20,7 +21,10 @@ export function Row({ children, ...props }: RowProps) {
   );
 
   return (
-    <tr {...elementProps} style={styles}>
+    <tr
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </tr>
   );

@@ -15,7 +15,11 @@ export interface ThemeScale {
   [key: string]: ThemeScaleValue | ThemeScale;
 }
 
+export type EmailColorMode = 'light' | 'dark' | 'system';
+
 export interface EmailTheme {
+  /** System emits light fallbacks plus dark CSS when using a Chakra Email renderer. */
+  colorMode?: EmailColorMode;
   tokens?: {
     colors?: ThemeScale;
     space?: Array<string | number> | ThemeScale;

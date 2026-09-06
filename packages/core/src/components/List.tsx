@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { HTMLAttributes, LiHTMLAttributes } from 'react';
 import {
   mergeInlineStyles,
@@ -32,7 +33,10 @@ export function List({ as: Component = 'ul', children, ...props }: ListProps) {
   );
 
   return (
-    <Component {...elementProps} style={styles}>
+    <Component
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </Component>
   );
@@ -47,7 +51,10 @@ export function ListItem({ children, ...props }: ListItemProps) {
   );
 
   return (
-    <li {...elementProps} style={styles}>
+    <li
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </li>
   );

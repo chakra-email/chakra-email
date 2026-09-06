@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { HTMLAttributes } from 'react';
 import {
   splitStyleProps,
@@ -20,7 +21,10 @@ export function Pre({ children, ...props }: PreProps) {
   );
 
   return (
-    <pre {...elementProps} style={styles}>
+    <pre
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </pre>
   );

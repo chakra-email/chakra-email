@@ -1,3 +1,7 @@
+import {
+  getEmailStyleProps,
+  updateEmailStyleModes,
+} from '../system/color-mode.js';
 import type { BlockquoteHTMLAttributes } from 'react';
 import {
   splitStyleProps,
@@ -27,11 +31,16 @@ export function Blockquote({
     undefined,
     borderColor ? { borderColor, ...styleProps } : styleProps,
   );
-  styles.borderLeft ??= `4px solid ${styles.borderColor ?? resolveBorderColor(undefined, theme)}`;
-  delete styles.borderColor;
+  updateEmailStyleModes(styles, (value) => {
+    value.borderLeft ??= `4px solid ${value.borderColor ?? resolveBorderColor(undefined, theme)}`;
+    delete value.borderColor;
+  });
 
   return (
-    <blockquote {...elementProps} style={styles}>
+    <blockquote
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </blockquote>
   );

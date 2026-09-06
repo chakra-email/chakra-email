@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { TableHTMLAttributes } from 'react';
 import {
   mergeInlineStyles,
@@ -43,11 +44,11 @@ export function Section({ children, ...props }: SectionProps) {
       cellPadding={0}
       border={0}
       width={legacyWidth}
-      style={tableStyles}
+      {...getEmailStyleProps(tableStyles, elementProps.className)}
     >
       <tbody>
         <tr>
-          <td style={cellStyles}>{children}</td>
+          <td {...getEmailStyleProps(cellStyles)}>{children}</td>
         </tr>
       </tbody>
     </table>

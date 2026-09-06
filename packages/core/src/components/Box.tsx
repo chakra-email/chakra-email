@@ -1,3 +1,4 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { ComponentPropsWithoutRef, ElementType } from 'react';
 import {
   splitStyleProps,
@@ -26,7 +27,10 @@ export function Box<T extends BoxElement = 'div'>({
   const BoxElement = Component as ElementType;
 
   return (
-    <BoxElement {...elementProps} style={styles}>
+    <BoxElement
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </BoxElement>
   );
