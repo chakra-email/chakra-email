@@ -171,6 +171,14 @@ const email = React.createElement(
 );
 const html = await render(email);
 
+if (!html.includes('data-chakra-email-color-mode="system"')) {
+  throw new Error('The packed React 18 renderer lost adaptive color styles.');
+}
+const forcedDarkHtml = await render(email, { colorMode: 'dark' });
+if (forcedDarkHtml.includes('data-chakra-email-color-mode="system"')) {
+  throw new Error('Forced dark rendering should use inline styles only.');
+}
+
 if (!html.includes('Packed consumer smoke') || !html.startsWith('<!DOCTYPE')) {
   throw new Error('The packed ESM consumer did not render the expected email.');
 }
@@ -360,7 +368,8 @@ const email: ReactElement = (
   </CoreProvider>
 );
 
-void render(email);
+void render(email, { colorMode: 'system' });
+void <CoreProvider colorMode="dark"><Text _light={{ color: 'fg' }} _dark={{ color: 'white' }}>Modes</Text></CoreProvider>;
 const testSend: PreviewTestTransport = {
   async send(message) {
     return { id: message.to };
@@ -510,6 +519,7 @@ try {
   if (
     !renderResponse.ok ||
     !rendered.html?.includes('Hello Packed preview') ||
+    !rendered.html?.includes('data-chakra-email-color-mode="system"') ||
     rendered.subject !== 'Hello Packed preview'
   ) {
     throw new Error('Packed preview did not render its fixture.');
@@ -608,6 +618,7 @@ try {
   );
   if (
     !exportedHtml.includes('Hello Packed preview') ||
+    !exportedHtml.includes('data-chakra-email-color-mode="system"') ||
     !exportedText.includes('Hello Packed preview')
   ) {
     throw new Error('Packed preview CLI export did not render its fixture.');

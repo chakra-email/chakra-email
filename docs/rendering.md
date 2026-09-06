@@ -55,6 +55,21 @@ Add `data-skip-in-text="true"` to rendered content that should remain in the
 HTML version but be omitted from the plain-text version. Chakra Email's semantic
 `Table` component is formatted as a readable data table automatically.
 
+## Color mode
+
+All render helpers accept `colorMode: 'system' | 'light' | 'dark'`:
+
+```tsx
+const adaptive = await renderEmail(<WelcomeEmail />); // system (default)
+const darkOnly = await renderEmail(<WelcomeEmail />, { colorMode: 'dark' });
+```
+
+System mode emits light inline styles plus authored dark CSS in the document
+head. Forced modes emit the selected styles inline, without generated adaptive
+CSS. Both HTML and text still come from one React render, and output byte limits
+include the generated CSS. See [theming](./theming.md#light-and-dark-email-colors)
+for semantic tokens and per-component overrides.
+
 ## URL and output policies
 
 `Link`, `Button`, and `Img` use strict URL defaults. They reject credentials,
@@ -87,6 +102,14 @@ never include the rejected URL or rendered content.
 Custom development tools can accept the exported `EmailRenderer` contract.
 `chakraEmailRenderer` is the default implementation and returns `{ html, text }`
 from one render pass.
+
+The optional `@chakra-email/react-email` adapter also collects Chakra Email
+color modes. For another renderer, wrap the element with
+`createEmailColorModeRender(element, options.colorMode)` from
+`@chakra-email/core/render`, render its returned `element` once, and pass the
+markup to its `finish(html)` before formatting, output limits, and plaintext
+conversion. This helper only handles color styles; custom adapters remain
+responsible for applying security policy and resource-hint cleanup.
 
 ## Debug Formatting
 

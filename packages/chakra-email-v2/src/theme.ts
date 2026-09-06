@@ -126,9 +126,8 @@ function adaptSemanticTokenLeaf(
 
   if (sibling !== undefined) {
     // Reference to another semantic token in the same category, e.g.
-    // `danger: 'primary'`. The core resolver never looks up semantic tokens
-    // by reference, so the target's email value is inlined here instead
-    // (with a seen-set guarding against circular chains).
+    // `danger: 'primary'`. Normalize v2's bare aliases for each color mode
+    // with a seen-set guarding against circular chains.
     if (seen.has(value)) {
       return undefined;
     }

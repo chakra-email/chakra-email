@@ -49,11 +49,73 @@ The resolver supports common Chakra scales:
 - `borderWidths`
 - `letterSpacings`
 
-Semantic color tokens are also supported for common color lookups. The core resolver (used by `chakra-email` and `@chakra-email/core`) understands v3-format semantic tokens — `semanticTokens.colors` entries with `{ value: ... }` objects and `{colors.red.500}`-style brace references. Chakra UI v2-format semantic tokens (`{ default: 'red.500', _dark: ... }` objects or bare `'red.500'` strings) are not understood by the core resolver directly; use `@chakra-email/chakra-v2`, whose adapter converts them (default mode only — `_dark` is ignored since email has no reliable dark-mode CSS).
+Semantic color tokens are supported, including `{ value: ... }` objects and
+`{colors.red.500}`-style references to palette or semantic colors. For v2 tokens
+with bare aliases such as `{ default: 'red.500', _dark: 'red.300' }`, use
+`@chakra-email/chakra-v2` to normalize both modes.
+
+## Light and dark email colors
+
+Use semantic colors for surfaces, text, accents, and borders that should adapt:
+
+```tsx
+import { Body, ChakraEmailProvider, Head, Html, Text } from 'chakra-email';
+
+const theme = {
+  semanticTokens: {
+    colors: {
+      page: { value: { _light: '#ffffff', _dark: '#171717' } },
+      ink: { value: { _light: '#171717', _dark: '#fafafa' } },
+    },
+  },
+};
+
+export function Email() {
+  return (
+    <ChakraEmailProvider theme={theme}>
+      <Html>
+        <Head />
+        <Body bg="page" color="ink">
+          <Text color="ink">Readable in either authored color mode.</Text>
+        </Body>
+      </Html>
+    </ChakraEmailProvider>
+  );
+}
+```
+
+Render with Chakra Email's `render` or `renderEmail`. The default `system` mode
+keeps light colors inline and adds dark overrides in a
+`prefers-color-scheme: dark` stylesheet, collected during the same React render.
+The built-in `bg`, `fg`, `border`, and `accent` tokens already define both modes.
+Choose semantic backgrounds and foregrounds together: a fixed `bg="white"` stays
+white even when a semantic foreground changes in dark mode.
+
+For a local exception, components and recipe styles accept shallow condition
+blocks, for example `<Text color="fg" _dark={{ color: '#ffffff' }} />`.
+Use these blocks rather than an object inside the `color` prop.
+
+`ChakraEmailProvider`, `ChakraEmailV2Provider`, and core `ThemeProvider` accept
+`colorMode="light" | "dark" | "system"`. A forced provider mode resolves that
+subtree to inline colors. A forced mode on the [renderer](./rendering.md#color-mode)
+takes precedence over provider settings. Calling React's `renderToStaticMarkup`
+directly does not collect the system-mode stylesheet.
+
+Dark CSS is progressive enhancement; client support and automatic color
+inversion vary. Fixed colors are not automatically inverted by Chakra Email,
+and the browser preview is not an emulation of Gmail or Outlook.
+
+### Custom native components
+
+Pass styles from `useChakraStyles` or `useSlotRecipeStyles` to
+`getEmailStyleProps(styles, className)` from `chakra-email/system`, then spread
+the returned props onto the native element. This preserves inline styles and
+registers its dark-mode class. Use `mergeInlineStyles` for additional inline
+overrides instead of spreading the style object, which loses its mode metadata.
 
 ## Component Recipes
 
-Every visually styled component resolves its defaults from a named recipe. Components with meaningful internal elements use slot recipes. Recipe output is resolved to email-safe inline styles; it does not depend on generated class names or a browser stylesheet.
+Every visually styled component resolves its defaults from a named recipe. Components with meaningful internal elements use slot recipes. Base styles remain inline; system-mode dark overrides use generated classes and a media query.
 
 Use the exported keys to override a recipe without depending on its string name:
 
@@ -171,7 +233,7 @@ The keys are available from `chakraEmailSlotRecipeKeys`, and the complete defaul
 
 ## Chakra UI v2-Style Themes
 
-Use `@chakra-email/chakra-v2` when your theme uses flat scales directly on the theme object. Its provider adapts the theme for email: `rem`/`em` values are converted to `px` (1rem = 16px), v2 semantic tokens are resolved in default mode, and runtime-only keys (`components`, `styles`, `config`, `breakpoints`, `transition`, `zIndices`) are dropped. See the [Chakra UI v2 guide](./chakra-v2.md) for details.
+Use `@chakra-email/chakra-v2` when your theme uses flat scales directly on the theme object. Its provider adapts the theme for email: `rem`/`em` values are converted to `px` (1rem = 16px), v2 semantic tokens preserve default and dark modes, and runtime-only keys (`components`, `styles`, `config`, `breakpoints`, `transition`, `zIndices`) are dropped. See the [Chakra UI v2 guide](./chakra-v2.md) for details.
 
 ```tsx
 import { ChakraEmailV2Provider, Text } from '@chakra-email/chakra-v2';
