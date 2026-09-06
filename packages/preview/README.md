@@ -474,6 +474,74 @@ const findings = lintRenderedEmail(renderedHtml, renderedPlainText);
 These checks surface common risks; they do not replace delivery-provider tests
 or validation in the mailbox clients your application supports.
 
+## Optional Network Link Checks
+
+Static linting never fetches email URLs. Enable the separate **Check links**
+action with an exact hostname allowlist in `chakra-email.config.ts`:
+
+```ts
+import { defineConfig } from '@chakra-email/preview';
+
+export default defineConfig({
+  linkCheck: {
+    allowedHosts: ['allplay.fm'],
+    excludedUrls: ['https://allplay.fm/sensitive-action'],
+    timeoutMs: 3000,
+    maxUrls: 30,
+    cacheTtlMs: 60000,
+  },
+});
+```
+
+Click **Check links** in the props/inspector panel to re-render the active
+template with its applied props and check its anchor URLs. Unsaved editor
+changes are not applied. Findings include rendered-HTML line numbers:
+
+- HTTP 404/410: broken-link errors (verify manually; HEAD can differ from GET).
+- HTTP 3xx: informational redirects with the destination displayed, never followed.
+- Other unsuccessful responses, DNS/TLS failures, and timeouts: unverified warnings.
+- Excluded or unsupported links: skipped notices, not successful checks.
+
+Checks run only on demand, not on render, hot reload, export, or test sending.
+New renders clear network findings. Duplicate URLs share requests; results are
+cached for the configured TTL (including failures). Set `cacheTtlMs: 0` to
+disable caching. A maximum of three requests run concurrently, one check runs
+per server, and the cache contains at most 500 entries. Input HTML is limited
+to 2 MiB. `maxUrls` accepts 1–100, `timeoutMs` 100–10000, and `cacheTtlMs`
+0–300000. The checked count includes cached results; skipped links and redirect
+destinations remain unverified.
+
+For programmatic validation outside the preview UI:
+
+```ts
+import { createEmailLinkChecker } from '@chakra-email/preview';
+
+const checkLinks = createEmailLinkChecker({ allowedHosts: ['allplay.fm'] });
+const { findings, checked, skipped } = await checkLinks(renderedHtml);
+```
+
+### Network Safety
+
+Requests use HEAD only, without cookies, authorization, automatic redirects,
+or GET fallback. Only standard HTTP(S) ports and public IPv4 destinations are
+supported; IPv6-only hosts are reported as unverified. DNS answers are checked
+for private/reserved addresses and the approved address is pinned to the
+connection to avoid DNS rebinding. The API retains preview-token, Host,
+same-origin, JSON-body, and registered-template checks.
+
+Query-bearing URLs and common unsubscribe, opt-out, login, magic-link,
+verification, reset, and tracking paths are always skipped. Credentials,
+relative URLs, fragments, non-HTTP protocols, and non-allowlisted hosts are not
+requested. `excludedUrls` adds exact URL exclusions (ignoring fragments).
+Redirect query strings are redacted from findings.
+
+Even HEAD requests can trigger side effects on poorly behaved endpoints, and
+heuristics cannot recognize every sensitive route. Use synthetic preview data,
+allow only trusted hosts, exclude application-specific action URLs, and do not
+expose the preview server to untrusted users. An unsubscribe placeholder such
+as `https://example.com/unsubscribe` is intentionally skipped; validate real
+unsubscribe flows separately with test recipients.
+
 ## Security And Image Privacy
 
 The preview server is a local development tool. It binds to `127.0.0.1` by

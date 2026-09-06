@@ -83,12 +83,12 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
     async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       if (input === '/api/templates') {
         return jsonResponse({
-          capabilities: { testSend: true },
+          capabilities: { testSend: true, linkCheck: true },
           templates,
         });
       }
 
-      if (input === '/api/render') {
+      if (input === '/api/render' || input === '/api/check-links') {
         const request = JSON.parse(String(init?.body)) as RenderRequest;
         renderRequests.push(request);
         const props =
@@ -98,10 +98,26 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
             : { name: 'Ada' });
 
         return jsonResponse({
+          ...(input === '/api/check-links'
+            ? { linkCheck: { checked: 2, skipped: 1 } }
+            : {}),
           id: request.id,
           name: request.id === 'welcome' ? 'Welcome email' : 'Order receipt',
           html: '<!doctype html><html><head><style>@media (prefers-color-scheme: dark) { body { background: #111; } } @media (prefers-color-scheme: light) { body { background: #fff; } }</style></head><body><h1>Hello</h1><img src="https://images.example.test/hero.png"></body></html>',
           lint: [
+            ...(input === '/api/check-links'
+              ? [
+                  {
+                    category: 'links',
+                    element: 'a[href="https://example.org/missing"]',
+                    line: 95,
+                    message: 'HTTP 404: link appears broken.',
+                    ruleId: 'link-broken',
+                    severity: 'error',
+                    suggestion: 'Verify in a browser with test data.',
+                  },
+                ]
+              : []),
             {
               category: 'accessibility',
               element: '<img>',
@@ -207,6 +223,127 @@ describe('PreviewApplication', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('checks links only on demand and clears network findings after a new render', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    expect(
+      harness.fetcher.mock.calls.some(([url]) => url === '/api/check-links'),
+    ).toBe(false);
+    getElement<HTMLButtonElement>('[data-action="check-links"]').click();
+    expect(
+      getElement<HTMLButtonElement>('[data-action="check-links"]').disabled,
+    ).toBe(true);
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-lint-rule="link-broken"]')?.textContent,
+      ).toContain('HTML line 95'),
+    );
+    expect(document.body.textContent).toContain(
+      '2 checked (including cached results) · 1 skipped',
+    );
+    const call = harness.fetcher.mock.calls.find(
+      ([url]) => url === '/api/check-links',
+    );
+    expect(call?.[1]).toMatchObject({
+      method: 'POST',
+      headers: { 'x-chakra-email-preview-token': 'preview-token' },
+    });
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({
+      id: 'welcome',
+      props: { name: 'Ada' },
+    });
+    getElement<HTMLButtonElement>('[data-action="apply-props"]').click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-lint-rule="link-broken"]'),
+      ).toBeNull(),
+    );
+    expect(document.body.textContent).toContain(
+      'Network links have not been checked for this render.',
+    );
+    harness.application.destroy();
+  });
+
+  it('hides network actions when the server has not enabled checks', async () => {
+    const harness = createHarness();
+    const original =
+      harness.fetcher.getMockImplementation() as PreviewApplicationOptions['fetch'];
+    if (!original) throw new Error('Missing mock fetch implementation.');
+    harness.fetcher.mockImplementation(async (url, init) => {
+      const response = await original(url, init);
+      if (url === '/api/templates')
+        return jsonResponse({ ...(await response.json()), capabilities: {} });
+      return response;
+    });
+    await harness.application.start();
+    expect(document.querySelector('[data-action="check-links"]')).toBeNull();
+    expect(document.body.textContent).toContain(
+      'Configure linkCheck.allowedHosts',
+    );
+    harness.application.destroy();
+  });
+
+  it('ignores a late link-check response after switching templates', async () => {
+    const harness = createHarness();
+    const original =
+      harness.fetcher.getMockImplementation() as PreviewApplicationOptions['fetch'];
+    if (!original) throw new Error('Missing mock fetch implementation.');
+    let finish!: (response: Response) => void;
+    harness.fetcher.mockImplementation((url, init) =>
+      url === '/api/check-links'
+        ? new Promise<Response>((resolve) => {
+            finish = resolve;
+          })
+        : original(url, init),
+    );
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-action="check-links"]').click();
+    getElement<HTMLButtonElement>('[data-template-id="receipt"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('h1')?.textContent).toContain(
+        'Order receipt',
+      ),
+    );
+    finish(
+      await original('/api/check-links', {
+        body: JSON.stringify({ id: 'welcome' }),
+      }),
+    );
+    await flush();
+    expect(document.querySelector('[data-lint-rule="link-broken"]')).toBeNull();
+    expect(document.querySelector('h1')?.textContent).toContain(
+      'Order receipt',
+    );
+    harness.application.destroy();
+  });
+
+  it('shows link-check failures and permits retrying', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    harness.fetcher.mockResolvedValueOnce(
+      jsonResponse(
+        { error: { message: 'A link check is already running.' } },
+        409,
+      ),
+    );
+    getElement<HTMLButtonElement>('[data-action="check-links"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain(
+        'A link check is already running.',
+      ),
+    );
+    expect(
+      getElement<HTMLButtonElement>('[data-action="check-links"]').disabled,
+    ).toBe(false);
+    getElement<HTMLButtonElement>('[data-action="check-links"]').click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-lint-rule="link-broken"]'),
+      ).not.toBeNull(),
+    );
+    harness.application.destroy();
   });
 
   it('collapses panels without losing draft props and returns focus on Escape', async () => {

@@ -118,6 +118,7 @@ export type PreviewWorkspaceProps = {
   onCopy(): void;
   onDownload(): void;
   onSend(): void;
+  onCheckLinks(): void;
   onRetry(): void;
   onDismissError(): void;
 };
@@ -868,6 +869,40 @@ function Inspector(props: PreviewWorkspaceProps) {
         </Stack>
       ) : null}
 
+      <Stack gap="2">
+        {state.canCheckLinks ? (
+          <>
+            <Text id="link-check-help" color="preview.textMuted" fontSize="2xs">
+              Check links makes HEAD requests to configured public hosts.
+              Sensitive links are skipped; redirects are not followed.
+            </Text>
+            <Button
+              type="button"
+              data-action="check-links"
+              css={styles.primaryAction}
+              disabled={!state.result || state.rendering}
+              aria-describedby="link-check-help"
+              onClick={props.onCheckLinks}
+            >
+              {state.rendering && state.checkingLinks
+                ? 'Checking links…'
+                : 'Check links'}
+            </Button>
+          </>
+        ) : (
+          <Text color="preview.textMuted" fontSize="2xs">
+            Network link checks are off. Configure linkCheck.allowedHosts to
+            enable them.
+          </Text>
+        )}
+        <Text role="status" color="preview.textMuted" fontSize="2xs">
+          {state.rendering && state.checkingLinks
+            ? 'Checking links…'
+            : state.result?.linkCheck
+              ? `${state.result.linkCheck.checked} checked (including cached results) · ${state.result.linkCheck.skipped} skipped. Redirect destinations are unverified.`
+              : 'Network links have not been checked for this render.'}
+        </Text>
+      </Stack>
       <LintPanel findings={state.result?.lint ?? null} />
 
       <Flex css={styles.notice}>

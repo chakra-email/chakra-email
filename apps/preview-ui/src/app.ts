@@ -12,6 +12,7 @@ export type EmailColorMode = 'system' | WorkspaceColorMode;
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting';
 export type LintSeverity = 'error' | 'warning' | 'info';
 export type LintCategory =
+  | 'links'
   | 'accessibility'
   | 'compatibility'
   | 'content'
@@ -31,6 +32,7 @@ export type TemplateSummary = {
 };
 
 export type RenderResult = {
+  linkCheck?: { checked: number; skipped: number };
   id: string;
   name: string;
   html: string;
@@ -77,6 +79,8 @@ export type PreviewApplicationOptions = {
 };
 
 export type ApplicationState = {
+  canCheckLinks: boolean;
+  checkingLinks: boolean;
   templates: TemplateSummary[];
   selectedId: string | null;
   result: RenderResult | null;
@@ -172,6 +176,7 @@ function initialEmailColorMode(): EmailColorMode {
 }
 
 function parseTemplates(value: unknown): {
+  canCheckLinks: boolean;
   canTestSend: boolean;
   templates: TemplateSummary[];
 } {
@@ -204,7 +209,11 @@ function parseTemplates(value: unknown): {
   const canTestSend =
     isRecord(capabilities) && capabilities['testSend'] === true;
 
-  return { canTestSend, templates };
+  return {
+    canCheckLinks: isRecord(capabilities) && capabilities['linkCheck'] === true,
+    canTestSend,
+    templates,
+  };
 }
 
 function parseRenderResult(value: unknown): RenderResult {
@@ -234,6 +243,7 @@ function parseRenderResult(value: unknown): RenderResult {
         'content',
         'deliverability',
         'markup',
+        'links',
       ].includes(String(candidate['category'])) ||
       !['error', 'warning', 'info'].includes(String(candidate['severity'])) ||
       typeof candidate['message'] !== 'string' ||
@@ -269,7 +279,20 @@ function parseRenderResult(value: unknown): RenderResult {
     throw new Error('The preview server returned invalid lint results.');
   }
 
+  const linkCheck = value['linkCheck'];
+  if (
+    linkCheck !== undefined &&
+    (!isRecord(linkCheck) ||
+      !Number.isInteger(linkCheck['checked']) ||
+      Number(linkCheck['checked']) < 0 ||
+      !Number.isInteger(linkCheck['skipped']) ||
+      Number(linkCheck['skipped']) < 0)
+  ) {
+    throw new Error('The preview server returned invalid link-check results.');
+  }
+
   return {
+    linkCheck: linkCheck as RenderResult['linkCheck'],
     id: value['id'],
     name: value['name'],
     html: value['html'],
@@ -421,6 +444,8 @@ export class PreviewApplication {
   private started = false;
 
   private readonly state: ApplicationState = {
+    canCheckLinks: false,
+    checkingLinks: false,
     templates: [],
     selectedId: null,
     result: null,
@@ -603,6 +628,7 @@ export class PreviewApplication {
       const parsed = parseTemplates(await response.json());
       const { templates } = parsed;
       this.state.canTestSend = parsed.canTestSend;
+      this.state.canCheckLinks = parsed.canCheckLinks;
       this.state.templates = templates;
       this.state.loadingTemplates = false;
 
@@ -651,6 +677,7 @@ export class PreviewApplication {
   }
 
   private async renderCurrent(options: {
+    checkLinks?: boolean;
     props?: JsonRecord;
     replaceEditor: boolean;
   }): Promise<void> {
@@ -676,19 +703,23 @@ export class PreviewApplication {
     }
 
     this.state.rendering = true;
+    this.state.checkingLinks = Boolean(options.checkLinks);
     this.state.error = null;
     this.render();
 
     try {
-      const response = await this.request('/api/render', {
-        method: 'POST',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-          'x-chakra-email-preview-token': this.token,
+      const response = await this.request(
+        options.checkLinks ? '/api/check-links' : '/api/render',
+        {
+          method: 'POST',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            'x-chakra-email-preview-token': this.token,
+          },
+          body: JSON.stringify(body),
         },
-        body: JSON.stringify(body),
-      });
+      );
 
       if (!response.ok) {
         throw await responseError(response);
@@ -1031,6 +1062,19 @@ export class PreviewApplication {
           },
           onSend: () => {
             void this.sendTestEmail();
+          },
+          onCheckLinks: () => {
+            if (
+              !this.state.canCheckLinks ||
+              this.state.rendering ||
+              !this.state.result
+            )
+              return;
+            void this.renderCurrent({
+              checkLinks: true,
+              props: this.state.appliedProps ?? undefined,
+              replaceEditor: false,
+            });
           },
           onRetry: this.retry,
           onDismissError: this.dismissError,

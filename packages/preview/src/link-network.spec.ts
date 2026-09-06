@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { lookup } from 'node:dns/promises';
+import type { LookupAddress } from 'node:dns';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { isPublicIpv4, requestLinkHead } from './link-network.js';
@@ -7,6 +8,10 @@ import { isPublicIpv4, requestLinkHead } from './link-network.js';
 vi.mock('node:dns/promises', () => ({ lookup: vi.fn() }));
 vi.mock('node:http', () => ({ request: vi.fn() }));
 vi.mock('node:https', () => ({ request: vi.fn() }));
+const lookupAll = lookup as (
+  hostname: string,
+  options: { all: true; family: 4 },
+) => Promise<LookupAddress[]>;
 
 describe('link-check network boundary', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -64,7 +69,7 @@ describe('link-check network boundary', () => {
 
   it('pins validated DNS to the socket and uses HEAD without following Location', async () => {
     const request = mockRequest();
-    vi.mocked(lookup).mockResolvedValue([
+    vi.mocked(lookupAll).mockResolvedValue([
       { address: '93.184.216.34', family: 4 },
     ]);
     const pending = requestLinkHead(new URL('https://example.org/page'), 1000);
@@ -100,7 +105,7 @@ describe('link-check network boundary', () => {
     const options = vi.mocked(httpsRequest).mock
       .calls[0][1] as import('node:https').RequestOptions;
     const callback = vi.fn();
-    vi.mocked(lookup).mockResolvedValue([
+    vi.mocked(lookupAll).mockResolvedValue([
       { address: '93.184.216.34', family: 4 },
       { address: '127.0.0.1', family: 4 },
     ]);
@@ -109,7 +114,7 @@ describe('link-check network boundary', () => {
       expect(callback).toHaveBeenCalledWith(expect.any(Error), '', 4),
     );
     callback.mockClear();
-    vi.mocked(lookup).mockRejectedValue(new Error('dns failed'));
+    vi.mocked(lookupAll).mockRejectedValue(new Error('dns failed'));
     options.lookup?.('example.org', {}, callback);
     await vi.waitFor(() =>
       expect(callback).toHaveBeenCalledWith(expect.any(Error), '', 4),
