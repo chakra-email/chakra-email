@@ -127,8 +127,9 @@ for files that are not present return `404`.
 ## Preview workspace
 
 The workspace uses a compact header and format toolbar, a flat template list,
-and a centered email canvas. The frame stays within the available workspace
-instead of stretching the page vertically; long emails scroll inside it.
+and a centered email canvas. The workspace and email frame fill the available
+viewport height; long emails scroll inside the frame rather than stretching the
+page. The inspector scrolls independently.
 
 - Header panel buttons show or hide templates and preview settings. Hiding
   settings preserves unapplied JSON edits, variants, and test-send fields.

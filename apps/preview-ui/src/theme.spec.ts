@@ -14,10 +14,17 @@ describe('preview UI theme', () => {
     expect(previewWorkspaceSlotRecipe.base?.content).toMatchObject({
       minW: '0',
       minH: '0',
+      flex: '1',
+    });
+    expect(previewWorkspaceSlotRecipe.base?.main).toMatchObject({
+      display: 'flex',
+      flexDirection: 'column',
+      minH: '0',
     });
     expect(previewWorkspaceSlotRecipe.slots).toContain('inspectorPanel');
     expect(previewViewerSlotRecipe.slots).toContain('stage');
     expect(previewViewerSlotRecipe.base?.frame).toMatchObject({
+      h: '100%',
       maxW: '100%',
       maxH: '100%',
       resize: 'both',

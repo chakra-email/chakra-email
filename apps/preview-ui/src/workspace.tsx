@@ -343,6 +343,10 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
         </Grid>
 
         <Tabs.Root
+          // Workspace/viewer recipes own the layout; Chakra's Tabs root defaults
+          // to display:block and would prevent the content flex item from growing.
+          unstyled
+          css={styles.main}
           value={state.activeTab}
           id="preview-formats"
           activationMode="automatic"
@@ -352,7 +356,7 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
           }
           asChild
         >
-          <Box as="main" className="workspace" css={styles.main}>
+          <Box as="main" className="workspace">
             <Flex className="workspace-heading" css={styles.heading}>
               <Tabs.List css={viewerStyles.tabs}>
                 {tabs.map((tab) => (

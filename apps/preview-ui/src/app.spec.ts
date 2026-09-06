@@ -244,6 +244,34 @@ describe('PreviewApplication', () => {
     vi.unstubAllGlobals();
   });
 
+  it('lets the workspace recipes fill the viewport without Tabs layout defaults', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const main = getElement<HTMLElement>('.workspace');
+    // JSDOM does not resolve cascade layers/media queries in getComputedStyle.
+    // Inspect the actual emitted rules for this element, including nested layers.
+    const declarations: CSSStyleDeclaration[] = [];
+    const selectors = new Set(Array.from(main.classList, (name) => `.${name}`));
+    const visit = (rules: CSSRuleList) => {
+      for (const rule of Array.from(rules)) {
+        if (
+          'selectorText' in rule &&
+          selectors.has((rule as CSSStyleRule).selectorText)
+        ) {
+          declarations.push((rule as CSSStyleRule).style);
+        }
+        if ('cssRules' in rule) visit((rule as CSSGroupingRule).cssRules);
+      }
+    };
+    for (const sheet of Array.from(document.styleSheets)) visit(sheet.cssRules);
+    expect(declarations.some((style) => style.display === 'flex')).toBe(true);
+    expect(declarations.some((style) => style.flexDirection === 'column')).toBe(
+      true,
+    );
+    expect(declarations.some((style) => style.display === 'block')).toBe(false);
+    harness.application.destroy();
+  });
+
   it('checks links only on demand and clears network findings after a new render', async () => {
     const harness = createHarness();
     await harness.application.start();

@@ -499,7 +499,7 @@ export const previewViewerSlotRecipe = defineSlotRecipe({
       flexShrink: 0,
       maxW: '100%',
       minW: 'min(280px, 100%)',
-      h: 'min(640px, 100%)',
+      h: '100%',
       minH: '120px',
       maxH: '100%',
       overflow: 'hidden',
