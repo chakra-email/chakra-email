@@ -1,6 +1,7 @@
 import type { CSSProperties, HTMLAttributes } from 'react';
 import {
   filterEmailUnsafeStyles,
+  getEmailStyleProps,
   mergeInlineStyles,
   splitStyleProps,
   useChakraStyles,
@@ -63,17 +64,26 @@ export function CodeBlock({
   const numberWidth = `${Math.max(String(lines.length).length, 1) + 1}ch`;
 
   return (
-    <pre {...elementProps} data-language={language} style={rootStyles}>
-      <code style={recipeStyles.code}>
+    <pre
+      {...elementProps}
+      data-language={language}
+      {...getEmailStyleProps(rootStyles, elementProps.className)}
+    >
+      <code {...getEmailStyleProps(recipeStyles.code ?? {})}>
         {lines.map((tokens, lineIndex) => (
-          <span key={lineIndex} style={recipeStyles.line}>
+          <span
+            key={lineIndex}
+            {...getEmailStyleProps(recipeStyles.line ?? {})}
+          >
             {lineNumbers ? (
               <span
                 aria-hidden="true"
                 data-skip-in-text="true"
-                style={mergeInlineStyles(recipeStyles.lineNumber, {
-                  width: numberWidth,
-                })}
+                {...getEmailStyleProps(
+                  mergeInlineStyles(recipeStyles.lineNumber, {
+                    width: numberWidth,
+                  }),
+                )}
               >
                 {lineIndex + 1}
               </span>
@@ -81,9 +91,11 @@ export function CodeBlock({
             {tokens.map((token, tokenIndex) => (
               <span
                 key={tokenIndex}
-                style={mergeInlineStyles(
-                  recipeStyles.token,
-                  filterEmailUnsafeStyles(token.style ?? {}),
+                {...getEmailStyleProps(
+                  mergeInlineStyles(
+                    recipeStyles.token,
+                    filterEmailUnsafeStyles(token.style ?? {}),
+                  ),
                 )}
               >
                 {token.content}

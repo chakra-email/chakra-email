@@ -3,6 +3,7 @@ import {
   ThemeProvider,
   mergeTheme,
   type EmailTheme,
+  type EmailColorMode,
   type ThemeInput,
 } from '@chakra-email/core/theme';
 
@@ -22,6 +23,7 @@ export type ChakraV3Theme =
     };
 
 export interface ChakraEmailProviderProps {
+  colorMode?: EmailColorMode;
   theme?: ChakraV3Theme;
   children: ReactNode;
 }
@@ -32,9 +34,11 @@ export function createChakraV3EmailTheme(theme: ChakraV3Theme): EmailTheme {
 
 export function ChakraEmailProvider({
   theme,
+  colorMode,
   children,
 }: ChakraEmailProviderProps) {
   return createElement(ThemeProvider, {
+    colorMode,
     theme: theme ? createChakraV3EmailTheme(theme) : undefined,
     children,
   });

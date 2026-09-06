@@ -4,6 +4,31 @@ import { describe, expect, it } from 'vitest';
 import { reactEmailRenderer } from './index.js';
 
 describe('reactEmailRenderer', () => {
+  it('preserves generated dark CSS without a second render and supports forced modes', async () => {
+    let renders = 0;
+    function Counted() {
+      renders++;
+      return (
+        <ChakraButton
+          href="https://example.com"
+          bg="#ffffff"
+          _dark={{ bg: '#123456' }}
+        >
+          Mode
+        </ChakraButton>
+      );
+    }
+    const system = await reactEmailRenderer().render(<Counted />);
+    expect(renders).toBe(1);
+    expect(system.html).toContain('background-color: #123456 !important');
+    expect(system.html).toContain('prefers-color-scheme');
+    expect(system.text).not.toContain('ce-mode');
+    const dark = await reactEmailRenderer().render(<Counted />, {
+      colorMode: 'dark',
+    });
+    expect(dark.html).toContain('bgcolor="#123456"');
+    expect(dark.html).not.toContain('prefers-color-scheme');
+  });
   it('renders mixed React Email and Chakra Email components', async () => {
     const output = await reactEmailRenderer().render(
       <Html lang="en">

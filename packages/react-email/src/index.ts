@@ -1,5 +1,6 @@
 import {
   stripBrowserOnlyEmailHints,
+  createEmailColorModeRender,
   type EmailRenderer,
 } from '@chakra-email/core/render';
 import {
@@ -22,7 +23,13 @@ export function reactEmailRenderer(): EmailRenderer {
             children: element,
           })
         : element;
-      const rendered = stripBrowserOnlyEmailHints(await render(renderable));
+      const modeRender = createEmailColorModeRender(
+        renderable,
+        options.colorMode,
+      );
+      const rendered = modeRender.finish(
+        stripBrowserOnlyEmailHints(await render(modeRender.element)),
+      );
       const [html, text] = await Promise.all([
         options.pretty ? pretty(rendered) : rendered,
         Promise.resolve(toPlainText(rendered, options.plainTextOptions)),

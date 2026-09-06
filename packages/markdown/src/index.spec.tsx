@@ -50,6 +50,26 @@ function invalidDefinition(
 }
 
 describe('Markdown', () => {
+  it('carries dark markdown slot overrides through component style props', async () => {
+    const html = await render(
+      <ThemeProvider
+        theme={{
+          slotRecipes: {
+            chakraEmailMarkdown: {
+              slots: ['paragraph'],
+              base: {
+                paragraph: { color: '#123456', _dark: { color: '#abcdef' } },
+              },
+            },
+          },
+        }}
+      >
+        <Markdown>Mode-aware paragraph</Markdown>
+      </ThemeProvider>,
+    );
+    expect(html).toContain('color:#123456');
+    expect(html).toContain('color: #abcdef !important');
+  });
   it('renders GFM through email-safe Chakra components', async () => {
     const html = await render(
       <Markdown>{`# Release notes
@@ -357,7 +377,7 @@ Renew soon.
       {
         kind: 'invalid',
         render: renderChildren,
-      } as MarkdownDirectiveDefinition,
+      } as unknown as MarkdownDirectiveDefinition,
       'invalid-kind-configuration',
     );
     invalidDefinition(
@@ -365,7 +385,7 @@ Renew soon.
         kind: 'leaf',
         children: 'invalid',
         render: renderChildren,
-      } as MarkdownDirectiveDefinition,
+      } as unknown as MarkdownDirectiveDefinition,
       'invalid-children-configuration',
     );
     invalidDefinition(
@@ -487,7 +507,7 @@ Renew soon.
     const support = createMarkdownDirectiveSupport({
       action: { kind: 'leaf', render: renderChildren },
     });
-    const Directive = support.components[
+    const Directive = (support.components as Record<string, unknown>)[
       'chakra-email-directive'
     ] as ComponentType<{
       directiveAttributes?: string;

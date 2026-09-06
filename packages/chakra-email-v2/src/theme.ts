@@ -4,6 +4,7 @@ import {
   mergeTheme,
   normalizeThemeInput,
   type EmailTheme,
+  type EmailColorMode,
   type ThemeInput,
   type ThemeOverride,
 } from '@chakra-email/core/theme';
@@ -13,6 +14,7 @@ export * from '@chakra-email/core/theme';
 export type ChakraV2Theme = ThemeInput;
 
 export interface ChakraEmailV2ProviderProps {
+  colorMode?: EmailColorMode;
   theme?: ChakraV2Theme;
   children: ReactNode;
 }
@@ -110,6 +112,7 @@ function adaptSemanticTokenLeaf(
   category: string,
   scale: Record<string, unknown>,
   seen: Set<string>,
+  mode: 'light' | 'dark' = 'light',
 ): string | number | undefined {
   if (typeof value === 'number') {
     return value;
@@ -132,7 +135,7 @@ function adaptSemanticTokenLeaf(
 
     seen.add(value);
 
-    return resolveSemanticTokenTarget(sibling, category, scale, seen);
+    return resolveSemanticTokenTarget(sibling, category, scale, seen, mode);
   }
 
   if (tokenPathPattern.test(value)) {
@@ -149,22 +152,36 @@ function resolveSemanticTokenTarget(
   category: string,
   scale: Record<string, unknown>,
   seen: Set<string>,
+  mode: 'light' | 'dark',
 ): string | number | undefined {
   if (isRecord(target)) {
     if ('value' in target) {
       const tokenValue = target.value;
 
-      return typeof tokenValue === 'string' || typeof tokenValue === 'number'
-        ? tokenValue
-        : undefined;
+      return isRecord(tokenValue)
+        ? adaptSemanticTokenLeaf(
+            (mode === 'dark' ? tokenValue._dark : tokenValue._light) ??
+              tokenValue.base ??
+              tokenValue.default ??
+              tokenValue._light,
+            category,
+            scale,
+            seen,
+            mode,
+          )
+        : adaptSemanticTokenLeaf(tokenValue, category, scale, seen, mode);
     }
 
     if (isModeConditionObject(target)) {
       return adaptSemanticTokenLeaf(
-        target.default ?? target.base ?? target._light,
+        (mode === 'dark' ? target._dark : target._light) ??
+          target.default ??
+          target.base ??
+          target._light,
         category,
         scale,
         seen,
+        mode,
       );
     }
 
@@ -172,7 +189,7 @@ function resolveSemanticTokenTarget(
     return undefined;
   }
 
-  return adaptSemanticTokenLeaf(target, category, scale, seen);
+  return adaptSemanticTokenLeaf(target, category, scale, seen, mode);
 }
 
 function adaptSemanticTokenValue(
@@ -187,18 +204,20 @@ function adaptSemanticTokenValue(
     }
 
     if (isModeConditionObject(value)) {
-      // Email has no reliable dark-mode CSS, so only the `default` mode
-      // (falling back to `base`/`_light`) is kept; `_dark` etc. are ignored.
-      // Tokens without a light-mode value keep an empty value so the raw
-      // token name is never emitted as a literal CSS value downstream.
       const leaf = adaptSemanticTokenLeaf(
-        value.default ?? value.base ?? value._light,
+        value._light ?? value.default ?? value.base,
         category,
         scale,
         new Set<string>(),
       );
-
-      return { value: leaf ?? '' };
+      const dark = adaptSemanticTokenLeaf(
+        value._dark ?? value.default ?? value.base ?? value._light,
+        category,
+        scale,
+        new Set<string>(),
+        'dark',
+      );
+      return { value: { _light: leaf ?? '', _dark: dark ?? leaf ?? '' } };
     }
 
     // Nested semantic token group, e.g. `colors: { bg: { muted: ... } }`.
@@ -222,7 +241,17 @@ function adaptSemanticTokenValue(
     new Set<string>(),
   );
 
-  return { value: leaf ?? '' };
+  const dark = adaptSemanticTokenLeaf(
+    value,
+    category,
+    scale,
+    new Set<string>(),
+    'dark',
+  );
+  return {
+    value:
+      dark === leaf ? (leaf ?? '') : { _light: leaf ?? '', _dark: dark ?? '' },
+  };
 }
 
 function adaptSemanticTokens(
@@ -252,7 +281,7 @@ function adaptSemanticTokens(
  * - `rem`/`em` values in length scales are converted to `px` (1rem = 16px);
  *   unitless values (e.g. line-heights) are preserved as-is.
  * - v2 `semanticTokens` are rewritten to v3-style `{ value }` tokens. The
- *   `default` mode is used, `_dark` and other conditions are ignored, and
+ *   `default`/`_light` and `_dark` modes are preserved, and
  *   bare token references such as `red.500` become `{colors.red.500}`.
  * - Non-visual v2 keys (`components`, `styles`, `config`, `breakpoints`,
  *   `transition`, `zIndices`) are dropped.
@@ -299,9 +328,11 @@ export function createChakraV2EmailTheme(theme: ChakraV2Theme): EmailTheme {
 
 export function ChakraEmailV2Provider({
   theme,
+  colorMode,
   children,
 }: ChakraEmailV2ProviderProps) {
   return createElement(ThemeProvider, {
+    colorMode,
     theme: theme ? createChakraV2EmailTheme(theme) : undefined,
     children,
   });

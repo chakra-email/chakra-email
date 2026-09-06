@@ -33,7 +33,7 @@ describe('@chakra-email/chakra-v2 adapter edge cases', () => {
       });
     });
 
-    it('emits no color declaration at all in rendered output', async () => {
+    it('omits the light declaration and emits the dark value only in conditional CSS', async () => {
       const html = await render(
         <ChakraEmailV2Provider theme={themeInput}>
           <Html>
@@ -47,9 +47,10 @@ describe('@chakra-email/chakra-v2 adapter edge cases', () => {
       expect(html).toContain('Night only.');
       // No invalid literal from the unresolved token name...
       expect(html).not.toContain('color:nightOnly');
-      // ...and no accidental fallback to the dark-mode value.
+      // The dark value is emitted as conditional CSS, not a light fallback.
       expect(html).not.toContain('red.300');
-      expect(html).not.toContain('#fc8181');
+      expect(html).toContain('color: #fc8181 !important');
+      expect(html).not.toContain('color:#fc8181');
     });
   });
 

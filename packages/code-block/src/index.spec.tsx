@@ -3,6 +3,38 @@ import { describe, expect, it } from 'vitest';
 import { CodeBlock, plainTextHighlighter } from './index.js';
 
 describe('CodeBlock', () => {
+  it('preserves dark slot styles while static highlighter colors remain unchanged', async () => {
+    const html = await render(
+      <ThemeProvider
+        theme={{
+          slotRecipes: {
+            chakraEmailCodeBlock: {
+              slots: ['root', 'lineNumber', 'token'],
+              base: {
+                root: { _dark: { bg: '#123456' } },
+                lineNumber: { _dark: { color: '#abcdef' } },
+                token: { _dark: { color: '#fedcba' } },
+              },
+            },
+          },
+        }}
+      >
+        <CodeBlock
+          className="user-code"
+          code="value"
+          lineNumbers
+          highlighter={() => [
+            [{ content: 'value', style: { color: '#111111' } }],
+          ]}
+        />
+      </ThemeProvider>,
+    );
+    expect(html).toContain('user-code ce-mode-');
+    expect(html).toContain('background-color: #123456 !important');
+    expect(html).toContain('color: #abcdef !important');
+    expect(html).not.toContain('color: #fedcba !important');
+    expect(html).toContain('color:#111111');
+  });
   it('renders plain code and optional line numbers', async () => {
     const { html, text } = await renderEmail(
       <CodeBlock code={'const answer = 42;\nreturn answer;'} lineNumbers />,
