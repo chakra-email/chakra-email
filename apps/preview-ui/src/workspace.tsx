@@ -24,7 +24,7 @@ import {
   Textarea,
   Tooltip,
 } from '@chakra-ui/react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import type {
   ApplicationState,
@@ -134,11 +134,19 @@ export function PreviewRoot(props: PreviewWorkspaceProps) {
 
 function PreviewWorkspace(props: PreviewWorkspaceProps) {
   const { state } = props;
+  const [templatesOpen, setTemplatesOpen] = useState(
+    () => window.innerWidth >= 768,
+  );
+  const [inspectorOpen, setInspectorOpen] = useState(
+    () => window.innerWidth >= 960,
+  );
+  const templatesToggle = useRef<HTMLButtonElement>(null);
+  const inspectorToggle = useRef<HTMLButtonElement>(null);
   const workspaceRecipe = usePreviewSlotRecipe(
     previewSlotRecipeKeys.workspace,
     previewWorkspaceSlotRecipe,
   );
-  const styles = workspaceRecipe();
+  const styles = workspaceRecipe({ templatesOpen, inspectorOpen });
   const viewerRecipe = usePreviewSlotRecipe(
     previewSlotRecipeKeys.viewer,
     previewViewerSlotRecipe,
@@ -176,7 +184,12 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
   }, [props.onRemoteImagesChange]);
 
   return (
-    <Grid className="preview-app" css={styles.root}>
+    <Grid
+      className="preview-app"
+      css={styles.root}
+      data-templates-open={templatesOpen}
+      data-inspector-open={inspectorOpen}
+    >
       <Flex as="header" className="topbar" css={styles.header}>
         <Flex className="brand" css={styles.brand}>
           <Grid aria-hidden="true" css={styles.brandMark}>
@@ -186,13 +199,48 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
             <Text as="strong" fontSize="sm" letterSpacing="-0.01em">
               Chakra Email
             </Text>
-            <Text as="small" color="preview.textMuted" fontSize="xs">
-              Preview workspace
-            </Text>
           </Stack>
         </Flex>
 
+        <Heading as="h1" css={styles.title} title={selectedTemplate?.path}>
+          {shortTemplateName(
+            state.result?.name ?? selectedTemplate?.name ?? 'Choose a template',
+          )}
+        </Heading>
         <Flex css={styles.headerActions}>
+          <PreviewTooltip content="Show or hide email templates">
+            <IconButton
+              size="sm"
+              variant="ghost"
+              css={styles.modeToggle}
+              data-action="toggle-templates"
+              ref={templatesToggle}
+              aria-label="Toggle templates"
+              aria-expanded={templatesOpen}
+              aria-controls="preview-templates"
+              onClick={() => setTemplatesOpen((open) => !open)}
+            >
+              <PanelIcon side="left" />
+            </IconButton>
+          </PreviewTooltip>
+          <PreviewTooltip content="Show or hide props and checks">
+            <IconButton
+              size="sm"
+              variant="ghost"
+              css={styles.modeToggle}
+              data-action="toggle-inspector"
+              ref={inspectorToggle}
+              aria-label="Toggle preview settings"
+              aria-expanded={inspectorOpen}
+              aria-controls="preview-inspector"
+              onClick={() => {
+                setInspectorOpen((open) => !open);
+                if (window.innerWidth < 768) setTemplatesOpen(false);
+              }}
+            >
+              <PanelIcon side="right" />
+            </IconButton>
+          </PreviewTooltip>
           <PreviewTooltip
             content={`Switch the app to the ${
               state.workspaceColorMode === 'dark' ? 'light' : 'dark'
@@ -244,8 +292,17 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
         <Grid
           as="aside"
           className="sidebar"
+          id="preview-templates"
+          hidden={!templatesOpen}
           aria-label="Email templates"
           css={styles.sidebar}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.stopPropagation();
+              setTemplatesOpen(false);
+              templatesToggle.current?.focus();
+            }
+          }}
         >
           <Flex css={styles.sidebarHeader}>
             <Text>Templates</Text>
@@ -262,7 +319,13 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
           </Flex>
 
           <Box as="nav" className="template-list" css={styles.templateNav}>
-            <TemplateList {...props} />
+            <TemplateList
+              {...props}
+              onSelectTemplate={(id) => {
+                props.onSelectTemplate(id);
+                if (window.innerWidth < 768) setTemplatesOpen(false);
+              }}
+            />
           </Box>
 
           <Flex css={styles.sidebarFooter}>
@@ -276,160 +339,18 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
           </Flex>
         </Grid>
 
-        <Box as="main" className="workspace" css={styles.main}>
-          <Flex className="workspace-heading" css={styles.heading}>
-            <Box minW="0">
-              <Text css={styles.eyebrow}>Email preview</Text>
-              <Heading as="h1" css={styles.title}>
-                {state.result?.name ??
-                  selectedTemplate?.name ??
-                  'Choose a template'}
-              </Heading>
-              {state.result?.subject ? (
-                <Text className="preview-subject" css={styles.subject}>
-                  Subject: {state.result.subject}
-                </Text>
-              ) : null}
-              {selectedTemplate?.path ? (
-                <Code css={styles.path}>{selectedTemplate.path}</Code>
-              ) : null}
-            </Box>
-
-            <Flex className="workspace-actions" css={styles.actions}>
-              <Flex aria-label="Preview viewport" css={styles.viewportControl}>
-                {viewports.map((viewport) => (
-                  <PreviewTooltip key={viewport.id} content={viewport.tooltip}>
-                    <Button
-                      type="button"
-                      data-viewport={viewport.id}
-                      aria-pressed={state.viewport === viewport.id}
-                      disabled={state.activeTab !== 'preview'}
-                      minH="8"
-                      px="2"
-                      gap="1.5"
-                      borderRadius="lg"
-                      color={
-                        state.viewport === viewport.id
-                          ? 'preview.text'
-                          : 'preview.textMuted'
-                      }
-                      bg={
-                        state.viewport === viewport.id
-                          ? 'preview.soft'
-                          : 'transparent'
-                      }
-                      fontSize="2xs"
-                      fontWeight="bold"
-                      variant="ghost"
-                      onClick={() => props.onViewportChange(viewport.id)}
-                    >
-                      <ViewportIcon viewport={viewport.id} />
-                      {viewport.label}
-                    </Button>
-                  </PreviewTooltip>
-                ))}
-              </Flex>
-
-              <PreviewTooltip content="Allow the rendered email to load images from remote URLs">
-                <Switch.Root
-                  checked={state.remoteImages}
-                  disabled={state.activeTab !== 'preview'}
-                  css={styles.remoteControl}
-                >
-                  <Switch.HiddenInput
-                    ref={remoteImagesInput}
-                    id="remote-images"
-                  />
-                  <Switch.Control
-                    bg="preview.borderStrong"
-                    _checked={{ bg: 'preview.accentStrong' }}
-                  >
-                    <Switch.Thumb />
-                  </Switch.Control>
-                  <Switch.Label>Remote images</Switch.Label>
-                </Switch.Root>
-              </PreviewTooltip>
-
-              <Badge
-                className="lint-summary"
-                data-lint-count={lint.length}
-                css={styles.lintSummary}
-                borderColor={
-                  lintErrors > 0
-                    ? 'preview.dangerBorder'
-                    : lintWarnings > 0
-                      ? 'preview.warningBorder'
-                      : 'preview.successBorder'
-                }
-                color={
-                  lintErrors > 0
-                    ? 'preview.danger'
-                    : lintWarnings > 0
-                      ? 'preview.warning'
-                      : 'preview.accent'
-                }
-              >
-                <Box aria-hidden="true">
-                  {lintErrors > 0 ? '!' : lintWarnings > 0 ? '△' : '✓'}
-                </Box>
-                {!state.result
-                  ? 'Checks'
-                  : lint.length === 0
-                    ? 'No issues'
-                    : `${lint.length} ${lint.length === 1 ? 'issue' : 'issues'}`}
-              </Badge>
-
-              <PreviewTooltip content={`Download the ${outputLabel} output`}>
-                <Button
-                  type="button"
-                  data-action="download"
-                  disabled={!state.result}
-                  css={styles.secondaryAction}
-                  onClick={props.onDownload}
-                >
-                  <Box aria-hidden="true">↓</Box>
-                  Download
-                </Button>
-              </PreviewTooltip>
-
-              <PreviewTooltip
-                content={`Copy the ${outputLabel} output to the clipboard`}
-              >
-                <Button
-                  className="copy-button"
-                  type="button"
-                  data-action="copy"
-                  disabled={!state.result}
-                  css={styles.primaryAction}
-                  onClick={props.onCopy}
-                >
-                  <Box aria-hidden="true">{state.copied ? '✓' : '⧉'}</Box>
-                  {state.copied ? 'Copied' : `Copy ${outputLabel}`}
-                </Button>
-              </PreviewTooltip>
-            </Flex>
-          </Flex>
-
-          {state.error ? (
-            <PreviewError
-              message={state.error}
-              onRetry={props.onRetry}
-              onDismiss={props.onDismissError}
-            />
-          ) : null}
-
-          <Grid className="workspace-content" css={styles.content}>
-            <Tabs.Root
-              className="viewer-card"
-              id="preview-formats"
-              value={state.activeTab}
-              activationMode="automatic"
-              loopFocus
-              css={viewerStyles.root}
-              onValueChange={(details) =>
-                props.onTabChange(details.value as PreviewTab)
-              }
-            >
+        <Tabs.Root
+          value={state.activeTab}
+          id="preview-formats"
+          activationMode="automatic"
+          loopFocus
+          onValueChange={(details) =>
+            props.onTabChange(details.value as PreviewTab)
+          }
+          asChild
+        >
+          <Box as="main" className="workspace" css={styles.main}>
+            <Flex className="workspace-heading" css={styles.heading}>
               <Tabs.List css={viewerStyles.tabs}>
                 {tabs.map((tab) => (
                   <PreviewTooltip key={tab.id} content={tab.tooltip}>
@@ -480,27 +401,177 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                 ))}
               </Tabs.List>
 
-              {tabs.map((tab) => (
-                <Tabs.Content
-                  key={tab.id}
-                  value={tab.id}
-                  css={viewerStyles.content}
-                  tabIndex={0}
+              <Flex className="workspace-actions" css={styles.actions}>
+                <Flex
+                  aria-label="Preview viewport"
+                  css={styles.viewportControl}
                 >
-                  {state.activeTab === tab.id ? (
-                    <Viewer
-                      state={state}
-                      securedHtml={props.securedHtml}
-                      onEmailColorModeChange={props.onEmailColorModeChange}
-                    />
-                  ) : null}
-                </Tabs.Content>
-              ))}
-            </Tabs.Root>
+                  {viewports.map((viewport) => (
+                    <PreviewTooltip
+                      key={viewport.id}
+                      content={viewport.tooltip}
+                    >
+                      <Button
+                        type="button"
+                        data-viewport={viewport.id}
+                        aria-pressed={state.viewport === viewport.id}
+                        disabled={state.activeTab !== 'preview'}
+                        minH="8"
+                        h="8"
+                        px="2"
+                        gap="1.5"
+                        borderRadius="lg"
+                        color={
+                          state.viewport === viewport.id
+                            ? 'preview.text'
+                            : 'preview.textMuted'
+                        }
+                        bg={
+                          state.viewport === viewport.id
+                            ? 'preview.soft'
+                            : 'transparent'
+                        }
+                        fontSize="2xs"
+                        fontWeight="bold"
+                        variant="ghost"
+                        onClick={() => props.onViewportChange(viewport.id)}
+                      >
+                        <ViewportIcon viewport={viewport.id} />
+                        {viewport.label}
+                      </Button>
+                    </PreviewTooltip>
+                  ))}
+                </Flex>
 
-            <Inspector {...props} />
-          </Grid>
-        </Box>
+                <PreviewTooltip content="Allow the rendered email to load images from remote URLs">
+                  <Switch.Root
+                    checked={state.remoteImages}
+                    disabled={state.activeTab !== 'preview'}
+                    css={styles.remoteControl}
+                  >
+                    <Switch.HiddenInput
+                      ref={remoteImagesInput}
+                      id="remote-images"
+                    />
+                    <Switch.Control
+                      bg="preview.borderStrong"
+                      _checked={{ bg: 'preview.accentStrong' }}
+                    >
+                      <Switch.Thumb />
+                    </Switch.Control>
+                    <Switch.Label>Remote images</Switch.Label>
+                  </Switch.Root>
+                </PreviewTooltip>
+
+                <Badge
+                  className="lint-summary"
+                  data-lint-count={lint.length}
+                  css={styles.lintSummary}
+                  borderColor={
+                    lintErrors > 0
+                      ? 'preview.dangerBorder'
+                      : lintWarnings > 0
+                        ? 'preview.warningBorder'
+                        : 'preview.successBorder'
+                  }
+                  color={
+                    lintErrors > 0
+                      ? 'preview.danger'
+                      : lintWarnings > 0
+                        ? 'preview.warning'
+                        : 'preview.accent'
+                  }
+                >
+                  <Box aria-hidden="true">
+                    {lintErrors > 0 ? '!' : lintWarnings > 0 ? '△' : '✓'}
+                  </Box>
+                  {!state.result
+                    ? 'Checks'
+                    : lint.length === 0
+                      ? 'No issues'
+                      : `${lint.length} ${lint.length === 1 ? 'issue' : 'issues'}`}
+                </Badge>
+
+                <PreviewTooltip content={`Download the ${outputLabel} output`}>
+                  <Button
+                    type="button"
+                    data-action="download"
+                    disabled={!state.result}
+                    css={styles.secondaryAction}
+                    onClick={props.onDownload}
+                  >
+                    <Box aria-hidden="true">↓</Box>
+                    Download
+                  </Button>
+                </PreviewTooltip>
+
+                <PreviewTooltip
+                  content={`Copy the ${outputLabel} output to the clipboard`}
+                >
+                  <Button
+                    className="copy-button"
+                    type="button"
+                    data-action="copy"
+                    disabled={!state.result}
+                    css={styles.primaryAction}
+                    onClick={props.onCopy}
+                  >
+                    <Box aria-hidden="true">{state.copied ? '✓' : '⧉'}</Box>
+                    {state.copied ? 'Copied' : `Copy ${outputLabel}`}
+                  </Button>
+                </PreviewTooltip>
+              </Flex>
+            </Flex>
+
+            {state.error ? (
+              <PreviewError
+                message={state.error}
+                onRetry={props.onRetry}
+                onDismiss={props.onDismissError}
+              />
+            ) : null}
+
+            <Grid className="workspace-content" css={styles.content}>
+              <Box
+                className="viewer-card"
+                css={viewerStyles.root}
+                display={inspectorOpen ? { base: 'none', md: 'grid' } : 'grid'}
+              >
+                {tabs.map((tab) => (
+                  <Tabs.Content
+                    key={tab.id}
+                    value={tab.id}
+                    css={viewerStyles.content}
+                    tabIndex={0}
+                  >
+                    {state.activeTab === tab.id ? (
+                      <Viewer
+                        state={state}
+                        securedHtml={props.securedHtml}
+                        onEmailColorModeChange={props.onEmailColorModeChange}
+                      />
+                    ) : null}
+                  </Tabs.Content>
+                ))}
+              </Box>
+
+              <Box
+                id="preview-inspector"
+                hidden={!inspectorOpen}
+                css={styles.inspectorPanel}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.stopPropagation();
+                    setInspectorOpen(false);
+                    inspectorToggle.current?.focus();
+                  }
+                }}
+              >
+                <Inspector {...props} />
+              </Box>
+            </Grid>
+          </Box>
+        </Tabs.Root>
       </Grid>
     </Grid>
   );
@@ -556,12 +627,6 @@ function TemplateList(props: PreviewWorkspaceProps) {
       {state.templates.map((template) => {
         const selected = template.id === state.selectedId;
         const styles = recipe({ selected });
-        const initials = template.name
-          .split(/\s+/)
-          .map((part) => part[0])
-          .join('')
-          .slice(0, 2)
-          .toUpperCase();
 
         return (
           <Button
@@ -569,25 +634,23 @@ function TemplateList(props: PreviewWorkspaceProps) {
             type="button"
             className="template-item"
             data-template-id={template.id}
+            title={template.path ?? template.name}
             aria-current={selected ? 'page' : undefined}
             css={styles.item}
             variant="ghost"
             onClick={() => props.onSelectTemplate(template.id)}
           >
             <Grid aria-hidden="true" css={styles.avatar}>
-              {initials}
+              <FileIcon />
             </Grid>
             <Stack css={styles.content}>
               <Text as="strong" css={styles.name}>
-                {template.name}
+                {shortTemplateName(template.name)}
               </Text>
               <Text as="small" css={styles.path}>
                 {template.path ?? template.id}
               </Text>
             </Stack>
-            <Text aria-hidden="true" css={styles.chevron}>
-              ›
-            </Text>
           </Button>
         );
       })}
@@ -612,8 +675,7 @@ function Inspector(props: PreviewWorkspaceProps) {
     >
       <Flex css={styles.header}>
         <Box>
-          <Text css={styles.eyebrow}>Template data</Text>
-          <Heading as="h2" fontSize="md">
+          <Heading as="h2" fontSize="sm">
             Preview props
           </Heading>
         </Box>
@@ -624,6 +686,15 @@ function Inspector(props: PreviewWorkspaceProps) {
         ) : null}
       </Flex>
 
+      {state.result?.subject ? (
+        <Text
+          className="preview-subject"
+          color="preview.textMuted"
+          fontSize="xs"
+        >
+          Subject: {state.result.subject}
+        </Text>
+      ) : null}
       <Field.Root disabled={!state.result}>
         <Field.Label htmlFor="variant" css={styles.fieldLabel}>
           Variant
@@ -975,6 +1046,7 @@ function Viewer({
     previewViewerSlotRecipe,
   );
   const styles = recipe();
+  const [frameRevision, setFrameRevision] = useState(0);
 
   if (!state.result) {
     return (
@@ -1027,15 +1099,57 @@ function Viewer({
         css={styles.surface}
         bg={previewBackground}
       >
+        <Flex css={styles.stage}>
+          <Box
+            key={`${state.viewport}-${frameRevision}`}
+            className="email-frame-shell"
+            css={styles.frame}
+            width={
+              state.viewport === 'mobile'
+                ? '390px'
+                : state.viewport === 'desktop'
+                  ? '680px'
+                  : '100%'
+            }
+            bg={frameBackground}
+          >
+            <chakra.iframe
+              id="email-preview-frame"
+              title={`Rendered ${state.result.name} email`}
+              srcDoc={securedHtml ?? undefined}
+              sandbox=""
+              data-email-color-mode={state.emailColorMode}
+              w="full"
+              h="full"
+              border="0"
+              bg={frameBackground}
+              style={{ colorScheme: iframeColorScheme }}
+            />
+          </Box>
+        </Flex>
         <Flex css={styles.surfaceHeader}>
-          <Text>{viewportLabel(state.viewport)}</Text>
+          <Flex gap="2" align="center">
+            <Text title="Drag the email frame’s bottom-right corner to resize it">
+              {viewportLabel(state.viewport)} preset
+            </Text>
+            <Button
+              size="xs"
+              variant="ghost"
+              css={styles.modeButton}
+              data-action="reset-frame"
+              onClick={() => setFrameRevision((value) => value + 1)}
+              title="Restore preset dimensions after resizing"
+            >
+              Reset size
+            </Button>
+          </Flex>
           <Flex align="center" gap="3" wrap="wrap">
             <Flex
               role="group"
               aria-label="Email preview color mode"
               css={styles.modeGroup}
             >
-              <Text px="1.5">Email mode</Text>
+              <Text px="1.5">Email</Text>
               {emailColorModes.map((colorMode) => (
                 <PreviewTooltip key={colorMode.id} content={colorMode.tooltip}>
                   <Button
@@ -1062,31 +1176,7 @@ function Viewer({
             </Text>
           </Flex>
         </Flex>
-        <Box
-          className="email-frame-shell"
-          css={styles.frame}
-          maxW={
-            state.viewport === 'mobile'
-              ? '390px'
-              : state.viewport === 'desktop'
-                ? '680px'
-                : 'full'
-          }
-          bg={frameBackground}
-        >
-          <chakra.iframe
-            id="email-preview-frame"
-            title={`Rendered ${state.result.name} email`}
-            srcDoc={securedHtml ?? undefined}
-            sandbox=""
-            data-email-color-mode={state.emailColorMode}
-            w="full"
-            h="full"
-            border="0"
-            bg={frameBackground}
-            style={{ colorScheme: iframeColorScheme }}
-          />
-        </Box>
+
         {state.rendering ? <RenderOverlay label="Refreshing preview…" /> : null}
       </Box>
     );
@@ -1260,4 +1350,43 @@ function viewportLabel(viewport: Viewport): string {
   }
 
   return 'Fit to window';
+}
+
+function PanelIcon({ side }: { side: 'left' | 'right' }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d={side === 'left' ? 'M9 4v16' : 'M15 4v16'} />
+    </svg>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8M8 16h6" />
+    </svg>
+  );
+}
+
+// Discovery-generated names include directory breadcrumbs. The complete path
+// remains available on the template row and title, without repeating it twice.
+function shortTemplateName(name: string): string {
+  return name.split(' / ').at(-1) ?? name;
 }

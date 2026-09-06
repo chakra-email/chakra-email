@@ -3,9 +3,26 @@ import {
   previewSlotRecipeKeys,
   previewSlotRecipes,
   previewWorkspaceSlotRecipe,
+  previewViewerSlotRecipe,
 } from './theme';
 
 describe('preview UI theme', () => {
+  it('keeps the canvas bounded and exposes panel and stage styling', () => {
+    expect(previewWorkspaceSlotRecipe.base?.root).toMatchObject({
+      h: '100dvh',
+    });
+    expect(previewWorkspaceSlotRecipe.base?.content).toMatchObject({
+      minW: '0',
+      minH: '0',
+    });
+    expect(previewWorkspaceSlotRecipe.slots).toContain('inspectorPanel');
+    expect(previewViewerSlotRecipe.slots).toContain('stage');
+    expect(previewViewerSlotRecipe.base?.frame).toMatchObject({
+      maxW: '100%',
+      maxH: '100%',
+      resize: 'both',
+    });
+  });
   it('registers a slot recipe for every public recipe key', () => {
     expect(Object.keys(previewSlotRecipes).sort()).toEqual(
       Object.values(previewSlotRecipeKeys).sort(),

@@ -209,6 +209,103 @@ describe('PreviewApplication', () => {
     vi.unstubAllGlobals();
   });
 
+  it('collapses panels without losing draft props and returns focus on Escape', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const editor = getElement<HTMLTextAreaElement>('#preview-props');
+    editor.value = '{"name":"Unapplied draft"}';
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+    const toggle = getElement<HTMLButtonElement>(
+      '[data-action="toggle-inspector"]',
+    );
+    toggle.click();
+    await vi.waitFor(() =>
+      expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(true),
+    );
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    toggle.click();
+    await vi.waitFor(() =>
+      expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(false),
+    );
+    expect(getElement<HTMLTextAreaElement>('#preview-props').value).toContain(
+      'Unapplied draft',
+    );
+    getElement<HTMLTextAreaElement>('#preview-props').dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(toggle.getAttribute('aria-expanded')).toBe('false'),
+    );
+    expect(document.activeElement).toBe(toggle);
+    expect(harness.renderRequests).toHaveLength(1);
+
+    getElement<HTMLButtonElement>('[data-template-id="welcome"]').focus();
+    await flush();
+    getElement<HTMLButtonElement>('[data-template-id="welcome"]').dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(true),
+    );
+    expect(document.activeElement).toBe(
+      getElement('[data-action="toggle-templates"]'),
+    );
+    harness.application.destroy();
+  });
+
+  it('restores a resized frame without changing email output or safety', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const frame = getElement<HTMLElement>('.email-frame-shell');
+    frame.style.width = '480px';
+    getElement<HTMLButtonElement>('[data-action="reset-frame"]').click();
+    await vi.waitFor(() =>
+      expect(getElement('.email-frame-shell')).not.toBe(frame),
+    );
+    expect(getElement<HTMLElement>('.email-frame-shell').style.width).not.toBe(
+      '480px',
+    );
+    expect(getElement('#email-preview-frame').getAttribute('sandbox')).toBe('');
+    expect(harness.renderRequests).toHaveLength(1);
+    harness.application.destroy();
+  });
+
+  it('starts with an unobstructed canvas on small screens and closes templates after selection', async () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 375,
+    });
+    const harness = createHarness();
+    try {
+      await harness.application.start();
+      expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(true);
+      expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(true);
+      getElement<HTMLButtonElement>('[data-action="toggle-templates"]').click();
+      await vi.waitFor(() =>
+        expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(
+          false,
+        ),
+      );
+      getElement<HTMLButtonElement>('[data-template-id="receipt"]').click();
+      await vi.waitFor(() =>
+        expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(true),
+      );
+      getElement<HTMLButtonElement>('[data-action="toggle-inspector"]').click();
+      await vi.waitFor(() =>
+        expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(
+          false,
+        ),
+      );
+    } finally {
+      harness.application.destroy();
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: originalWidth,
+      });
+    }
+  });
+
   it('loads templates with authentication and renders the first email safely', async () => {
     const harness = createHarness();
 
