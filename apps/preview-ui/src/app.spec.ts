@@ -681,6 +681,15 @@ describe('PreviewApplication', () => {
 
     const htmlTab = getElement<HTMLButtonElement>('[data-tab="html"]');
     htmlTab.click();
+    await flush();
+    const panel = document.getElementById(
+      htmlTab.getAttribute('aria-controls') ?? '',
+    );
+    expect(panel?.getAttribute('role')).toBe('tabpanel');
+    expect(panel?.getAttribute('aria-labelledby')).toBe(htmlTab.id);
+    expect(htmlTab.getAttribute('data-ownedby')).toBe(
+      document.querySelector('[role="tablist"]')?.id,
+    );
     expect(document.querySelector('.code-heading')?.textContent).toContain(
       'Rendered HTML',
     );
@@ -696,10 +705,17 @@ describe('PreviewApplication', () => {
     ).toContain('Copied');
 
     const currentHtmlTab = getElement<HTMLButtonElement>('[data-tab="html"]');
+    currentHtmlTab.focus();
+    await flush();
     currentHtmlTab.dispatchEvent(
       new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }),
     );
-    await flush();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('text');
+      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
+        'true',
+      );
+    });
 
     expect(
       document
@@ -731,7 +747,12 @@ describe('PreviewApplication', () => {
     textTab.dispatchEvent(
       new KeyboardEvent('keydown', { bubbles: true, key: 'End' }),
     );
-    await flush();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
+      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
+        'true',
+      );
+    });
     expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
 
     document
@@ -747,14 +768,24 @@ describe('PreviewApplication', () => {
     sourceTab.dispatchEvent(
       new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }),
     );
-    await flush();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('preview');
+      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
+        'true',
+      );
+    });
     expect(document.activeElement?.getAttribute('data-tab')).toBe('preview');
 
     const previewTab = getElement<HTMLButtonElement>('[data-tab="preview"]');
     previewTab.dispatchEvent(
       new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' }),
     );
-    await flush();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
+      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
+        'true',
+      );
+    });
     expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
 
     document.querySelector<HTMLButtonElement>('[data-action="copy"]')?.click();
@@ -799,8 +830,8 @@ describe('PreviewApplication', () => {
     ).toBe('mobile');
 
     const remoteImages = getElement<HTMLInputElement>('#remote-images');
-    remoteImages.checked = true;
-    remoteImages.dispatchEvent(new Event('change', { bubbles: true }));
+    remoteImages.click();
+    await flush();
 
     const iframe = document.querySelector<HTMLIFrameElement>(
       '#email-preview-frame',
@@ -831,6 +862,41 @@ describe('PreviewApplication', () => {
         .querySelector('button[data-email-color-mode="system"]')
         ?.getAttribute('aria-pressed'),
     ).toBe('true');
+
+    harness.application.destroy();
+  });
+
+  it('connects the Remote Images tooltip to the switch input and dismisses it with Escape', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+
+    const input = getElement<HTMLInputElement>('#remote-images');
+    expect(input.checked).toBe(false);
+    input.focus();
+
+    await vi.waitFor(() => {
+      const descriptionId = input.getAttribute('aria-describedby');
+      expect(descriptionId).toBeTruthy();
+      expect(
+        document.getElementById(descriptionId ?? '')?.textContent,
+      ).toContain('Allow the rendered email to load images from remote URLs');
+    });
+    expect(input.checked).toBe(false);
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(input.getAttribute('aria-describedby')).toBeNull(),
+    );
+
+    getElement<HTMLElement>(
+      '#remote-images-control [data-part="control"]',
+    ).click();
+    await vi.waitFor(() => expect(input.checked).toBe(true));
+    getElement<HTMLButtonElement>('[data-tab="html"]').click();
+    await vi.waitFor(() => expect(input.disabled).toBe(true));
+    input.click();
+    expect(input.checked).toBe(true);
 
     harness.application.destroy();
   });

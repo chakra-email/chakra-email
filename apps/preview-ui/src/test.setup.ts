@@ -24,3 +24,10 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
     value: ResizeObserverMock,
   });
 }
+// JSDOM batches frame callbacks without the browser's microtask checkpoint
+// between them. Chakra Tabs queues a focus update in a microtask before its
+// next frame callback selects that tab. Give each callback its own task so
+// tests exercise the same focus -> selection ordering as the browser.
+globalThis.requestAnimationFrame = (callback) =>
+  window.setTimeout(() => callback(performance.now()), 16);
+globalThis.cancelAnimationFrame = (id) => window.clearTimeout(id);

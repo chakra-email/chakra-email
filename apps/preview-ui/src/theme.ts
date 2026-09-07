@@ -735,16 +735,6 @@ export const previewFeedbackSlotRecipe = defineSlotRecipe({
     },
     tooltip: {
       maxW: '260px',
-      px: '2.5',
-      py: '1.5',
-      borderWidth: '1px',
-      borderColor: 'preview.borderStrong',
-      borderRadius: 'sm',
-      color: 'preview.text',
-      bg: 'preview.raised',
-      boxShadow: 'lg',
-      fontSize: '2xs',
-      lineHeight: '1.4',
     },
   },
 });

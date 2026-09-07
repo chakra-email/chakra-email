@@ -148,8 +148,26 @@ page. The inspector scrolls independently.
   forms stay disabled, and remote images still require explicit opt-in.
 
 These controls affect only the preview, not generated HTML, plaintext, or
-template source. Full template paths remain available on the template rows
-and active title through their native tooltips.
+template source. Full template paths remain available through Chakra tooltips
+on the template rows, including on keyboard focus. Controls use Chakra UI v3
+primitives, including Tabs, Switch, Field, NativeSelect, and portalled Tooltip.
+
+Tooltips inherit Chakra's default surface, arrow, focus, and dismissal behavior.
+To customize both the surface and arrow together, set `--tooltip-bg` in the
+`feedback` recipe's `tooltip` slot (and `color` for the text), rather than
+overriding `bg` alone:
+
+```ts
+theme: {
+  slotRecipes: {
+    [previewSlotRecipeKeys.feedback]: {
+      base: {
+        tooltip: { '--tooltip-bg': 'colors.gray.800', color: 'white' },
+      },
+    },
+  },
+}
+```
 
 The existing recipe keys remain supported. The workspace recipe also exposes
 an `inspectorPanel` slot and `templatesOpen` / `inspectorOpen` variants. The

@@ -4,6 +4,7 @@ import {
   previewSlotRecipes,
   previewWorkspaceSlotRecipe,
   previewViewerSlotRecipe,
+  previewFeedbackSlotRecipe,
 } from './theme';
 
 describe('preview UI theme', () => {
@@ -40,6 +41,28 @@ describe('preview UI theme', () => {
     const serialized = JSON.stringify(previewSlotRecipes);
 
     expect(serialized).not.toMatch(/teal|green|#16866c|#63d9bb/i);
+  });
+
+  it('inherits Chakra tooltip styling and exposes a shared surface/arrow override', () => {
+    expect(previewFeedbackSlotRecipe.base?.tooltip).toEqual({ maxW: '260px' });
+    const system = createPreviewSystem({
+      slotRecipes: {
+        [previewSlotRecipeKeys.feedback]: {
+          base: {
+            tooltip: { '--tooltip-bg': 'colors.gray.800', color: 'white' },
+          },
+        },
+      },
+    });
+    const recipe = system.getSlotRecipe(
+      previewSlotRecipeKeys.feedback,
+      previewFeedbackSlotRecipe,
+    );
+    expect(recipe.base?.tooltip).toMatchObject({
+      maxW: '260px',
+      '--tooltip-bg': 'colors.gray.800',
+      color: 'white',
+    });
   });
 
   it('merges consumer slot recipe overrides over the defaults', () => {

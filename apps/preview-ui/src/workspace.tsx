@@ -24,7 +24,7 @@ import {
   Textarea,
   Tooltip,
 } from '@chakra-ui/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import type {
   ApplicationState,
@@ -48,12 +48,11 @@ import { usePreviewSlotRecipe } from './use-slot-recipe';
 const tabs: ReadonlyArray<{
   id: PreviewTab;
   label: string;
-  tooltip: string;
 }> = [
-  { id: 'preview', label: 'Preview', tooltip: 'View the rendered email' },
-  { id: 'html', label: 'HTML', tooltip: 'Inspect the rendered HTML output' },
-  { id: 'text', label: 'Text', tooltip: 'Inspect the plain-text output' },
-  { id: 'source', label: 'Source', tooltip: 'Inspect the template source' },
+  { id: 'preview', label: 'Preview' },
+  { id: 'html', label: 'HTML' },
+  { id: 'text', label: 'Text' },
+  { id: 'source', label: 'Source' },
 ];
 
 const viewports: ReadonlyArray<{
@@ -155,7 +154,6 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
     previewViewerSlotRecipe,
   );
   const viewerStyles = viewerRecipe();
-  const remoteImagesInput = useRef<HTMLInputElement>(null);
   const selectedTemplate = state.templates.find(
     (template) => template.id === state.selectedId,
   );
@@ -172,19 +170,6 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
   const lintWarnings = lint.filter(
     (finding) => finding.severity === 'warning',
   ).length;
-
-  useEffect(() => {
-    const input = remoteImagesInput.current;
-
-    if (!input) {
-      return;
-    }
-
-    const handleChange = () => props.onRemoteImagesChange(input.checked);
-    input.addEventListener('change', handleChange);
-
-    return () => input.removeEventListener('change', handleChange);
-  }, [props.onRemoteImagesChange]);
 
   return (
     <Grid
@@ -205,7 +190,7 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
           </Stack>
         </Flex>
 
-        <Heading as="h1" css={styles.title} title={selectedTemplate?.path}>
+        <Heading as="h1" css={styles.title}>
           {shortTemplateName(
             state.result?.name ?? selectedTemplate?.name ?? 'Choose a template',
           )}
@@ -349,6 +334,7 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
           css={styles.main}
           value={state.activeTab}
           id="preview-formats"
+          ids={{ trigger: (value) => `tab-${value}` }}
           activationMode="automatic"
           loopFocus
           onValueChange={(details) =>
@@ -360,51 +346,14 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
             <Flex className="workspace-heading" css={styles.heading}>
               <Tabs.List css={viewerStyles.tabs}>
                 {tabs.map((tab) => (
-                  <PreviewTooltip key={tab.id} content={tab.tooltip}>
-                    <Tabs.Trigger
-                      id={`tab-${tab.id}`}
-                      value={tab.id}
-                      data-tab={tab.id}
-                      css={viewerStyles.tab}
-                      onClick={() => props.onTabChange(tab.id)}
-                      onKeyDown={(event) => {
-                        const currentIndex = tabs.findIndex(
-                          (candidate) => candidate.id === tab.id,
-                        );
-                        const nextIndex =
-                          event.key === 'ArrowRight'
-                            ? (currentIndex + 1) % tabs.length
-                            : event.key === 'ArrowLeft'
-                              ? (currentIndex - 1 + tabs.length) % tabs.length
-                              : event.key === 'Home'
-                                ? 0
-                                : event.key === 'End'
-                                  ? tabs.length - 1
-                                  : null;
-
-                        if (nextIndex === null) {
-                          return;
-                        }
-
-                        const nextTab = tabs[nextIndex];
-
-                        if (!nextTab) {
-                          return;
-                        }
-
-                        event.preventDefault();
-                        event.stopPropagation();
-                        props.onTabChange(nextTab.id);
-                        document
-                          .querySelector<HTMLElement>(
-                            `[data-tab="${nextTab.id}"]`,
-                          )
-                          ?.focus();
-                      }}
-                    >
-                      {tab.label}
-                    </Tabs.Trigger>
-                  </PreviewTooltip>
+                  <Tabs.Trigger
+                    key={tab.id}
+                    value={tab.id}
+                    data-tab={tab.id}
+                    css={viewerStyles.tab}
+                  >
+                    {tab.label}
+                  </Tabs.Trigger>
                 ))}
               </Tabs.List>
 
@@ -450,16 +399,34 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                   ))}
                 </Flex>
 
-                <PreviewTooltip content="Allow the rendered email to load images from remote URLs">
+                <PreviewTooltip
+                  content="Allow the rendered email to load images from remote URLs"
+                  triggerId="remote-images-control"
+                  disabled={state.activeTab !== 'preview'}
+                >
                   <Switch.Root
+                    ids={{
+                      root: 'remote-images-control',
+                      hiddenInput: 'remote-images',
+                    }}
                     checked={state.remoteImages}
+                    onCheckedChange={({ checked }) =>
+                      props.onRemoteImagesChange(checked)
+                    }
                     disabled={state.activeTab !== 'preview'}
                     css={styles.remoteControl}
                   >
-                    <Switch.HiddenInput
-                      ref={remoteImagesInput}
-                      id="remote-images"
-                    />
+                    <Tooltip.Context>
+                      {(tooltip) => (
+                        <Switch.HiddenInput
+                          aria-describedby={
+                            tooltip.open
+                              ? tooltip.getContentProps().id
+                              : undefined
+                          }
+                        />
+                      )}
+                    </Tooltip.Context>
                     <Switch.Control
                       bg="preview.borderStrong"
                       _checked={{ bg: 'preview.accentStrong' }}
@@ -636,29 +603,32 @@ function TemplateList(props: PreviewWorkspaceProps) {
         const styles = recipe({ selected });
 
         return (
-          <Button
+          <PreviewTooltip
             key={template.id}
-            type="button"
-            className="template-item"
-            data-template-id={template.id}
-            title={template.path ?? template.name}
-            aria-current={selected ? 'page' : undefined}
-            css={styles.item}
-            variant="ghost"
-            onClick={() => props.onSelectTemplate(template.id)}
+            content={template.path ?? template.name}
           >
-            <Grid aria-hidden="true" css={styles.avatar}>
-              <FileIcon />
-            </Grid>
-            <Stack css={styles.content}>
-              <Text as="strong" css={styles.name}>
-                {shortTemplateName(template.name)}
-              </Text>
-              <Text as="small" css={styles.path}>
-                {template.path ?? template.id}
-              </Text>
-            </Stack>
-          </Button>
+            <Button
+              type="button"
+              className="template-item"
+              data-template-id={template.id}
+              aria-current={selected ? 'page' : undefined}
+              css={styles.item}
+              variant="ghost"
+              onClick={() => props.onSelectTemplate(template.id)}
+            >
+              <Grid aria-hidden="true" css={styles.avatar}>
+                <FileIcon />
+              </Grid>
+              <Stack css={styles.content}>
+                <Text as="strong" css={styles.name}>
+                  {shortTemplateName(template.name)}
+                </Text>
+                <Text as="small" css={styles.path}>
+                  {template.path ?? template.id}
+                </Text>
+              </Stack>
+            </Button>
+          </PreviewTooltip>
         );
       })}
     </Stack>
@@ -1170,19 +1140,18 @@ function Viewer({
         </Flex>
         <Flex css={styles.surfaceHeader}>
           <Flex gap="2" align="center">
-            <Text title="Drag the email frame’s bottom-right corner to resize it">
-              {viewportLabel(state.viewport)} preset
-            </Text>
-            <Button
-              size="xs"
-              variant="ghost"
-              css={styles.modeButton}
-              data-action="reset-frame"
-              onClick={() => setFrameRevision((value) => value + 1)}
-              title="Restore preset dimensions after resizing"
-            >
-              Reset size
-            </Button>
+            <Text>{viewportLabel(state.viewport)} preset</Text>
+            <PreviewTooltip content="Restore preset dimensions after dragging the email frame’s bottom-right corner to resize it">
+              <Button
+                size="xs"
+                variant="ghost"
+                css={styles.modeButton}
+                data-action="reset-frame"
+                onClick={() => setFrameRevision((value) => value + 1)}
+              >
+                Reset size
+              </Button>
+            </PreviewTooltip>
           </Flex>
           <Flex align="center" gap="3" wrap="wrap">
             <Flex
@@ -1313,9 +1282,13 @@ function PreviewError({
 function PreviewTooltip({
   children,
   content,
+  triggerId,
+  disabled,
 }: {
   children: ReactElement;
   content: string;
+  triggerId?: string;
+  disabled?: boolean;
 }) {
   const recipe = usePreviewSlotRecipe(
     previewSlotRecipeKeys.feedback,
@@ -1323,7 +1296,12 @@ function PreviewTooltip({
   );
 
   return (
-    <Tooltip.Root openDelay={350} closeDelay={100}>
+    <Tooltip.Root
+      ids={{ trigger: triggerId }}
+      disabled={disabled}
+      openDelay={350}
+      closeDelay={100}
+    >
       <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
       <Portal>
         <Tooltip.Positioner>
