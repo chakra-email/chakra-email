@@ -141,6 +141,9 @@ page. The inspector scrolls independently.
   the selected preset and default height. The footer describes the preset,
   not the dimensions of a manually resized frame.
 - Workspace light/dark mode remains independent of the email color mode.
+  The workspace sets Chakra's `light` / `dark` classes on the document root,
+  so built-in components, portalled tooltips, and custom semantic tokens all
+  follow the selected workspace mode.
   **Light** and **Dark** force Chakra Email's generated color rules in the
   preview frame; **System** restores their media-query behavior. Arbitrary
   authored media queries are not rewritten, and client-specific automatic color

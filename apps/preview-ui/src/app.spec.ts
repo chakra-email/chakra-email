@@ -1,5 +1,6 @@
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { previewSlotRecipeKeys } from './theme';
 import {
   PreviewApplication,
   withPreviewContentSecurityPolicy,
@@ -51,6 +52,28 @@ function getElement<ElementType extends Element>(
   }
 
   return element;
+}
+
+// JSDOM does not resolve cascade layers/media queries in getComputedStyle.
+// Inspect emitted rules for an element, including nested layers.
+function elementDeclarations(element: Element): CSSStyleDeclaration[] {
+  const declarations: CSSStyleDeclaration[] = [];
+  const selectors = new Set(
+    Array.from(element.classList, (name) => `.${name}`),
+  );
+  const visit = (rules: CSSRuleList) => {
+    for (const rule of Array.from(rules)) {
+      if (
+        'selectorText' in rule &&
+        selectors.has((rule as CSSStyleRule).selectorText)
+      ) {
+        declarations.push((rule as CSSStyleRule).style);
+      }
+      if ('cssRules' in rule) visit((rule as CSSGroupingRule).cssRules);
+    }
+  };
+  for (const sheet of Array.from(document.styleSheets)) visit(sheet.cssRules);
+  return declarations;
 }
 
 function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
@@ -234,6 +257,7 @@ describe('PreviewApplication', () => {
     );
     document.documentElement.lang = 'en';
     document.documentElement.removeAttribute('data-theme');
+    document.documentElement.classList.remove('light', 'dark', 'host-class');
     document.documentElement.style.removeProperty('color-scheme');
     document.title = 'Chakra Email Preview';
     document.body.innerHTML = '<div id="app"></div>';
@@ -248,27 +272,32 @@ describe('PreviewApplication', () => {
     const harness = createHarness();
     await harness.application.start();
     const main = getElement<HTMLElement>('.workspace');
-    // JSDOM does not resolve cascade layers/media queries in getComputedStyle.
-    // Inspect the actual emitted rules for this element, including nested layers.
-    const declarations: CSSStyleDeclaration[] = [];
-    const selectors = new Set(Array.from(main.classList, (name) => `.${name}`));
-    const visit = (rules: CSSRuleList) => {
-      for (const rule of Array.from(rules)) {
-        if (
-          'selectorText' in rule &&
-          selectors.has((rule as CSSStyleRule).selectorText)
-        ) {
-          declarations.push((rule as CSSStyleRule).style);
-        }
-        if ('cssRules' in rule) visit((rule as CSSGroupingRule).cssRules);
-      }
-    };
-    for (const sheet of Array.from(document.styleSheets)) visit(sheet.cssRules);
+    const declarations = elementDeclarations(main);
     expect(declarations.some((style) => style.display === 'flex')).toBe(true);
     expect(declarations.some((style) => style.flexDirection === 'column')).toBe(
       true,
     );
     expect(declarations.some((style) => style.display === 'block')).toBe(false);
+    harness.application.destroy();
+  });
+
+  it('applies consumer recipe overrides through the public Chakra recipe hook', async () => {
+    const harness = createHarness({
+      theme: {
+        slotRecipes: {
+          [previewSlotRecipeKeys.workspace]: {
+            base: { header: { '--preview-override-probe': 'applied' } },
+          },
+        },
+      },
+    });
+    await harness.application.start();
+    expect(
+      elementDeclarations(getElement('.topbar')).some(
+        (style) =>
+          style.getPropertyValue('--preview-override-probe') === 'applied',
+      ),
+    ).toBe(true);
     harness.application.destroy();
   });
 
@@ -843,17 +872,26 @@ describe('PreviewApplication', () => {
   });
 
   it('persists the workspace theme independently from the email preview mode', async () => {
+    document.documentElement.classList.add('host-class');
     const harness = createHarness();
     await harness.application.start();
 
     expect(document.documentElement.dataset['theme']).toBe('light');
     expect(document.documentElement.style.colorScheme).toBe('light');
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
 
     getElement<HTMLButtonElement>(
       '[data-action="toggle-workspace-color-mode"]',
     ).click();
 
     expect(document.documentElement.dataset['theme']).toBe('dark');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('light')).toBe(false);
+    expect(document.documentElement.classList.contains('host-class')).toBe(
+      true,
+    );
+    expect(document.documentElement.style.colorScheme).toBe('dark');
     expect(
       window.localStorage.getItem('chakra-email.preview.workspace-color-mode'),
     ).toBe('dark');
@@ -863,6 +901,14 @@ describe('PreviewApplication', () => {
         ?.getAttribute('aria-pressed'),
     ).toBe('true');
 
+    getElement<HTMLButtonElement>(
+      '[data-action="toggle-workspace-color-mode"]',
+    ).click();
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+    expect(document.documentElement.classList.contains('host-class')).toBe(
+      true,
+    );
     harness.application.destroy();
   });
 

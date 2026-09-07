@@ -1051,6 +1051,16 @@ export class PreviewApplication {
 
     const state = { ...this.state };
     document.documentElement.dataset['theme'] = state.workspaceColorMode;
+    // Chakra v3's semantic tokens and condition styles follow these classes,
+    // including portalled components rendered outside the workspace root.
+    document.documentElement.classList.toggle(
+      'dark',
+      state.workspaceColorMode === 'dark',
+    );
+    document.documentElement.classList.toggle(
+      'light',
+      state.workspaceColorMode === 'light',
+    );
     document.documentElement.style.colorScheme = state.workspaceColorMode;
     const securedHtml = state.result
       ? withPreviewContentSecurityPolicy(
