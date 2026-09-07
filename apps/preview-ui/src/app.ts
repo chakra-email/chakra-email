@@ -88,6 +88,7 @@ export type ApplicationState = {
   viewport: Viewport;
   workspaceColorMode: WorkspaceColorMode;
   emailColorMode: EmailColorMode;
+  systemColorMode: WorkspaceColorMode;
   selectedVariant: string;
   propsText: string;
   appliedProps: JsonRecord | null;
@@ -465,6 +466,7 @@ export class PreviewApplication {
   private refreshScheduled = false;
   private copyTimer: number | null = null;
   private copySequence = 0;
+  private systemColorScheme: MediaQueryList | null = null;
   private started = false;
 
   private readonly state: ApplicationState = {
@@ -477,6 +479,7 @@ export class PreviewApplication {
     viewport: 'desktop',
     workspaceColorMode: initialWorkspaceColorMode(),
     emailColorMode: initialEmailColorMode(),
+    systemColorMode: 'light',
     selectedVariant: '',
     propsText: '{}',
     appliedProps: null,
@@ -515,6 +518,15 @@ export class PreviewApplication {
     }
 
     this.started = true;
+    this.systemColorScheme =
+      window.matchMedia?.('(prefers-color-scheme: dark)') ?? null;
+    this.state.systemColorMode = this.systemColorScheme?.matches
+      ? 'dark'
+      : 'light';
+    this.systemColorScheme?.addEventListener(
+      'change',
+      this.syncSystemColorMode,
+    );
     this.reactRoot = createRoot(this.root);
     this.render();
     this.connectEvents();
@@ -523,6 +535,11 @@ export class PreviewApplication {
 
   public destroy(): void {
     this.started = false;
+    this.systemColorScheme?.removeEventListener(
+      'change',
+      this.syncSystemColorMode,
+    );
+    this.systemColorScheme = null;
     this.resetCopyFeedback();
     this.renderSequence += 1;
     this.eventSource?.close();
@@ -554,8 +571,21 @@ export class PreviewApplication {
     emailColorMode: EmailColorMode,
   ): void => {
     this.state.emailColorMode = emailColorMode;
+    if (emailColorMode === 'system') {
+      this.state.systemColorMode = this.systemColorScheme?.matches
+        ? 'dark'
+        : 'light';
+    }
     storeValue(emailColorModeStorageKey, emailColorMode);
     this.render();
+  };
+
+  private readonly syncSystemColorMode = (): void => {
+    if (!this.started) return;
+    this.state.systemColorMode = this.systemColorScheme?.matches
+      ? 'dark'
+      : 'light';
+    if (this.state.emailColorMode === 'system') this.render();
   };
 
   private readonly changeRemoteImages = (checked: boolean): void => {

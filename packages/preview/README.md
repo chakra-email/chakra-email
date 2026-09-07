@@ -157,7 +157,10 @@ page. The inspector scrolls independently.
   so built-in components, portalled tooltips, and custom semantic tokens all
   follow the selected workspace mode.
   **Light** and **Dark** force Chakra Email's generated color rules in the
-  preview frame; **System** restores their media-query behavior. Arbitrary
+  preview frame; **System** restores their media-query behavior using the current
+  OS/browser preference, independent of the workspace theme. It updates live
+  when that preference changes and re-checks it when selected; the saved choice
+  remains `system`, not a snapshot of light or dark. Arbitrary
   authored media queries are not rewritten, and client-specific automatic color
   inversion is not simulated. Fixed template colors remain fixed. Scripts and
   forms stay disabled, and remote images still require explicit opt-in.

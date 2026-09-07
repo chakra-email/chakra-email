@@ -1125,6 +1125,85 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
+  it.each([false, true])(
+    'tracks the live system preference independently of the workspace (initial dark: %s)',
+    async (initialDark) => {
+      let dark = initialDark;
+      const query = new EventTarget() as MediaQueryList;
+      Object.defineProperty(query, 'matches', { get: () => dark });
+      const removeListener = vi.spyOn(query, 'removeEventListener');
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn(() => query),
+      );
+      window.localStorage.setItem(
+        'chakra-email.preview.workspace-color-mode',
+        initialDark ? 'light' : 'dark',
+      );
+      window.localStorage.setItem(
+        'chakra-email.preview.email-color-mode',
+        'system',
+      );
+      const harness = createHarness();
+      await harness.application.start();
+      const iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
+      const originalHtml = iframe.srcdoc;
+      const originalCanvas = getElement('.preview-surface').className;
+      const workspaceClass = document.documentElement.className;
+      const requests = harness.renderRequests.length;
+      expect(iframe.style.colorScheme).toBe(
+        initialDark ? 'only dark' : 'only light',
+      );
+
+      for (const nextDark of [!initialDark, initialDark]) {
+        dark = nextDark;
+        query.dispatchEvent(new Event('change'));
+        expect(iframe.style.colorScheme).toBe(
+          dark ? 'only dark' : 'only light',
+        );
+        expect(iframe.dataset['emailColorMode']).toBe('system');
+        expect(iframe.srcdoc).toBe(originalHtml);
+        expect(getElement('.preview-surface').className).toBe(originalCanvas);
+        expect(document.documentElement.className).toBe(workspaceClass);
+        expect(harness.renderRequests).toHaveLength(requests);
+      }
+
+      getElement<HTMLButtonElement>(
+        'button[data-email-color-mode="light"]',
+      ).click();
+      dark = true;
+      query.dispatchEvent(new Event('change'));
+      expect(iframe.style.colorScheme).toBe('only light');
+      getElement<HTMLButtonElement>(
+        'button[data-email-color-mode="system"]',
+      ).click();
+      expect(iframe.style.colorScheme).toBe('only dark');
+      // Re-select System re-reads matches, even if a change event was missed.
+      dark = false;
+      getElement<HTMLButtonElement>(
+        'button[data-email-color-mode="system"]',
+      ).click();
+      expect(iframe.style.colorScheme).toBe('only light');
+      expect(
+        window.localStorage.getItem('chakra-email.preview.email-color-mode'),
+      ).toBe('system');
+      expect(iframe.srcdoc).toBe(originalHtml);
+
+      harness.application.destroy();
+      expect(removeListener).toHaveBeenCalledWith(
+        'change',
+        expect.any(Function),
+      );
+      dark = true;
+      query.dispatchEvent(new Event('change'));
+      await harness.application.start();
+      expect(
+        getElement<HTMLIFrameElement>('#email-preview-frame').style.colorScheme,
+      ).toBe('only dark');
+      harness.application.destroy();
+    },
+  );
+
   it('forces the rendered email color mode while preserving a system option', async () => {
     const harness = createHarness();
     await harness.application.start();
@@ -1160,7 +1239,7 @@ describe('PreviewApplication', () => {
     getElement<HTMLButtonElement>('[data-email-color-mode="system"]').click();
 
     iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
-    expect(iframe.style.colorScheme).toBe('light dark');
+    expect(iframe.style.colorScheme).toBe('only light');
     expect(iframe.srcdoc).toContain('(prefers-color-scheme: dark)');
     expect(iframe.srcdoc).toContain('(prefers-color-scheme: light)');
     expect(iframe.srcdoc).toContain(
@@ -1208,7 +1287,7 @@ describe('PreviewApplication', () => {
         const iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
         expect(iframe.dataset['emailColorMode']).toBe(mode);
         expect(iframe.style.colorScheme).toBe(
-          mode === 'system' ? 'light dark' : `only ${mode}`,
+          mode === 'system' ? 'only light' : `only ${mode}`,
         );
         expect(surface.className).toBe(canvasClass);
         expect(surface.hasAttribute('data-email-color-mode')).toBe(false);

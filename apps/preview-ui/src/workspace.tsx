@@ -1095,16 +1095,15 @@ function Viewer({
   }
 
   if (state.activeTab === 'preview') {
-    const frameBackground =
-      state.emailColorMode === 'dark'
-        ? 'preview.previewFrameDark'
-        : state.emailColorMode === 'light'
-          ? 'white'
-          : 'preview.panel';
-    const iframeColorScheme =
+    const resolvedEmailColorMode =
       state.emailColorMode === 'system'
-        ? 'light dark'
-        : `only ${state.emailColorMode}`;
+        ? state.systemColorMode
+        : state.emailColorMode;
+    const frameBackground =
+      resolvedEmailColorMode === 'dark' ? 'preview.previewFrameDark' : 'white';
+    // Embedded documents use their embedding element's color scheme. Resolve
+    // System from the live OS preference, independently of workspace styling.
+    const iframeColorScheme = `only ${resolvedEmailColorMode}`;
 
     return (
       <Box
@@ -1132,6 +1131,7 @@ function Viewer({
               srcDoc={securedHtml ?? undefined}
               sandbox=""
               data-email-color-mode={state.emailColorMode}
+              data-resolved-email-color-mode={resolvedEmailColorMode}
               w="full"
               h="full"
               border="0"
