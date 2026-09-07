@@ -346,16 +346,43 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
         >
           <Box as="main" className="workspace">
             <Flex className="workspace-heading" css={styles.heading}>
-              <Tabs.List css={viewerStyles.tabs}>
+              <Tabs.List
+                aria-label="Email output format"
+                css={viewerStyles.tabs}
+              >
                 {tabs.map((tab) => (
-                  <Tabs.Trigger
+                  <PreviewTooltip
                     key={tab.id}
-                    value={tab.id}
-                    data-tab={tab.id}
-                    css={viewerStyles.tab}
+                    content={tab.label}
+                    triggerId={`output-tooltip-${tab.id}`}
                   >
-                    {tab.label}
-                  </Tabs.Trigger>
+                    {/* Keep tooltip ownership on a non-focusable wrapper, not
+                        the tab itself: both primitives use data-ownedby. */}
+                    <Box as="span" display="inline-flex">
+                      <Tooltip.Context>
+                        {(tooltip) => (
+                          <Tabs.Trigger
+                            value={tab.id}
+                            data-tab={tab.id}
+                            asChild
+                          >
+                            <PreviewIconButton
+                              aria-label={tab.label}
+                              aria-describedby={
+                                tooltip.open
+                                  ? tooltip.getContentProps().id
+                                  : undefined
+                              }
+                              variant="ghost"
+                              css={viewerStyles.tab}
+                            >
+                              <OutputIcon format={tab.id} />
+                            </PreviewIconButton>
+                          </Tabs.Trigger>
+                        )}
+                      </Tooltip.Context>
+                    </Box>
+                  </PreviewTooltip>
                 ))}
               </Tabs.List>
 
@@ -1342,6 +1369,39 @@ function RenderOverlay({ label }: { label: string }) {
       <Spinner size="sm" color="preview.accent" />
       {label}
     </Flex>
+  );
+}
+
+function OutputIcon({ format }: { format: PreviewTab }) {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {format === 'preview' ? (
+        <>
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      ) : format === 'html' ? (
+        <path d="m7 7-5 5 5 5m10-10 5 5-5 5M14 4l-4 16" />
+      ) : format === 'text' ? (
+        <path d="M4 5h16M4 10h12M4 15h16M4 20h12" />
+      ) : (
+        <>
+          <path d="M14 2H5v20h14V7Z M14 2v5h5" />
+          <path d="m9 11-2 3 2 3m6-6 2 3-2 3" />
+        </>
+      )}
+    </svg>
   );
 }
 

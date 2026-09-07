@@ -143,8 +143,12 @@ page. The inspector scrolls independently.
 - Copy, Download, viewport presets, and Reset size use icon buttons with
   accessible names and tooltips on hover or keyboard focus. Copy and Download
   describe the active output format; copying shows a checkmark and announces
-  success. Remote images, email color modes, form actions, and tabs retain
+  success. Remote images, email color modes, and form actions retain
   visible labels.
+- Preview, HTML, Text, and Source form a compact icon tab group with tooltips
+  and accessible names. They retain tab/panel associations, a single tab stop,
+  and arrow-key / Home / End navigation. The viewer `tabs` and `tab` slots
+  customize the group and selected styles; shared icon sizing applies here too.
 - The `feedback.iconButton` slot controls the compact actions' shared geometry.
   Set `--preview-icon-button-size` to customize the hit area (default: 44px on
   small screens, 32px from `md` upwards). Existing action recipes still control

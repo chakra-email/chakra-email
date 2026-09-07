@@ -1004,6 +1004,68 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
+  it('composes icon output tabs with tooltips without losing tab ownership or panel labels', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const list = getElement('[role="tablist"]');
+    expect(list.getAttribute('aria-label')).toBe('Email output format');
+    expect(list.querySelectorAll('button')).toHaveLength(4);
+    for (const [id, label] of [
+      ['preview', 'Preview'],
+      ['html', 'HTML'],
+      ['text', 'Text'],
+      ['source', 'Source'],
+    ]) {
+      const tab = getElement<HTMLButtonElement>(`[data-tab="${id}"]`);
+      tab.click();
+      await vi.waitFor(() =>
+        expect(tab.getAttribute('aria-selected')).toBe('true'),
+      );
+      expect(tab.getAttribute('role')).toBe('tab');
+      expect(tab.getAttribute('aria-label')).toBe(label);
+      expect(tab.getAttribute('data-ownedby')).toBe(list.id);
+      expect(tab.textContent).toBe('');
+      expect(tab.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
+        'true',
+      );
+      expect(list.querySelectorAll('[tabindex="0"]')).toHaveLength(1);
+      const panel = document.getElementById(
+        tab.getAttribute('aria-controls') ?? '',
+      );
+      expect(panel?.getAttribute('aria-labelledby')).toBe(tab.id);
+      tab.focus();
+      await vi.waitFor(() =>
+        expect(
+          document.getElementById(tab.getAttribute('aria-describedby') ?? '')
+            ?.textContent,
+        ).toBe(label),
+      );
+      expect(tab.getAttribute('data-ownedby')).toBe(list.id);
+      tab.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      );
+      await vi.waitFor(() =>
+        expect(tab.hasAttribute('aria-describedby')).toBe(false),
+      );
+    }
+    const source = getElement<HTMLButtonElement>('[data-tab="source"]');
+    source.blur();
+    source.focus();
+    await vi.waitFor(() =>
+      expect(source.hasAttribute('aria-describedby')).toBe(true),
+    );
+    source.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    );
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('preview');
+      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
+        'true',
+      );
+    });
+    harness.application.destroy();
+  });
+
   it('gives compact icon actions accessible names, state, and focus tooltips', async () => {
     const harness = createHarness();
     await harness.application.start();

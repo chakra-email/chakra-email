@@ -24,6 +24,11 @@ describe('preview UI theme', () => {
     });
     expect(previewWorkspaceSlotRecipe.slots).toContain('inspectorPanel');
     expect(previewViewerSlotRecipe.slots).toContain('stage');
+    expect(previewViewerSlotRecipe.base?.tabs).toMatchObject({
+      borderWidth: '1px',
+      borderRadius: 'md',
+      gap: '0.5',
+    });
     expect(previewViewerSlotRecipe.base?.surface).toMatchObject({
       bg: 'preview.soft',
     });
