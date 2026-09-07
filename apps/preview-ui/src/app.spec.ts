@@ -847,6 +847,63 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
+  it('clears copied announcements when the output context changes', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-action="copy"]').click();
+    await vi.waitFor(() =>
+      expect(getElement('[data-copy-status]').textContent).toContain(
+        'Copied HTML',
+      ),
+    );
+    getElement<HTMLButtonElement>('[data-tab="text"]').click();
+    await vi.waitFor(() =>
+      expect(getElement('[data-copy-status]').textContent).toBe(''),
+    );
+    expect(getElement('[data-action="copy"]').getAttribute('aria-label')).toBe(
+      'Copy text',
+    );
+    getElement<HTMLButtonElement>('[data-action="copy"]').click();
+    await vi.waitFor(() =>
+      expect(getElement('[data-copy-status]').textContent).toContain(
+        'Copied text',
+      ),
+    );
+    getElement<HTMLButtonElement>('[data-action="apply-props"]').click();
+    expect(getElement('[data-copy-status]').textContent).toBe('');
+    await flush();
+    harness.application.destroy();
+  });
+
+  it.each(['resolve', 'reject'])(
+    'ignores a late clipboard %s after changing tabs',
+    async (outcome) => {
+      let resolveCopy: () => void = () => undefined;
+      let rejectCopy: (error: Error) => void = () => undefined;
+      const harness = createHarness({
+        copyText: () =>
+          new Promise<void>((resolve, reject) => {
+            resolveCopy = resolve;
+            rejectCopy = reject;
+          }),
+      });
+      await harness.application.start();
+      getElement<HTMLButtonElement>('[data-action="copy"]').click();
+      getElement<HTMLButtonElement>('[data-tab="text"]').click();
+      await vi.waitFor(() =>
+        expect(
+          getElement('[data-action="copy"]').getAttribute('aria-label'),
+        ).toBe('Copy text'),
+      );
+      if (outcome === 'resolve') resolveCopy();
+      else rejectCopy(new Error('Old clipboard failure'));
+      await flush();
+      expect(getElement('[data-copy-status]').textContent).toBe('');
+      expect(document.body.textContent).not.toContain('Old clipboard failure');
+      harness.application.destroy();
+    },
+  );
+
   it('changes viewport size and only permits remote images after explicit opt-in', async () => {
     const harness = createHarness();
     await harness.application.start();

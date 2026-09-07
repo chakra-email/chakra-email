@@ -464,6 +464,7 @@ export class PreviewApplication {
   private renderSequence = 0;
   private refreshScheduled = false;
   private copyTimer: number | null = null;
+  private copySequence = 0;
   private started = false;
 
   private readonly state: ApplicationState = {
@@ -522,20 +523,17 @@ export class PreviewApplication {
 
   public destroy(): void {
     this.started = false;
+    this.resetCopyFeedback();
     this.renderSequence += 1;
     this.eventSource?.close();
     this.eventSource = null;
-
-    if (this.copyTimer !== null) {
-      window.clearTimeout(this.copyTimer);
-      this.copyTimer = null;
-    }
 
     this.reactRoot?.unmount();
     this.reactRoot = null;
   }
 
   private readonly changeTab = (tab: PreviewTab): void => {
+    if (tab !== this.state.activeTab) this.resetCopyFeedback();
     this.state.activeTab = tab;
     this.render();
   };
@@ -631,6 +629,7 @@ export class PreviewApplication {
   }
 
   private async loadTemplates(preserveEditor: boolean): Promise<void> {
+    this.resetCopyFeedback();
     const previousId = this.state.selectedId;
     this.state.loadingTemplates = true;
     this.state.error = null;
@@ -704,6 +703,7 @@ export class PreviewApplication {
     props?: JsonRecord;
     replaceEditor: boolean;
   }): Promise<void> {
+    this.resetCopyFeedback();
     const id = this.state.selectedId;
 
     if (!id) {
@@ -877,12 +877,25 @@ export class PreviewApplication {
     }
   }
 
+  private resetCopyFeedback(): void {
+    this.copySequence += 1;
+    this.state.copied = false;
+    if (this.copyTimer !== null) {
+      window.clearTimeout(this.copyTimer);
+      this.copyTimer = null;
+    }
+  }
+
   private async copyCurrentOutput(): Promise<void> {
     const result = this.state.result;
 
     if (!result) {
       return;
     }
+
+    this.resetCopyFeedback();
+    const sequence = this.copySequence;
+    this.render();
 
     const value =
       this.state.activeTab === 'text'
@@ -893,18 +906,17 @@ export class PreviewApplication {
 
     try {
       await this.copyText(value);
+      if (!this.started || sequence !== this.copySequence) return;
       this.state.copied = true;
       this.render();
 
-      if (this.copyTimer !== null) {
-        window.clearTimeout(this.copyTimer);
-      }
-
       this.copyTimer = window.setTimeout(() => {
+        this.copyTimer = null;
         this.state.copied = false;
         this.render();
       }, 1_600);
     } catch (error) {
+      if (!this.started || sequence !== this.copySequence) return;
       this.state.error =
         error instanceof Error ? error.message : 'Could not copy the output.';
       this.render();
