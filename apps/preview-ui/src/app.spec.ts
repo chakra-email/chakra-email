@@ -1042,6 +1042,54 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
+  it.each(['light', 'dark'])(
+    'keeps the %s workspace canvas independent of email color mode',
+    async (workspaceMode) => {
+      const harness = createHarness({
+        theme: {
+          slotRecipes: {
+            [previewSlotRecipeKeys.viewer]: {
+              base: { surface: { bg: 'var(--test-canvas-color)' } },
+            },
+          },
+        },
+      });
+      await harness.application.start();
+      if (workspaceMode === 'dark') {
+        getElement<HTMLButtonElement>(
+          '[data-action="toggle-workspace-color-mode"]',
+        ).click();
+      }
+      const surface = getElement('.preview-surface');
+      const canvasClass = surface.className;
+      const workspaceClass = document.documentElement.className;
+      expect(
+        elementDeclarations(surface).some(
+          (style) =>
+            (style.getPropertyValue('background') ||
+              style.getPropertyValue('background-color')) ===
+            'var(--test-canvas-color)',
+        ),
+      ).toBe(true);
+
+      for (const mode of ['dark', 'light', 'system']) {
+        getElement<HTMLButtonElement>(
+          `button[data-email-color-mode="${mode}"]`,
+        ).click();
+        const iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
+        expect(iframe.dataset['emailColorMode']).toBe(mode);
+        expect(iframe.style.colorScheme).toBe(
+          mode === 'system' ? 'light dark' : `only ${mode}`,
+        );
+        expect(surface.className).toBe(canvasClass);
+        expect(surface.hasAttribute('data-email-color-mode')).toBe(false);
+        expect(document.documentElement.className).toBe(workspaceClass);
+        expect(document.documentElement.dataset['theme']).toBe(workspaceMode);
+      }
+      harness.application.destroy();
+    },
+  );
+
   it('switches templates and presents an empty state after rediscovery', async () => {
     const harness = createHarness();
     await harness.application.start();

@@ -449,6 +449,7 @@ export const previewViewerSlotRecipe = defineSlotRecipe({
       fontWeight: 'black',
     },
     surface: {
+      bg: 'preview.soft',
       position: 'relative',
       h: 'full',
       minH: '0',

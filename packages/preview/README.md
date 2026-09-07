@@ -141,6 +141,9 @@ page. The inspector scrolls independently.
   the selected preset and default height. The footer describes the preset,
   not the dimensions of a manually resized frame.
 - Workspace light/dark mode remains independent of the email color mode.
+  Email color-mode controls affect only the email frame, not the surrounding
+  canvas. The canvas follows the workspace theme; customize its background in
+  the viewer recipe's `surface` slot (default: `preview.soft`).
   The workspace sets Chakra's `light` / `dark` classes on the document root,
   so built-in components, portalled tooltips, and custom semantic tokens all
   follow the selected workspace mode.

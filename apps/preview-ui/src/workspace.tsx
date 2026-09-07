@@ -1085,12 +1085,6 @@ function Viewer({
   }
 
   if (state.activeTab === 'preview') {
-    const previewBackground =
-      state.emailColorMode === 'dark'
-        ? 'preview.previewDark'
-        : state.emailColorMode === 'light'
-          ? 'preview.previewLight'
-          : 'preview.soft';
     const frameBackground =
       state.emailColorMode === 'dark'
         ? 'preview.previewFrameDark'
@@ -1106,9 +1100,7 @@ function Viewer({
       <Box
         className="preview-surface"
         data-viewport={state.viewport}
-        data-email-color-mode={state.emailColorMode}
         css={styles.surface}
-        bg={previewBackground}
       >
         <Flex css={styles.stage}>
           <Box
