@@ -23,8 +23,10 @@ import {
   Text,
   Textarea,
   Tooltip,
+  VisuallyHidden,
 } from '@chakra-ui/react';
-import { useMemo, useRef, useState } from 'react';
+import type { IconButtonProps } from '@chakra-ui/react';
+import { forwardRef, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import type {
   ApplicationState,
@@ -246,9 +248,9 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
               variant="ghost"
               onClick={props.onToggleWorkspaceColorMode}
             >
-              <Text aria-hidden="true">
-                {state.workspaceColorMode === 'dark' ? '☀' : '☾'}
-              </Text>
+              <ActionIcon
+                name={state.workspaceColorMode === 'dark' ? 'sun' : 'moon'}
+              />
             </IconButton>
           </PreviewTooltip>
 
@@ -359,6 +361,7 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
 
               <Flex className="workspace-actions" css={styles.actions}>
                 <Flex
+                  role="group"
                   aria-label="Preview viewport"
                   css={styles.viewportControl}
                 >
@@ -367,15 +370,12 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                       key={viewport.id}
                       content={viewport.tooltip}
                     >
-                      <Button
+                      <PreviewIconButton
                         type="button"
+                        aria-label={`${viewport.label} preview`}
                         data-viewport={viewport.id}
                         aria-pressed={state.viewport === viewport.id}
                         disabled={state.activeTab !== 'preview'}
-                        minH="8"
-                        h="8"
-                        px="2"
-                        gap="1.5"
                         borderRadius="lg"
                         color={
                           state.viewport === viewport.id
@@ -393,8 +393,7 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                         onClick={() => props.onViewportChange(viewport.id)}
                       >
                         <ViewportIcon viewport={viewport.id} />
-                        {viewport.label}
-                      </Button>
+                      </PreviewIconButton>
                     </PreviewTooltip>
                   ))}
                 </Flex>
@@ -467,33 +466,44 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                 </Badge>
 
                 <PreviewTooltip content={`Download the ${outputLabel} output`}>
-                  <Button
+                  <PreviewIconButton
                     type="button"
                     data-action="download"
+                    aria-label={`Download ${outputLabel}`}
                     disabled={!state.result}
                     css={styles.secondaryAction}
                     onClick={props.onDownload}
                   >
-                    <Box aria-hidden="true">↓</Box>
-                    Download
-                  </Button>
+                    <ActionIcon name="download" />
+                  </PreviewIconButton>
                 </PreviewTooltip>
 
                 <PreviewTooltip
-                  content={`Copy the ${outputLabel} output to the clipboard`}
+                  content={
+                    state.copied
+                      ? `${outputLabel} copied`
+                      : `Copy the ${outputLabel} output to the clipboard`
+                  }
                 >
-                  <Button
+                  <PreviewIconButton
                     className="copy-button"
                     type="button"
                     data-action="copy"
+                    aria-label={`Copy ${outputLabel}`}
                     disabled={!state.result}
                     css={styles.primaryAction}
                     onClick={props.onCopy}
                   >
-                    <Box aria-hidden="true">{state.copied ? '✓' : '⧉'}</Box>
-                    {state.copied ? 'Copied' : `Copy ${outputLabel}`}
-                  </Button>
+                    <ActionIcon name={state.copied ? 'check' : 'copy'} />
+                  </PreviewIconButton>
                 </PreviewTooltip>
+                <VisuallyHidden
+                  role="status"
+                  aria-atomic="true"
+                  data-copy-status=""
+                >
+                  {state.copied ? `Copied ${outputLabel} to clipboard` : ''}
+                </VisuallyHidden>
               </Flex>
             </Flex>
 
@@ -1134,15 +1144,16 @@ function Viewer({
           <Flex gap="2" align="center">
             <Text>{viewportLabel(state.viewport)} preset</Text>
             <PreviewTooltip content="Restore preset dimensions after dragging the email frame’s bottom-right corner to resize it">
-              <Button
+              <PreviewIconButton
+                aria-label="Reset preview size"
                 size="xs"
                 variant="ghost"
                 css={styles.modeButton}
                 data-action="reset-frame"
                 onClick={() => setFrameRevision((value) => value + 1)}
               >
-                Reset size
-              </Button>
+                <ActionIcon name="reset" />
+              </PreviewIconButton>
             </PreviewTooltip>
           </Flex>
           <Flex align="center" gap="3" wrap="wrap">
@@ -1264,12 +1275,23 @@ function PreviewError({
           variant="ghost"
           onClick={onDismiss}
         >
-          ×
+          <ActionIcon name="close" />
         </IconButton>
       </PreviewTooltip>
     </Alert.Root>
   );
 }
+
+const PreviewIconButton = forwardRef<
+  HTMLButtonElement,
+  IconButtonProps & { 'aria-label': string }
+>(function PreviewIconButton({ css, ...props }, ref) {
+  const recipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.feedback,
+    previewFeedbackSlotRecipe,
+  );
+  return <IconButton ref={ref} {...props} css={[css, recipe().iconButton]} />;
+});
 
 function PreviewTooltip({
   children,
@@ -1325,17 +1347,61 @@ function RenderOverlay({ label }: { label: string }) {
 
 function ViewportIcon({ viewport }: { viewport: Viewport }) {
   return (
-    <Box
+    <svg
       aria-hidden="true"
-      display="block"
-      w={viewport === 'mobile' ? '6px' : viewport === 'fluid' ? '13px' : '12px'}
-      h={viewport === 'mobile' ? '11px' : '9px'}
-      borderWidth="1.5px"
-      borderStyle="solid"
-      borderInlineStyle={viewport === 'fluid' ? 'dashed' : 'solid'}
-      borderColor="currentColor"
-      borderRadius="2px"
-    />
+      focusable="false"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {viewport === 'mobile' ? (
+        <rect x="7" y="2" width="10" height="20" rx="2" />
+      ) : viewport === 'desktop' ? (
+        <>
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <path d="M8 21h8M12 17v4" />
+        </>
+      ) : (
+        <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5M7 12h10M7 12l3-3M7 12l3 3M17 12l-3-3M17 12l-3 3" />
+      )}
+    </svg>
+  );
+}
+
+function ActionIcon({
+  name,
+}: {
+  name: 'copy' | 'download' | 'check' | 'reset' | 'sun' | 'moon' | 'close';
+}) {
+  const paths = {
+    copy: 'M8 8h13v13H8zM16 8V3H3v13h5',
+    download: 'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',
+    check: 'm5 12 4 4L19 6',
+    reset: 'M3 4v6h6M3 10a9 9 0 1 1 2 8',
+    sun: 'M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
+    moon: 'M20 15.5A9 9 0 0 1 8.5 4 9 9 0 1 0 20 15.5Z',
+    close: 'm6 6 12 12M6 18 18 6',
+  };
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={paths[name]} />
+    </svg>
   );
 }
 
@@ -1397,7 +1463,7 @@ function FileIcon() {
 }
 
 // Discovery-generated names include directory breadcrumbs. The complete path
-// remains available on the template row and title, without repeating it twice.
+// remains available in the template row tooltip, without repeating it twice.
 function shortTemplateName(name: string): string {
   return name.split(' / ').at(-1) ?? name;
 }

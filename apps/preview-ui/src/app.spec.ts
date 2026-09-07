@@ -729,9 +729,9 @@ describe('PreviewApplication', () => {
         expect.stringContaining('<h1>Hello</h1>'),
       );
     });
-    expect(
-      document.querySelector('[data-action="copy"]')?.textContent,
-    ).toContain('Copied');
+    expect(document.querySelector('[data-copy-status]')?.textContent).toContain(
+      'Copied',
+    );
 
     const currentHtmlTab = getElement<HTMLButtonElement>('[data-tab="html"]');
     currentHtmlTab.focus();
@@ -944,6 +944,78 @@ describe('PreviewApplication', () => {
     input.click();
     expect(input.checked).toBe(true);
 
+    harness.application.destroy();
+  });
+
+  it('gives compact icon actions accessible names, state, and focus tooltips', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const controls = [
+      ['[data-action="copy"]', 'Copy HTML'],
+      ['[data-action="download"]', 'Download HTML'],
+      ['[data-action="reset-frame"]', 'Reset preview size'],
+      ['button[data-viewport="desktop"]', 'Desktop preview'],
+      ['button[data-viewport="mobile"]', 'Mobile preview'],
+      ['button[data-viewport="fluid"]', 'Fit preview'],
+    ];
+    for (const [selector, name] of controls) {
+      const button = getElement<HTMLButtonElement>(selector);
+      expect(button.getAttribute('aria-label')).toBe(name);
+      expect(button.textContent).toBe('');
+      expect(button.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
+        'true',
+      );
+      expect(button.querySelector('svg')?.getAttribute('focusable')).toBe(
+        'false',
+      );
+      button.focus();
+      await vi.waitFor(() => {
+        const tooltipId = button.getAttribute('aria-describedby');
+        expect(
+          document.getElementById(tooltipId ?? '')?.textContent,
+        ).toBeTruthy();
+      });
+      button.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      );
+      await vi.waitFor(() =>
+        expect(button.getAttribute('aria-describedby')).toBeNull(),
+      );
+    }
+    expect(
+      document
+        .querySelector('[aria-label="Preview viewport"]')
+        ?.getAttribute('role'),
+    ).toBe('group');
+    getElement<HTMLButtonElement>('button[data-viewport="mobile"]').click();
+    expect(
+      getElement('button[data-viewport="mobile"]').getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(
+      getElement('button[data-viewport="desktop"]').getAttribute(
+        'aria-pressed',
+      ),
+    ).toBe('false');
+
+    for (const [tab, label] of [
+      ['html', 'HTML'],
+      ['text', 'text'],
+      ['source', 'source'],
+    ]) {
+      getElement<HTMLButtonElement>(`[data-tab="${tab}"]`).click();
+      await vi.waitFor(() =>
+        expect(
+          getElement('[data-action="copy"]').getAttribute('aria-label'),
+        ).toBe(`Copy ${label}`),
+      );
+      expect(
+        getElement('[data-action="download"]').getAttribute('aria-label'),
+      ).toBe(`Download ${label}`);
+      expect(
+        getElement<HTMLButtonElement>('button[data-viewport="mobile"]')
+          .disabled,
+      ).toBe(true);
+    }
     harness.application.destroy();
   });
 

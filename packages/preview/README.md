@@ -115,7 +115,7 @@ exported slot recipe keys:
 - `templates`: template list, item, avatar, text, and selected-state slots.
 - `viewer`: format tabs, preview surface, email frame, and source viewer.
 - `inspector`: props editor, controls, notice, and lint result slots.
-- `feedback`: error banner and tooltip slots.
+- `feedback`: error banner, tooltip, and shared `iconButton` sizing slots.
 
 Each recipe supports partial overrides, so omitted defaults remain intact. Use
 the exported `previewSlotRecipeKeys` values as computed keys to keep theme
@@ -140,6 +140,15 @@ page. The inspector scrolls independently.
   Drag the frame's bottom-right corner to resize it. **Reset size** restores
   the selected preset and default height. The footer describes the preset,
   not the dimensions of a manually resized frame.
+- Copy, Download, viewport presets, and Reset size use icon buttons with
+  accessible names and tooltips on hover or keyboard focus. Copy and Download
+  describe the active output format; copying shows a checkmark and announces
+  success. Remote images, email color modes, form actions, and tabs retain
+  visible labels.
+- The `feedback.iconButton` slot controls the compact actions' shared geometry.
+  Set `--preview-icon-button-size` to customize the hit area (default: 44px on
+  small screens, 32px from `md` upwards). Existing action recipes still control
+  colors, borders, and interaction styling.
 - Workspace light/dark mode remains independent of the email color mode.
   Email color-mode controls affect only the email frame, not the surrounding
   canvas. The canvas follows the workspace theme; customize its background in

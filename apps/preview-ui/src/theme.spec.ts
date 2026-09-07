@@ -46,6 +46,16 @@ describe('preview UI theme', () => {
     expect(serialized).not.toMatch(/teal|green|#16866c|#63d9bb/i);
   });
 
+  it('shares accessible icon-button sizing through the feedback recipe', () => {
+    expect(previewFeedbackSlotRecipe.slots).toContain('iconButton');
+    expect(previewFeedbackSlotRecipe.base?.iconButton).toMatchObject({
+      '--preview-icon-button-size': { base: '44px', md: '32px' },
+      minW: 'var(--preview-icon-button-size)',
+      minH: 'var(--preview-icon-button-size)',
+      p: '0',
+    });
+  });
+
   it('inherits Chakra tooltip styling and exposes a shared surface/arrow override', () => {
     expect(previewFeedbackSlotRecipe.base?.tooltip).toEqual({ maxW: '260px' });
     const system = createPreviewSystem({

@@ -724,8 +724,17 @@ export const previewInspectorSlotRecipe = defineSlotRecipe({
 
 export const previewFeedbackSlotRecipe = defineSlotRecipe({
   className: 'chakra-email-preview-feedback',
-  slots: ['error', 'tooltip'],
+  slots: ['error', 'tooltip', 'iconButton'],
   base: {
+    iconButton: {
+      '--preview-icon-button-size': { base: '44px', md: '32px' },
+      w: 'var(--preview-icon-button-size)',
+      minW: 'var(--preview-icon-button-size)',
+      h: 'var(--preview-icon-button-size)',
+      minH: 'var(--preview-icon-button-size)',
+      p: '0',
+      flexShrink: '0',
+    },
     error: {
       mb: '4',
       borderWidth: '1px',
