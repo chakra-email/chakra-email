@@ -7,6 +7,7 @@ import {
 } from '../system/index.js';
 import { chakraEmailRecipeKeys } from '../theme/index.js';
 import {
+  EmailRenderError,
   sanitizeEmailUrl,
   useEmailUrlPolicy,
   type EmailUrlPolicy,
@@ -32,9 +33,11 @@ export interface ImgProps
     BaseChakraEmailProps,
     Omit<
       ImgHTMLAttributes<HTMLImageElement>,
-      keyof BaseChakraEmailProps | 'src' | 'alt'
+      keyof BaseChakraEmailProps | 'src' | 'srcSet' | 'alt'
     > {
   src: string;
+  /** Candidate lists are unsupported; use a single policy-validated source. */
+  srcSet?: never;
   alt: string;
   urlPolicy?: EmailUrlPolicy;
   width?: string | number;
@@ -43,6 +46,7 @@ export interface ImgProps
 
 export function Img({
   src,
+  srcSet,
   alt,
   urlPolicy,
   width,
@@ -58,6 +62,15 @@ export function Img({
   });
   const legacyWidth = getLegacyPixelDimension(styles.width);
   const legacyHeight = getLegacyPixelDimension(styles.height);
+
+  // Also guard JavaScript callers and props spread from untyped content.
+  if (srcSet !== undefined) {
+    throw new EmailRenderError(
+      'INVALID_COMPONENT_PROP',
+      'Img does not support srcSet. Use a single src instead.',
+      { details: { component: 'Img', prop: 'srcSet' } },
+    );
+  }
 
   return (
     <img

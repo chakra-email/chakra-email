@@ -9,6 +9,29 @@ import {
 } from './index.js';
 
 describe('email URL policy', () => {
+  it.each([render, renderEmail, renderPlainText])(
+    'rejects unsupported image candidate lists across rendering entry points',
+    async (renderImage) => {
+      const srcSet = 'http://user:secret@example.com/image.png 2x';
+      const image = (
+        // @ts-expect-error srcSet is intentionally unsupported, including for typed consumers.
+        <Img src="https://example.com/image.png" alt="Image" srcSet={srcSet} />
+      );
+      await expect(renderImage(image)).rejects.toMatchObject({
+        code: 'INVALID_COMPONENT_PROP',
+        details: { component: 'Img', prop: 'srcSet' },
+        message: 'Img does not support srcSet. Use a single src instead.',
+      });
+      await expect(
+        renderImage(image, {
+          urlPolicy: {
+            image: { allowedProtocols: ['https'], onInvalidUrl: 'throw' },
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'INVALID_COMPONENT_PROP' });
+    },
+  );
+
   it('applies strict defaults to every URL-bearing component', async () => {
     const html = await render(
       <>
