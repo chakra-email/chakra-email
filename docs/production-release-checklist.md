@@ -95,6 +95,10 @@ preview tool.
 
 ## Release Verification
 
+- [ ] The documentation site's Chakra Docs and Postkit dependencies resolve
+      from a fresh checkout without a local yalc store. Follow the
+      [site clean-install prerequisite](site.md#clean-install-release-prerequisite)
+      before relying on CI, Pages, or a local release-check result.
 - [ ] A release-preparation commit aligns every public package manifest and the
       lockfile to the new immutable version, including first-party dependency
       ranges so consumers cannot resolve a mixed 0.1.x/0.2.x package set.
