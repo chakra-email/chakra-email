@@ -9,6 +9,54 @@ import {
 } from './index.js';
 
 describe('email URL policy', () => {
+  it.each([
+    'https://example.com/?q=100%25',
+    'https://example.com/%25hello',
+    'https://example.com/?q=%25ZZ',
+    'https://example.com/?q=%E2%9C%93%20%25',
+    'mailto:hello@example.com?subject=100%25%20complete',
+  ])('preserves valid percent-encoded content unchanged: %s', (value) => {
+    expect(
+      sanitizeEmailUrl(value, {
+        kind: 'link',
+        policy: { onInvalidUrl: 'throw' },
+      }),
+    ).toBe(value);
+  });
+
+  it.each([
+    'https://example.com/%ZZ',
+    'https://example.com/%E2%28%A1',
+    'mailto:hello@example.com?subject=100%25%0d%0aBcc:x',
+    'tel:+15555550123%250aextension',
+    'https://example.com/%25%2530%2561',
+    'https://example.com/%252500',
+    `https://example.com/%${'25'.repeat(12)}0a`,
+  ])(
+    'continues rejecting malformed encodings and nested controls: %s',
+    (value) => {
+      expect(sanitizeEmailUrl(value, { kind: 'link' })).toBeUndefined();
+      expect(() =>
+        sanitizeEmailUrl(value, {
+          kind: 'link',
+          policy: { onInvalidUrl: 'throw' },
+        }),
+      ).toThrowError(EmailRenderError);
+    },
+  );
+
+  it('preserves percent-encoded links and images in rendered output', async () => {
+    const { html, text } = await renderEmail(
+      <>
+        <Link href="https://example.com/?q=100%25">Offer</Link>
+        <Img src="https://example.com/%25logo.png" alt="Logo" />
+      </>,
+    );
+    expect(html).toContain('href="https://example.com/?q=100%25"');
+    expect(html).toContain('src="https://example.com/%25logo.png"');
+    expect(text).toContain('https://example.com/?q=100%25');
+  });
+
   it.each([render, renderEmail, renderPlainText])(
     'rejects unsupported image candidate lists across rendering entry points',
     async (renderImage) => {

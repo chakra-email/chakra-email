@@ -32,7 +32,6 @@ interface ResolvedEmailSecurityPolicy {
 
 const protocolPattern = /^[a-z][a-z0-9+.-]*$/iu;
 const urlProtocolPattern = /^([a-z][a-z0-9+.-]*):/iu;
-const encodedCrLfPattern = /%(?:0a|0d)/iu;
 const malformedPercentPattern = /%(?![0-9a-f]{2})/iu;
 
 const strictLinkPolicy: ResolvedEmailUrlPolicy = Object.freeze({
@@ -154,18 +153,24 @@ function containsEncodedControl(value: string): boolean {
   if (malformedPercentPattern.test(value)) {
     return true;
   }
-  let decoded = value;
-  for (let pass = 0; pass < 4; pass += 1) {
-    if (encodedCrLfPattern.test(decoded) || containsRawControl(decoded)) {
+  // Validate the original encoding once. A decoded literal percent sign is
+  // valid content, not evidence that the original URL was malformed.
+  let decoded = decodeURIComponent(value);
+  for (;;) {
+    if (containsRawControl(decoded)) {
       return true;
     }
-    const next = decodeURIComponent(decoded);
+    // Inspect nested byte escapes without trying to parse literal '%' or
+    // nested UTF-8 as a new URI. This never changes the returned URL. Every
+    // successful pass shortens the string, bounded by the URL byte limit.
+    const next = decoded.replace(/%([0-9a-f]{2})/giu, (_match, hex: string) =>
+      String.fromCharCode(Number.parseInt(hex, 16)),
+    );
     if (next === decoded) {
       return false;
     }
     decoded = next;
   }
-  return encodedCrLfPattern.test(decoded) || containsRawControl(decoded);
 }
 
 function rejectUrl(
