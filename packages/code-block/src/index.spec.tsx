@@ -3,6 +3,28 @@ import { describe, expect, it } from 'vitest';
 import { CodeBlock, plainTextHighlighter } from './index.js';
 
 describe('CodeBlock', () => {
+  it('renders without optional slots when a theme replaces the default recipe', async () => {
+    const { html, text } = await renderEmail(
+      <ThemeProvider
+        theme={{
+          slotRecipes: {
+            chakraEmailCodeBlock: {
+              slots: ['root'],
+              base: undefined,
+              variants: undefined,
+            },
+          },
+        }}
+      >
+        <CodeBlock code={'first\nsecond'} lineNumbers />
+      </ThemeProvider>,
+    );
+    expect(html).toContain('<code>');
+    expect(html).toContain('first</span><br/>');
+    expect(html).toContain('second</span>');
+    expect(text).toBe('first\nsecond');
+  });
+
   it('preserves dark slot styles while static highlighter colors remain unchanged', async () => {
     const html = await render(
       <ThemeProvider
