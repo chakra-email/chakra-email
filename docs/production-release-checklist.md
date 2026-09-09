@@ -96,7 +96,9 @@ preview tool.
 ## Release Verification
 
 - [ ] A release-preparation commit aligns every public package manifest and the
-      lockfile to the new immutable version. The Release Action validates this
+      lockfile to the new immutable version, including first-party dependency
+      ranges so consumers cannot resolve a mixed 0.1.x/0.2.x package set.
+      The Release Action validates this
       committed version; it does not create or commit a version bump.
 - [ ] The changelog's Unreleased notes are moved under that version and release
       date before the release-preparation commit is merged.
