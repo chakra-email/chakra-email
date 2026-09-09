@@ -112,7 +112,7 @@ function isLoopback(hostname: string): boolean {
   return (
     hostname === 'localhost' ||
     hostname === '::1' ||
-    hostname.startsWith('127.')
+    (isIP(hostname) === 4 && hostname.startsWith('127.'))
   );
 }
 

@@ -315,24 +315,39 @@ describe('preview HTTP handler', () => {
     }
   });
 
-  it('rejects DNS-rebinding Host headers', async () => {
-    const status = await new Promise<number | undefined>(
-      (resolveStatus, reject) => {
-        const request = get(
-          `${baseUrl}/api/health`,
-          {
-            headers: { host: 'attacker.example' },
-          },
-          (response) => {
-            response.resume();
-            resolveStatus(response.statusCode);
-          },
-        );
-        request.once('error', reject);
-      },
-    );
-    expect(status).toBe(400);
-  });
+  it.each([
+    'attacker.example',
+    '127.attacker.example',
+    '127.0.0.1.attacker.example:3000',
+    'localhost.attacker.example',
+  ])(
+    'rejects DNS-rebinding Host header %s without exposing the UI token',
+    async (host) => {
+      const status = await new Promise<number | undefined>(
+        (resolveStatus, reject) => {
+          const request = get(
+            baseUrl,
+            {
+              headers: { host },
+            },
+            (response) => {
+              let body = '';
+              response.setEncoding('utf8');
+              response.on('data', (chunk) => {
+                body += chunk;
+              });
+              response.on('end', () => {
+                expect(body).not.toContain(token);
+                resolveStatus(response.statusCode);
+              });
+            },
+          );
+          request.once('error', reject);
+        },
+      );
+      expect(status).toBe(400);
+    },
+  );
 
   it('accepts only explicitly configured reverse-proxy hostnames', async () => {
     async function requestWithHost(host: string) {
@@ -351,5 +366,13 @@ describe('preview HTTP handler', () => {
 
     await expect(requestWithHost('chakra-email.test')).resolves.toBe(200);
     await expect(requestWithHost('docs.chakra-email.test')).resolves.toBe(400);
+    for (const host of [
+      'localhost',
+      '127.0.0.1',
+      '127.10.20.30:3000',
+      '[::1]:3000',
+    ]) {
+      await expect(requestWithHost(host)).resolves.toBe(200);
+    }
   });
 });
