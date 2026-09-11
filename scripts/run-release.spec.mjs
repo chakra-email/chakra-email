@@ -56,6 +56,34 @@ const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
 });
 const committedVersion = publicPackages[0]?.manifest.version;
 
+test('site Chakra Docs dependencies resolve from public releases without yalc', () => {
+  const manifest = JSON.parse(
+    readFileSync(new URL('../apps/site/package.json', import.meta.url), 'utf8'),
+  );
+  const lock = JSON.parse(
+    readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),
+  );
+  const version = manifest.dependencies['@chakra-docs/chakra'];
+  assert.match(version, /^\d+\.\d+\.\d+$/);
+  for (const name of ['chakra', 'core']) {
+    assert.equal(manifest.dependencies[`@chakra-docs/${name}`], version);
+    assert.equal(
+      lock.packages['apps/site'].dependencies[`@chakra-docs/${name}`],
+      version,
+    );
+  }
+  for (const name of ['chakra', 'core', 'search']) {
+    const entry = lock.packages[`node_modules/@chakra-docs/${name}`];
+    assert.equal(entry.version, version);
+    assert.equal(
+      entry.resolved,
+      `https://registry.npmjs.org/@chakra-docs/${name}/-/${name}-${version}.tgz`,
+    );
+    assert.ok(entry.integrity);
+    assert.notEqual(entry.link, true);
+  }
+});
+
 test('site Postkit dependencies are pinned registry packages with opt-in yalc links', () => {
   const manifest = JSON.parse(
     readFileSync(new URL('../apps/site/package.json', import.meta.url), 'utf8'),

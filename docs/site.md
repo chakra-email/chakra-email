@@ -6,16 +6,15 @@ It is an Nx-managed Vite application that imports the markdown files in `docs/` 
 
 ## Commands
 
-The site uses published Postkit `0.2.0` packages, pinned in
-`apps/site/package.json` and the root lockfile. `@postkit/core` and
-`@postkit/unfurl` are installed transitively by `@postkit/react`.
-
-Chakra Docs `0.2.0` still uses local yalc builds. Publish those packages to your
-local yalc store first, then restore only the Chakra Docs links after
-`npm install` or `npm ci`:
+The site uses published Chakra Docs and Postkit `0.2.0` packages, pinned in
+`apps/site/package.json` and the root lockfile. `@chakra-docs/search` is installed
+transitively by `@chakra-docs/chakra`; `@postkit/core` and `@postkit/unfurl` are
+installed transitively by `@postkit/react`. Use the repository's pinned Node 24
+runtime (`nvm use`); Chakra Docs requires Node 22.22 or newer. This does not
+change the published Chakra Email packages' Node compatibility floor.
 
 ```bash
-npm run site:yalc
+npm ci
 npm run site:dev
 npm run site:build
 npm run site:preview
@@ -23,23 +22,23 @@ npm run site:preview
 
 `npm run build` also builds the site because Nx discovers the app target.
 
-For optional local Postkit development, run
-`npm run yalc:link:postkit --workspace site`. Return to registry packages with
-`npm ci`, followed by `npm run site:yalc` to restore the Chakra Docs links.
+For optional local development, `npm run site:yalc` links Chakra Docs and
+`npm run yalc:link:postkit --workspace site` links Postkit from your local yalc
+store. Neither is required for a normal build. To return to public packages
+and unregister the site from future local pushes, run:
+
+```bash
+npm exec --workspace site -- yalc remove --all
+npm ci
+```
 
 ### Clean-install release prerequisite
 
-The site's Chakra Docs yalc links are local, ignored artifacts, not reproducible npm
-dependencies. A passing local build with these links does **not** establish
-that the GitHub CI or Pages jobs can build a fresh checkout. The Chakra Docs
-`/theme` import still requires a compatible published release. Postkit's
-focused `/remark` entry point is provided by its locked npm release.
-
-Before releasing from clean CI, publish compatible Chakra Docs packages and
-declare the site's Chakra Docs dependencies in `apps/site/package.json` with a committed
-lockfile, or provide an explicit, reviewed pinned-source build for them.
-Verify from a fresh checkout with no yalc store; do not bypass the site checks
-or externalize its unresolved browser imports to make the gate pass.
+Run `npm ci`, `npm run site:build`, and the site tests without yalc links before
+releasing. Both Chakra Docs' focused `/theme` entry point and Postkit's `/remark`
+entry point are supplied by the locked public releases. Release regression
+tests check registry URLs, integrity hashes, and versions for both package
+families. Do not externalize unresolved browser imports to make the gate pass.
 
 ## Production Hosting
 
