@@ -7,8 +7,7 @@ type JsonRecord = Record<string, unknown>;
 
 export type PreviewTab = 'preview' | 'html' | 'text' | 'source';
 export type Viewport = 'desktop' | 'mobile' | 'fluid';
-export type WorkspaceColorMode = 'light' | 'dark';
-export type EmailColorMode = 'system' | WorkspaceColorMode;
+export type EmailColorMode = 'light' | 'dark';
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting';
 export type LintSeverity = 'error' | 'warning' | 'info';
 export type LintCategory =
@@ -86,9 +85,7 @@ export type ApplicationState = {
   result: RenderResult | null;
   activeTab: PreviewTab;
   viewport: Viewport;
-  workspaceColorMode: WorkspaceColorMode;
   emailColorMode: EmailColorMode;
-  systemColorMode: WorkspaceColorMode;
   selectedVariant: string;
   propsText: string;
   appliedProps: JsonRecord | null;
@@ -136,8 +133,6 @@ function downloadFilename(name: string, extension: string): string {
   return `${stem || 'email'}.${extension}`;
 }
 
-const workspaceColorModeStorageKey =
-  'chakra-email.preview.workspace-color-mode';
 const emailColorModeStorageKey = 'chakra-email.preview.email-color-mode';
 
 function readStoredValue(key: string): string | null {
@@ -156,24 +151,10 @@ function storeValue(key: string, value: string): void {
   }
 }
 
-function initialWorkspaceColorMode(): WorkspaceColorMode {
-  const stored = readStoredValue(workspaceColorModeStorageKey);
-
-  if (stored === 'light' || stored === 'dark') {
-    return stored;
-  }
-
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
-}
-
 function initialEmailColorMode(): EmailColorMode {
   const stored = readStoredValue(emailColorModeStorageKey);
-
-  return stored === 'light' || stored === 'dark' || stored === 'system'
-    ? stored
-    : 'system';
+  // Legacy System preferences now use the predictable light preview default.
+  return stored === 'dark' ? 'dark' : 'light';
 }
 
 function parseTemplates(value: unknown): {
@@ -391,7 +372,7 @@ function defaultDownloadText(
 /** Force only Chakra Email's generated rules; delivery output stays untouched. */
 export function withPreviewColorMode(
   html: string,
-  mode: EmailColorMode,
+  mode: EmailColorMode | 'system',
 ): string {
   if (mode === 'system') return html;
   const media = mode === 'dark' ? 'all' : 'not all';
@@ -466,7 +447,6 @@ export class PreviewApplication {
   private refreshScheduled = false;
   private copyTimer: number | null = null;
   private copySequence = 0;
-  private systemColorScheme: MediaQueryList | null = null;
   private started = false;
 
   private readonly state: ApplicationState = {
@@ -477,9 +457,7 @@ export class PreviewApplication {
     result: null,
     activeTab: 'preview',
     viewport: 'desktop',
-    workspaceColorMode: initialWorkspaceColorMode(),
     emailColorMode: initialEmailColorMode(),
-    systemColorMode: 'light',
     selectedVariant: '',
     propsText: '{}',
     appliedProps: null,
@@ -518,15 +496,6 @@ export class PreviewApplication {
     }
 
     this.started = true;
-    this.systemColorScheme =
-      window.matchMedia?.('(prefers-color-scheme: dark)') ?? null;
-    this.state.systemColorMode = this.systemColorScheme?.matches
-      ? 'dark'
-      : 'light';
-    this.systemColorScheme?.addEventListener(
-      'change',
-      this.syncSystemColorMode,
-    );
     this.reactRoot = createRoot(this.root);
     this.render();
     this.connectEvents();
@@ -535,11 +504,6 @@ export class PreviewApplication {
 
   public destroy(): void {
     this.started = false;
-    this.systemColorScheme?.removeEventListener(
-      'change',
-      this.syncSystemColorMode,
-    );
-    this.systemColorScheme = null;
     this.resetCopyFeedback();
     this.renderSequence += 1;
     this.eventSource?.close();
@@ -560,32 +524,11 @@ export class PreviewApplication {
     this.render();
   };
 
-  private readonly toggleWorkspaceColorMode = (): void => {
-    this.state.workspaceColorMode =
-      this.state.workspaceColorMode === 'dark' ? 'light' : 'dark';
-    storeValue(workspaceColorModeStorageKey, this.state.workspaceColorMode);
+  private readonly toggleEmailColorMode = (): void => {
+    this.state.emailColorMode =
+      this.state.emailColorMode === 'dark' ? 'light' : 'dark';
+    storeValue(emailColorModeStorageKey, this.state.emailColorMode);
     this.render();
-  };
-
-  private readonly changeEmailColorMode = (
-    emailColorMode: EmailColorMode,
-  ): void => {
-    this.state.emailColorMode = emailColorMode;
-    if (emailColorMode === 'system') {
-      this.state.systemColorMode = this.systemColorScheme?.matches
-        ? 'dark'
-        : 'light';
-    }
-    storeValue(emailColorModeStorageKey, emailColorMode);
-    this.render();
-  };
-
-  private readonly syncSystemColorMode = (): void => {
-    if (!this.started) return;
-    this.state.systemColorMode = this.systemColorScheme?.matches
-      ? 'dark'
-      : 'light';
-    if (this.state.emailColorMode === 'system') this.render();
   };
 
   private readonly changeRemoteImages = (checked: boolean): void => {
@@ -1092,18 +1035,12 @@ export class PreviewApplication {
     }
 
     const state = { ...this.state };
-    document.documentElement.dataset['theme'] = state.workspaceColorMode;
+    document.documentElement.dataset['theme'] = 'dark';
     // Chakra v3's semantic tokens and condition styles follow these classes,
     // including portalled components rendered outside the workspace root.
-    document.documentElement.classList.toggle(
-      'dark',
-      state.workspaceColorMode === 'dark',
-    );
-    document.documentElement.classList.toggle(
-      'light',
-      state.workspaceColorMode === 'light',
-    );
-    document.documentElement.style.colorScheme = state.workspaceColorMode;
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
+    document.documentElement.style.colorScheme = 'dark';
     const securedHtml = state.result
       ? withPreviewContentSecurityPolicy(
           withPreviewColorMode(state.result.html, state.emailColorMode),
@@ -1122,8 +1059,7 @@ export class PreviewApplication {
           },
           onTabChange: this.changeTab,
           onViewportChange: this.changeViewport,
-          onToggleWorkspaceColorMode: this.toggleWorkspaceColorMode,
-          onEmailColorModeChange: this.changeEmailColorMode,
+          onToggleEmailColorMode: this.toggleEmailColorMode,
           onRemoteImagesChange: this.changeRemoteImages,
           onVariantChange: this.changeVariant,
           onPropsTextChange: this.changePropsText,

@@ -30,7 +30,6 @@ import { forwardRef, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import type {
   ApplicationState,
-  EmailColorMode,
   LintFinding,
   LintSeverity,
   PreviewTab,
@@ -79,30 +78,6 @@ const viewports: ReadonlyArray<{
   },
 ];
 
-const emailColorModes: ReadonlyArray<{
-  id: EmailColorMode;
-  label: string;
-  tooltip: string;
-}> = [
-  {
-    id: 'system',
-    label: 'System',
-    tooltip: 'Use your current system color preference in the email preview',
-  },
-  {
-    id: 'light',
-    label: 'Light',
-    tooltip:
-      'Preview authored light styles; client-specific color inversion is not simulated',
-  },
-  {
-    id: 'dark',
-    label: 'Dark',
-    tooltip:
-      'Preview authored dark styles; client-specific color inversion is not simulated',
-  },
-];
-
 export type PreviewWorkspaceProps = {
   state: Readonly<ApplicationState>;
   securedHtml: string | null;
@@ -110,8 +85,7 @@ export type PreviewWorkspaceProps = {
   onSelectTemplate(templateId: string): void;
   onTabChange(tab: PreviewTab): void;
   onViewportChange(viewport: Viewport): void;
-  onToggleWorkspaceColorMode(): void;
-  onEmailColorModeChange(colorMode: EmailColorMode): void;
+  onToggleEmailColorMode(): void;
   onRemoteImagesChange(checked: boolean): void;
   onVariantChange(variant: string): void;
   onPropsTextChange(value: string): void;
@@ -232,24 +206,25 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
             </IconButton>
           </PreviewTooltip>
           <PreviewTooltip
-            content={`Switch the app to the ${
-              state.workspaceColorMode === 'dark' ? 'light' : 'dark'
-            } workspace theme`}
+            content={`Preview the email in ${
+              state.emailColorMode === 'dark' ? 'light' : 'dark'
+            } mode. The workspace stays dark; client-specific color inversion is not simulated.`}
           >
             <IconButton
-              className="workspace-color-mode-toggle"
+              className="email-color-mode-toggle"
               type="button"
-              data-action="toggle-workspace-color-mode"
-              aria-label={`Use ${
-                state.workspaceColorMode === 'dark' ? 'light' : 'dark'
-              } workspace theme`}
+              data-action="toggle-email-color-mode"
+              aria-label={`Preview email in ${
+                state.emailColorMode === 'dark' ? 'light' : 'dark'
+              } mode`}
+              disabled={!state.result}
               size="sm"
               css={styles.modeToggle}
               variant="ghost"
-              onClick={props.onToggleWorkspaceColorMode}
+              onClick={props.onToggleEmailColorMode}
             >
               <ActionIcon
-                name={state.workspaceColorMode === 'dark' ? 'sun' : 'moon'}
+                name={state.emailColorMode === 'dark' ? 'sun' : 'moon'}
               />
             </IconButton>
           </PreviewTooltip>
@@ -556,11 +531,7 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                     tabIndex={0}
                   >
                     {state.activeTab === tab.id ? (
-                      <Viewer
-                        state={state}
-                        securedHtml={props.securedHtml}
-                        onEmailColorModeChange={props.onEmailColorModeChange}
-                      />
+                      <Viewer state={state} securedHtml={props.securedHtml} />
                     ) : null}
                   </Tabs.Content>
                 ))}
@@ -1084,11 +1055,7 @@ function lintSeverityBackground(severity: LintSeverity): string {
 function Viewer({
   state,
   securedHtml,
-  onEmailColorModeChange,
-}: Pick<
-  PreviewWorkspaceProps,
-  'state' | 'securedHtml' | 'onEmailColorModeChange'
->) {
+}: Pick<PreviewWorkspaceProps, 'state' | 'securedHtml'>) {
   const recipe = usePreviewSlotRecipe(
     previewSlotRecipeKeys.viewer,
     previewViewerSlotRecipe,
@@ -1122,14 +1089,10 @@ function Viewer({
   }
 
   if (state.activeTab === 'preview') {
-    const resolvedEmailColorMode =
-      state.emailColorMode === 'system'
-        ? state.systemColorMode
-        : state.emailColorMode;
+    const resolvedEmailColorMode = state.emailColorMode;
     const frameBackground =
       resolvedEmailColorMode === 'dark' ? 'preview.previewFrameDark' : 'white';
-    // Embedded documents use their embedding element's color scheme. Resolve
-    // System from the live OS preference, independently of workspace styling.
+    // Keep the embedded document independent of the permanently dark shell.
     const iframeColorScheme = `only ${resolvedEmailColorMode}`;
 
     return (
@@ -1184,31 +1147,6 @@ function Viewer({
             </PreviewTooltip>
           </Flex>
           <Flex align="center" gap="3" wrap="wrap">
-            <Flex
-              role="group"
-              aria-label="Email preview color mode"
-              css={styles.modeGroup}
-            >
-              <Text px="1.5">Email</Text>
-              {emailColorModes.map((colorMode) => (
-                <PreviewTooltip key={colorMode.id} content={colorMode.tooltip}>
-                  <Button
-                    type="button"
-                    data-email-color-mode={colorMode.id}
-                    aria-pressed={state.emailColorMode === colorMode.id}
-                    css={
-                      recipe({
-                        selected: state.emailColorMode === colorMode.id,
-                      }).modeButton
-                    }
-                    variant="ghost"
-                    onClick={() => onEmailColorModeChange(colorMode.id)}
-                  >
-                    {colorMode.label}
-                  </Button>
-                </PreviewTooltip>
-              ))}
-            </Flex>
             <Text>
               {state.remoteImages
                 ? 'Remote images on'

@@ -143,8 +143,9 @@ page. The inspector scrolls independently.
 - Copy, Download, viewport presets, and Reset size use icon buttons with
   accessible names and tooltips on hover or keyboard focus. Copy and Download
   describe the active output format; copying shows a checkmark and announces
-  success. Remote images, email color modes, and form actions retain
-  visible labels.
+  success. Remote images and form actions retain visible labels. The header's
+  sun/moon icon button toggles the email preview between Light and Dark, with
+  an accessible name and tooltip describing the next mode.
 - Preview, HTML, Text, and Source form a compact icon tab group with tooltips
   and accessible names. They retain tab/panel associations, a single tab stop,
   and arrow-key / Home / End navigation. The viewer `tabs` and `tab` slots
@@ -153,18 +154,17 @@ page. The inspector scrolls independently.
   Set `--preview-icon-button-size` to customize the hit area (default: 44px on
   small screens, 32px from `md` upwards). Existing action recipes still control
   colors, borders, and interaction styling.
-- Workspace light/dark mode remains independent of the email color mode.
-  Email color-mode controls affect only the email frame, not the surrounding
-  canvas. The canvas follows the workspace theme; customize its background in
-  the viewer recipe's `surface` slot (default: `preview.soft`).
-  The workspace sets Chakra's `light` / `dark` classes on the document root,
-  so built-in components, portalled tooltips, and custom semantic tokens all
-  follow the selected workspace mode.
+- The workspace and canvas always use dark mode, including built-in components,
+  portalled tooltips, and custom semantic tokens. The header's email color-mode
+  toggle affects only the email frame. Customize the canvas background in the
+  viewer recipe's `surface` slot (default: `preview.soft`); recipe and theme
+  overrides remain supported.
   **Light** and **Dark** force Chakra Email's generated color rules in the
-  preview frame; **System** restores their media-query behavior using the current
-  OS/browser preference, independent of the workspace theme. It updates live
-  when that preference changes and re-checks it when selected; the saved choice
-  remains `system`, not a snapshot of light or dark. Arbitrary
+  preview frame. Explicit email choices persist locally; a new session without
+  a saved choice defaults to Light. The former footer System/Light/Dark selector
+  is removed, saved System choices fall back to Light, and old workspace-mode
+  preferences are ignored. OS color-mode changes do not change either surface.
+  Arbitrary
   authored media queries are not rewritten, and client-specific automatic color
   inversion is not simulated. Fixed template colors remain fixed. Scripts and
   forms stay disabled, and remote images still require explicit opt-in.
