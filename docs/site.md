@@ -6,9 +6,13 @@ It is an Nx-managed Vite application that imports the markdown files in `docs/` 
 
 ## Commands
 
-The current development site uses local yalc builds of Chakra Docs and Postkit
-(Chakra Docs 0.2.0 and Postkit 0.1.1). Publish those packages to your local yalc
-store first, then restore the site's links after `npm install` or `npm ci`:
+The site uses published Postkit `0.2.0` packages, pinned in
+`apps/site/package.json` and the root lockfile. `@postkit/core` and
+`@postkit/unfurl` are installed transitively by `@postkit/react`.
+
+Chakra Docs `0.2.0` still uses local yalc builds. Publish those packages to your
+local yalc store first, then restore only the Chakra Docs links after
+`npm install` or `npm ci`:
 
 ```bash
 npm run site:yalc
@@ -19,16 +23,20 @@ npm run site:preview
 
 `npm run build` also builds the site because Nx discovers the app target.
 
+For optional local Postkit development, run
+`npm run yalc:link:postkit --workspace site`. Return to registry packages with
+`npm ci`, followed by `npm run site:yalc` to restore the Chakra Docs links.
+
 ### Clean-install release prerequisite
 
-The site's yalc links are local, ignored artifacts, not reproducible npm
+The site's Chakra Docs yalc links are local, ignored artifacts, not reproducible npm
 dependencies. A passing local build with these links does **not** establish
-that the GitHub CI or Pages jobs can build a fresh checkout. The currently
-published 0.1.0 upstream packages lack the focused `/theme` and `/remark`
-exports used by this site.
+that the GitHub CI or Pages jobs can build a fresh checkout. The Chakra Docs
+`/theme` import still requires a compatible published release. Postkit's
+focused `/remark` entry point is provided by its locked npm release.
 
-Before releasing from clean CI, publish compatible upstream packages and
-declare the site's dependencies in `apps/site/package.json` with a committed
+Before releasing from clean CI, publish compatible Chakra Docs packages and
+declare the site's Chakra Docs dependencies in `apps/site/package.json` with a committed
 lockfile, or provide an explicit, reviewed pinned-source build for them.
 Verify from a fresh checkout with no yalc store; do not bypass the site checks
 or externalize its unresolved browser imports to make the gate pass.

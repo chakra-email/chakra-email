@@ -56,6 +56,36 @@ const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
 });
 const committedVersion = publicPackages[0]?.manifest.version;
 
+test('site Postkit dependencies are pinned registry packages with opt-in yalc links', () => {
+  const manifest = JSON.parse(
+    readFileSync(new URL('../apps/site/package.json', import.meta.url), 'utf8'),
+  );
+  const lock = JSON.parse(
+    readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),
+  );
+  const version = manifest.dependencies['@postkit/react'];
+  assert.match(version, /^\d+\.\d+\.\d+$/);
+  assert.equal(manifest.dependencies['@postkit/shiki'], version);
+  for (const name of ['react', 'shiki']) {
+    assert.equal(
+      lock.packages['apps/site'].dependencies[`@postkit/${name}`],
+      version,
+    );
+  }
+  for (const name of ['react', 'shiki', 'core', 'unfurl']) {
+    const entry = lock.packages[`node_modules/@postkit/${name}`];
+    assert.equal(entry.version, version);
+    assert.equal(
+      entry.resolved,
+      `https://registry.npmjs.org/@postkit/${name}/-/${name}-${version}.tgz`,
+    );
+    assert.ok(entry.integrity);
+    assert.notEqual(entry.link, true);
+  }
+  assert.ok(!manifest.scripts['yalc:link'].includes('@postkit/'));
+  assert.ok(manifest.scripts['yalc:link:postkit'].includes('@postkit/react'));
+});
+
 test('packed preview binary validation follows the packed version across releases', () => {
   for (const version of ['0.1.0', '0.2.0', '1.0.0-beta.1']) {
     assert.doesNotThrow(() =>

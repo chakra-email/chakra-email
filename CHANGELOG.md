@@ -18,6 +18,8 @@
 
 ### Changed
 
+- The docs site uses published Postkit 0.2.0 packages with a committed lockfile;
+  local Postkit yalc links are now an explicit development opt-in.
 - React 19 image preload hints are removed from every core rendering path.
 - Release-blocking dependency advisories were resolved and guarded by the
   existing high-severity audit gate.
