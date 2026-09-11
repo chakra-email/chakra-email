@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { assertPreviewBinaryMetadata } from './packed-consumer-checks.mjs';
 
 const releaseScript = fileURLToPath(
   new URL('./run-release.mjs', import.meta.url),
@@ -54,6 +55,60 @@ const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
     : [];
 });
 const committedVersion = publicPackages[0]?.manifest.version;
+
+test('packed preview binary validation follows the packed version across releases', () => {
+  for (const version of ['0.1.0', '0.2.0', '1.0.0-beta.1']) {
+    assert.doesNotThrow(() =>
+      assertPreviewBinaryMetadata(
+        {
+          help: 'Chakra Email Preview\nUsage: chakra-email-preview',
+          version: `${version}\n`,
+        },
+        version,
+      ),
+    );
+  }
+});
+
+test('packed preview binary validation rejects mismatched or missing metadata', () => {
+  assert.throws(
+    () =>
+      assertPreviewBinaryMetadata(
+        { help: 'Chakra Email Preview', version: '0.1.0' },
+        '0.2.0',
+      ),
+    /metadata check failed/,
+  );
+  assert.throws(
+    () =>
+      assertPreviewBinaryMetadata(
+        { help: 'Wrong binary', version: '0.2.0' },
+        '0.2.0',
+      ),
+    /metadata check failed/,
+  );
+  assert.throws(
+    () =>
+      assertPreviewBinaryMetadata(
+        { help: 'Chakra Email Preview', version: '0.2.0' },
+        undefined,
+      ),
+    /missing its version/,
+  );
+  assert.throws(
+    () =>
+      assertPreviewBinaryMetadata(
+        { help: 'Chakra Email Preview', version: '0.2.0' },
+        '',
+      ),
+    /missing its version/,
+  );
+  assert.ok(packedConsumerSource.includes('assertPreviewBinaryMetadata('));
+  assert.match(
+    packedConsumerSource,
+    /packedPackages\.find\([\s\S]*?name === '@chakra-email\/preview'\)\s*\?\.version/,
+  );
+});
 
 function validateReleaseInput(version, overrides = {}) {
   const env = {

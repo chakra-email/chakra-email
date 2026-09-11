@@ -9,6 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertPreviewBinaryMetadata } from './packed-consumer-checks.mjs';
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const workspaceRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -582,17 +583,11 @@ try {
     cwd: consumerDirectory,
     encoding: 'utf8',
   });
-  if (
-    !previewHelp.includes('Chakra Email Preview') ||
-    previewVersion.trim() !== '0.1.0'
-  ) {
-    throw new Error(
-      `Packed preview binary metadata check failed: ${JSON.stringify({
-        help: previewHelp,
-        version: previewVersion,
-      })}`,
-    );
-  }
+  assertPreviewBinaryMetadata(
+    { help: previewHelp, version: previewVersion },
+    packedPackages.find(({ name }) => name === '@chakra-email/preview')
+      ?.version,
+  );
   console.log('ok packed preview binary help and version');
   execFileSync(
     previewBin,

@@ -31,6 +31,8 @@
 
 ### Fixed
 
+- Validate the packed preview CLI against its package version instead of a
+  hard-coded release number, including regression coverage for future releases.
 - Override Nx's transitive `smol-toml` dependency to 1.7.1 to resolve
   GHSA-7w5x-hrqm-74c2 without downgrading the Nx toolchain.
 
