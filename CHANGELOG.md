@@ -31,6 +31,9 @@
 
 ### Fixed
 
+- Override Nx's transitive `smol-toml` dependency to 1.7.1 to resolve
+  GHSA-7w5x-hrqm-74c2 without downgrading the Nx toolchain.
+
 - Preview hostname validation rejects `127.`-prefixed domains that are not
   loopback IP addresses, preventing them from receiving the preview UI token.
 - URL validation preserves valid percent-encoded content such as `%25` while
