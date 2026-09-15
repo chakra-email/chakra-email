@@ -35,10 +35,13 @@ this repository alone.
   npm view chakra-email@0.1.0 version
   npm view @chakra-email/chakra-v2@0.1.0 version
   npm view @chakra-email/preview@0.1.0 version
+  npm view @chakra-email/react-email@0.1.0 version
+  npm view @chakra-email/code-block@0.1.0 version
+  npm view @chakra-email/markdown@0.1.0 version
   ```
 
 - [ ] A short-lived granular access token has the narrowest package read/write
-      access that covers all four names, has **Bypass 2FA** enabled, and is
+      access that covers all seven names, has **Bypass 2FA** enabled, and is
       stored only as the protected `npm-publish` environment secret
       `NPM_BOOTSTRAP_TOKEN`.
 - [ ] Version `0.1.0` is committed in every public package manifest and the
@@ -92,20 +95,32 @@ preview tool.
 
 ## Release Verification
 
+- [ ] The documentation site's Chakra Docs and Postkit dependencies resolve
+      from a fresh checkout without a local yalc store. Follow the
+      [site clean-install prerequisite](site.md#clean-install-release-prerequisite)
+      before relying on CI, Pages, or a local release-check result.
+- [ ] A release-preparation commit aligns every public package manifest and the
+      lockfile to the new immutable version, including first-party dependency
+      ranges so consumers cannot resolve a mixed 0.1.x/0.2.x package set.
+      The Release Action validates this
+      committed version; it does not create or commit a version bump.
+- [ ] The changelog's Unreleased notes are moved under that version and release
+      date before the release-preparation commit is merged.
+
 - [ ] `npm run release:check` passes on the exact release commit under Node 22
       and Node 24.
 - [ ] The Node 20.19 / React 18 compatibility job passes on that same commit.
 - [ ] The successful CI run was triggered by a push to `main`, and the Release
       workflow's `Require successful CI for release commit` job accepts its
       exact commit SHA.
-- [ ] The workflow dry run reports the intended fixed version for all four
+- [ ] The workflow dry run reports the intended fixed version for all seven
       packages and only the intended package contents.
 - [ ] The publish job runs from the reviewed `main` SHA without a newer commit
       landing between verification and publication.
 - [ ] After all packages are published, a maintainer creates the matching
       `v{version}` GitHub release and tag from the exact published commit.
 - [ ] The GitHub release, `v{version}` tag, changelog, committed package
-      manifests, and all four npm package versions agree.
+      manifests, and all seven npm package versions agree.
 - [ ] A clean consumer can install the published packages, run the documented
       React 18 and React 19 examples, and launch the installed preview CLI with
       its bundled browser assets.

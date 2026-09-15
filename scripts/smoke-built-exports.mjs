@@ -1,15 +1,35 @@
 const exportChecks = new Map([
+  ['@chakra-email/code-block', ['CodeBlock', 'plainTextHighlighter']],
   [
-    '@chakra-email/preview',
-    ['createPreviewServer', 'defineConfig', 'lintRenderedEmail'],
+    '@chakra-email/markdown',
+    ['Markdown', 'createMarkdownDirectiveSupport', 'strictMarkdownLimits'],
   ],
   [
+    '@chakra-email/preview',
+    [
+      'createPreviewServer',
+      'defineConfig',
+      'exportTemplates',
+      'lintRenderedEmail',
+      'previewCompatibilityReferences',
+    ],
+  ],
+  ['@chakra-email/react-email', ['reactEmailRenderer']],
+  [
     '@chakra-email/core',
-    ['Blockquote', 'Button', 'Code', 'Table', 'ThemeProvider', 'render'],
+    [
+      'Blockquote',
+      'Button',
+      'Code',
+      'Font',
+      'Table',
+      'ThemeProvider',
+      'render',
+    ],
   ],
   [
     '@chakra-email/core/components',
-    ['Blockquote', 'Button', 'Code', 'Pre', 'Table', 'Text'],
+    ['Blockquote', 'Button', 'Code', 'Font', 'Pre', 'Table', 'Text'],
   ],
   ['@chakra-email/core/components/Blockquote', ['Blockquote']],
   ['@chakra-email/core/components/Button', ['Button']],
@@ -19,7 +39,14 @@ const exportChecks = new Map([
     '@chakra-email/core/components/Table',
     ['Table', 'TableCell', 'TableHeader'],
   ],
-  ['@chakra-email/core/render', ['render', 'renderPlainText']],
+  [
+    '@chakra-email/core/render',
+    ['chakraEmailRenderer', 'render', 'renderEmail', 'renderPlainText'],
+  ],
+  [
+    '@chakra-email/core/security',
+    ['EmailRenderError', 'sanitizeEmailUrl', 'strictEmailSecurityPolicy'],
+  ],
   ['@chakra-email/core/system', ['mapChakraPropsToStyles']],
   ['@chakra-email/core/theme', ['ThemeProvider', 'mergeTheme']],
   [
@@ -31,6 +58,7 @@ const exportChecks = new Map([
     ['Blockquote', 'Button', 'Code', 'Pre', 'Table', 'Text'],
   ],
   ['chakra-email/render', ['render', 'renderPlainText']],
+  ['chakra-email/security', ['EmailRenderError', 'sanitizeEmailUrl']],
   ['chakra-email/system', ['mapChakraPropsToStyles']],
   ['chakra-email/theme', ['ChakraEmailProvider', 'createChakraV3EmailTheme']],
   [
@@ -49,6 +77,10 @@ const exportChecks = new Map([
     ['Blockquote', 'Button', 'Code', 'Pre', 'Table', 'Text'],
   ],
   ['@chakra-email/chakra-v2/render', ['render', 'renderPlainText']],
+  [
+    '@chakra-email/chakra-v2/security',
+    ['EmailRenderError', 'sanitizeEmailUrl'],
+  ],
   ['@chakra-email/chakra-v2/system', ['mapChakraPropsToStyles']],
   [
     '@chakra-email/chakra-v2/theme',

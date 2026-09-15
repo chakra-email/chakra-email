@@ -128,7 +128,7 @@ main {
 
 .hero-section,
 .quickstart-band,
-.docs-section,
+.docs-intro,
 .examples-section,
 .packages-section,
 .site-footer {
@@ -274,8 +274,7 @@ h1 {
 }
 
 .email-preview pre,
-.code-workbench pre,
-.markdown-body pre {
+.code-workbench pre {
   border-radius: 8px;
   background: var(--code-bg);
   color: #d8f7e8;
@@ -300,8 +299,7 @@ h1 {
 
 .quickstart-band h2,
 .section-heading h2,
-.docs-sidebar h2,
-.doc-panel-header h2 {
+.docs-intro h2 {
   color: var(--ink);
   font-size: clamp(1.8rem, 3vw, 2.5rem);
   line-height: 1.05;
@@ -346,172 +344,36 @@ h1 {
   white-space: nowrap;
 }
 
-.docs-section {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 28px;
-  align-items: start;
+.docs-experience {
   padding-top: 84px;
 }
 
-.docs-sidebar {
-  position: sticky;
-  top: 96px;
-  padding: 22px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
+.docs-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 28px;
+  padding-bottom: 16px;
 }
 
-.docs-sidebar p:not(.eyebrow) {
-  margin-top: 12px;
-  color: var(--muted);
-  font-size: 0.94rem;
-}
-
-.docs-sidebar code {
-  color: var(--brand-dark);
-}
-
-.docs-sidebar nav {
-  display: grid;
-  gap: 8px;
-  margin-top: 22px;
-}
-
-.doc-nav-link {
-  display: grid;
-  gap: 2px;
-  padding: 10px 12px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-}
-
-.doc-nav-link:hover {
-  border-color: #c6d5cf;
-  background: #f3f8f5;
-}
-
-.doc-nav-link span {
-  font-weight: 800;
-}
-
-.doc-nav-link small {
-  color: var(--muted);
-}
-
-.docs-stack {
-  display: grid;
-  gap: 22px;
-}
-
-.doc-panel {
-  padding: clamp(22px, 4vw, 38px);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: white;
-}
-
-.doc-panel-header {
+.docs-intro > div {
   max-width: 720px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--border);
 }
 
-.doc-panel-header span {
-  display: block;
+.docs-intro p:not(.eyebrow) {
   margin-top: 12px;
   color: var(--muted);
-}
-
-.markdown-body {
-  display: grid;
-  gap: 16px;
-  max-width: 860px;
-  padding-top: 28px;
-}
-
-.markdown-body h1 {
-  font-size: clamp(2rem, 4vw, 3rem);
-}
-
-.markdown-body h2 {
-  margin-top: 14px;
-  font-size: 1.55rem;
-}
-
-.markdown-body h3 {
-  font-size: 1.16rem;
-}
-
-.markdown-body p,
-.markdown-body li,
-.markdown-body td {
-  color: #40504a;
-}
-
-.markdown-body ul,
-.markdown-body ol {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding-left: 22px;
-}
-
-.markdown-body a,
-.source-link {
-  color: var(--brand-dark);
-  font-weight: 800;
-  text-decoration: underline;
-  text-decoration-color: rgba(15, 123, 104, 0.28);
-  text-underline-offset: 4px;
-}
-
-.markdown-body code:not(pre code) {
-  padding: 1px 6px;
-  border-radius: 5px;
-  background: #eef5f1;
-  color: var(--brand-dark);
-  font-size: 0.9em;
-}
-
-.markdown-body pre {
-  padding: 18px;
-}
-
-.markdown-body table {
-  width: 100%;
-  border-collapse: collapse;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.94rem;
-}
-
-.markdown-body th,
-.markdown-body td {
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
-}
-
-.markdown-body th {
-  background: #f1f7f4;
-  color: var(--ink);
-}
-
-.markdown-body blockquote {
-  margin: 0;
-  padding: 14px 16px;
-  border-left: 4px solid var(--amber);
-  border-radius: 0 8px 8px 0;
-  background: var(--paper-warm);
+  font-size: 1.02rem;
 }
 
 .source-link {
   display: inline-flex;
   margin-top: 26px;
+  color: var(--brand-dark);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: rgba(15, 123, 104, 0.28);
+  text-underline-offset: 4px;
 }
 
 .examples-section,
@@ -522,7 +384,6 @@ h1 {
 .section-heading {
   max-width: 720px;
 }
-
 .section-heading p:not(.eyebrow) {
   margin-top: 12px;
   color: var(--muted);
@@ -648,8 +509,7 @@ h1 {
 
 @media (max-width: 920px) {
   .hero-section,
-  .quickstart-band,
-  .docs-section {
+  .quickstart-band {
     grid-template-columns: 1fr;
   }
 
@@ -657,8 +517,9 @@ h1 {
     min-height: auto;
   }
 
-  .docs-sidebar {
-    position: static;
+  .docs-intro {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .example-grid {
@@ -686,15 +547,14 @@ h1 {
 
   .hero-section,
   .quickstart-band,
-  .docs-section,
+  .docs-intro,
   .examples-section,
   .packages-section,
   .site-footer {
     width: min(100% - 24px, 1180px);
   }
 
-  .quickstart-band,
-  .doc-panel {
+  .quickstart-band {
     padding: 20px;
   }
 }

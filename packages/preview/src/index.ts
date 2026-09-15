@@ -10,9 +10,34 @@ export type {
   LoadPreviewConfigOptions,
   PreviewConfig,
   ResolvedPreviewConfig,
+  PreviewThemeConfig,
+  PreviewTestSendMessage,
+  PreviewTestSendResult,
+  PreviewTestTransport,
 } from './config.js';
 export { createPreviewServer } from './server.js';
+export { exportTemplates } from './export-templates.js';
+export type {
+  ExportedTemplateFile,
+  ExportFormat,
+  ExportManifest,
+  ExportManifestEntry,
+  ExportTemplatesOptions,
+  ExportTemplatesResult,
+} from './export-templates.js';
 export { lintRenderedEmail } from './lint-email.js';
+export { createEmailLinkChecker } from './check-links.js';
+export type {
+  PreviewLinkCheckConfig,
+  PreviewLinkCheckResult,
+} from './check-links.js';
+export {
+  compatibilityReferenceForRule,
+  previewCompatibilityReferences,
+} from './compatibility.js';
+export type { PreviewCompatibilityReference } from './compatibility.js';
+export { previewSlotRecipeKeys } from './ui-theme.js';
+export type { PreviewSlotRecipeKey } from './ui-theme.js';
 export type {
   CreatePreviewServerOptions,
   PreviewServer,
@@ -26,4 +51,7 @@ export type {
   PreviewRenderResponse,
   PreviewTemplate,
   PreviewTemplatesResponse,
+  PreviewTestSendRequest,
+  PreviewTestSendResponse,
 } from './protocol.js';
+export type { PreviewSubject, TemplateModule } from './render-template.js';

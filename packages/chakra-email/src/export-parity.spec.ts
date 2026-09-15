@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import * as coreRoot from '@chakra-email/core';
 import * as coreComponents from '@chakra-email/core/components';
 import * as coreRender from '@chakra-email/core/render';
+import * as coreSecurity from '@chakra-email/core/security';
 import * as coreSystem from '@chakra-email/core/system';
 import * as coreTheme from '@chakra-email/core/theme';
 import * as wrapperRoot from './index';
 import * as wrapperComponents from './components';
 import * as wrapperRender from './render';
+import * as wrapperSecurity from './security';
 import * as wrapperSystem from './system';
 import * as wrapperTheme from './theme';
 
@@ -20,6 +22,7 @@ const allowedOmissions: Record<string, readonly string[]> = {
   '.': [],
   './components': [],
   './render': [],
+  './security': [],
   './system': [],
   './theme': [],
 };
@@ -58,6 +61,12 @@ describe('chakra-email export parity with @chakra-email/core', () => {
 
   it('re-exports every runtime export of core/render', () => {
     expect(missingExports(coreRender, wrapperRender, './render')).toEqual([]);
+  });
+
+  it('re-exports every runtime export of core/security', () => {
+    expect(missingExports(coreSecurity, wrapperSecurity, './security')).toEqual(
+      [],
+    );
   });
 
   it('re-exports every runtime export of core/system', () => {

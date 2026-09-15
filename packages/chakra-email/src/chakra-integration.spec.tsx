@@ -1,10 +1,18 @@
-import { createSystem, defaultConfig, defineConfig } from '@chakra-ui/react';
+import {
+  createSystem,
+  defaultConfig,
+  defineConfig,
+  defineSlotRecipe,
+} from '@chakra-ui/react';
 import { describe, expect, it } from 'vitest';
 import {
   Body,
+  Button,
   ChakraEmailProvider,
   Html,
   Text,
+  chakraEmailSlotRecipeKeys,
+  chakraEmailThemeConfig,
   createChakraV3EmailTheme,
   render,
 } from './index';
@@ -33,6 +41,28 @@ const chakraSystem = createSystem(
             },
           },
         },
+      },
+    },
+  }),
+);
+
+const chakraRecipeSystem = createSystem(
+  defaultConfig,
+  chakraEmailThemeConfig,
+  defineConfig({
+    theme: {
+      slotRecipes: {
+        [chakraEmailSlotRecipeKeys.button]: defineSlotRecipe({
+          slots: ['root', 'cell', 'link'],
+          variants: {
+            variant: {
+              solid: {
+                cell: { bg: '#123456' },
+                link: { color: '#ffffff' },
+              },
+            },
+          },
+        }),
       },
     },
   }),
@@ -79,5 +109,16 @@ describe('Chakra UI v3 integration', () => {
     );
 
     expect(html).toContain('color:#6366f1');
+  });
+
+  it('accepts the portable recipe config in a real Chakra system', async () => {
+    const html = await render(
+      <ChakraEmailProvider theme={chakraRecipeSystem}>
+        <Button href="https://example.com">System recipe</Button>
+      </ChakraEmailProvider>,
+    );
+
+    expect(html).toContain('background-color:#123456');
+    expect(html).toContain('color:#ffffff');
   });
 });

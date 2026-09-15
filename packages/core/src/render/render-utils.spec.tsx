@@ -26,7 +26,7 @@ import {
   Text,
 } from '../components';
 import { pretty } from './pretty';
-import { render, renderPlainText } from './render';
+import { render, renderEmail, renderPlainText } from './render';
 import { toPlainText } from './text';
 
 describe('render utilities', () => {
@@ -69,6 +69,87 @@ describe('render utilities', () => {
     );
 
     expect(text).toBe('Plain option');
+  });
+
+  it('returns matching HTML and text from one component render', async () => {
+    let renderCount = 0;
+
+    function StatefulEmail() {
+      renderCount += 1;
+      return (
+        <Html>
+          <Body>
+            <Text>Render {renderCount}</Text>
+          </Body>
+        </Html>
+      );
+    }
+
+    const result = await renderEmail(<StatefulEmail />, { pretty: true });
+
+    expect(renderCount).toBe(1);
+    expect(result.html).toContain('Render 1');
+    expect(result.text).toBe('Render 1');
+  });
+
+  it('enforces final HTML and text byte limits', async () => {
+    const email = <Text>{'é'.repeat(10)}</Text>;
+
+    await expect(
+      render(email, { outputLimits: { maxHtmlBytes: 10 } }),
+    ).rejects.toMatchObject({
+      code: 'OUTPUT_TOO_LARGE',
+      details: { output: 'html' },
+    });
+    await expect(
+      renderEmail(email, { outputLimits: { maxTextBytes: 10 } }),
+    ).rejects.toMatchObject({
+      code: 'OUTPUT_TOO_LARGE',
+      details: { output: 'text' },
+    });
+    await expect(
+      renderPlainText(email, { outputLimits: { maxTextBytes: 10 } }),
+    ).rejects.toMatchObject({ code: 'OUTPUT_TOO_LARGE' });
+  });
+
+  it('rejects invalid output limit configuration', async () => {
+    await expect(
+      render(<Text>Content</Text>, {
+        outputLimits: { maxHtmlBytes: 0 },
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_COMPONENT_PROP' });
+  });
+
+  it('removes browser-only image preloads from every HTML render path', async () => {
+    const email = (
+      <Html>
+        <Head>
+          <link rel="preload" as="font" href="https://example.com/font.woff2" />
+        </Head>
+        <Body>
+          <Img src="https://example.com/logo.png" alt="Example" />
+        </Body>
+      </Html>
+    );
+
+    const html = await render(email);
+    const renderedEmail = await renderEmail(email);
+
+    expect(html).not.toContain('rel="preload" as="image"');
+    expect(renderedEmail.html).not.toContain('rel="preload" as="image"');
+    expect(html).toContain('rel="preload" as="font"');
+  });
+
+  it('supports plain-text skips and consumer conversion options', () => {
+    const html =
+      '<p>Keep</p><p data-skip-in-text="true">Skip</p><h1>Heading</h1>';
+
+    expect(toPlainText(html)).toBe('Keep\n\nHeading');
+    expect(
+      toPlainText(html, {
+        selectors: [{ selector: 'h1', options: { uppercase: false } }],
+      }),
+    ).toBe('Keep\n\nHeading');
   });
 
   it('converts common HTML constructs to plain text', () => {
@@ -210,10 +291,12 @@ describe('render utilities', () => {
     expect(pretty(once)).toBe(once);
   });
 
-  it('separates list items with paragraph breaks in plain text', () => {
-    expect(toPlainText('<ul><li>One</li><li>Two</li></ul>')).toBe('One\n\nTwo');
+  it('preserves list semantics in plain text', () => {
+    expect(toPlainText('<ul><li>One</li><li>Two</li></ul>')).toBe(
+      '* One\n * Two',
+    );
     expect(toPlainText('<ol><li>First</li><li>Second</li></ol>')).toBe(
-      'First\n\nSecond',
+      '1. First\n 2. Second',
     );
   });
 
@@ -251,23 +334,23 @@ describe('render utilities', () => {
       </Html>,
     );
 
-    // List items are separated by blank lines (no bullet characters).
-    expect(text).toContain('Alpha\n\nBeta');
+    // List items retain their bullet characters.
+    expect(text).toContain('* Alpha\n * Beta');
     // Blockquote content survives as its own paragraph.
     expect(text).toContain('Quoted wisdom');
     // Inline code is unwrapped into the surrounding sentence.
     expect(text).toContain('Inline npm install sample.');
-    // Pre content is preserved, though internal whitespace is collapsed.
-    expect(text).toContain('first line second line');
+    // Pre content preserves its meaningful line breaks.
+    expect(text).toContain('first line\nsecond line');
     // Hr becomes a --- divider on its own paragraph.
     expect(text).toContain('---');
     // Links keep their href in brackets.
     expect(text).toContain('Docs [https://example.com/docs]');
     // Images surface their alt text.
     expect(text).toContain('Company logo');
-    // Table cells in the same row are space-separated; rows become paragraphs.
-    expect(text).toContain('Feature Status');
-    expect(text).toContain('Render Stable');
+    // Semantic tables preserve rows and readable column separation.
+    expect(text).toMatch(/Feature\s+Status/u);
+    expect(text).toMatch(/Render\s+Stable/u);
   });
 
   it('produces clean plain text from a fully rendered document', async () => {

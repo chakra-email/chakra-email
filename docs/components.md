@@ -6,6 +6,7 @@ Chakra Email components render email-safe HTML and accept Chakra-style style pro
 
 - `Html` - root document element.
 - `Head` - common email metadata.
+- `Font` - theme-aware font stacks and optional safe HTTP(S) web-font declarations. Place it inside `Head`.
 - `Preview` - hidden inbox preview text.
 - `Body` - email body wrapper.
 
@@ -69,6 +70,11 @@ relative or protocol-relative path:
   `#fragment` destinations.
 - `Img` allows `http:`, `https:`, and `cid:` sources. A `cid:` value must match
   the `Content-ID` of an image attached by the sending provider.
+- `Img` intentionally does not support `srcSet`: candidate lists are rejected
+  by the public types and throw a content-free `INVALID_COMPONENT_PROP` error
+  at runtime, regardless of URL omission settings. Use one policy-validated
+  `src` (with a higher-resolution asset and explicit display dimensions when
+  needed) so alternative image sources cannot bypass the image URL policy.
 - Relative paths, protocol-relative URLs, empty values, and unsupported
   protocols are omitted from the rendered `href` or `src` attribute.
 

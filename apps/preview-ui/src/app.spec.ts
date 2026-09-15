@@ -1,8 +1,10 @@
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { previewSlotRecipeKeys } from './theme';
 import {
   PreviewApplication,
   withPreviewContentSecurityPolicy,
+  withPreviewColorMode,
   type PreviewApplicationOptions,
 } from './app';
 
@@ -10,6 +12,11 @@ type RenderRequest = {
   id: string;
   variant?: string;
   props?: Record<string, unknown>;
+};
+
+type TestSendRequest = RenderRequest & {
+  subject?: string;
+  to: string;
 };
 
 class FakeEventSource extends EventTarget {
@@ -47,12 +54,36 @@ function getElement<ElementType extends Element>(
   return element;
 }
 
+// JSDOM does not resolve cascade layers/media queries in getComputedStyle.
+// Inspect emitted rules for an element, including nested layers.
+function elementDeclarations(element: Element): CSSStyleDeclaration[] {
+  const declarations: CSSStyleDeclaration[] = [];
+  const selectors = new Set(
+    Array.from(element.classList, (name) => `.${name}`),
+  );
+  const visit = (rules: CSSRuleList) => {
+    for (const rule of Array.from(rules)) {
+      if (
+        'selectorText' in rule &&
+        selectors.has((rule as CSSStyleRule).selectorText)
+      ) {
+        declarations.push((rule as CSSStyleRule).style);
+      }
+      if ('cssRules' in rule) visit((rule as CSSGroupingRule).cssRules);
+    }
+  };
+  for (const sheet of Array.from(document.styleSheets)) visit(sheet.cssRules);
+  return declarations;
+}
+
 function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
   application: PreviewApplication;
   eventSource: FakeEventSource;
   fetcher: ReturnType<typeof vi.fn>;
   copyText: ReturnType<typeof vi.fn>;
+  downloadText: ReturnType<typeof vi.fn>;
   renderRequests: RenderRequest[];
+  sendRequests: TestSendRequest[];
   setTemplates: (templates: Array<Record<string, string>>) => void;
 } {
   let templates: Array<Record<string, string>> = [
@@ -68,15 +99,20 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
     },
   ];
   const renderRequests: RenderRequest[] = [];
+  const sendRequests: TestSendRequest[] = [];
   const eventSource = new FakeEventSource();
   const copyText = vi.fn(async () => undefined);
+  const downloadText = vi.fn(() => undefined);
   const fetcher = vi.fn(
     async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       if (input === '/api/templates') {
-        return jsonResponse({ templates });
+        return jsonResponse({
+          capabilities: { testSend: true, linkCheck: true },
+          templates,
+        });
       }
 
-      if (input === '/api/render') {
+      if (input === '/api/render' || input === '/api/check-links') {
         const request = JSON.parse(String(init?.body)) as RenderRequest;
         renderRequests.push(request);
         const props =
@@ -86,10 +122,26 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
             : { name: 'Ada' });
 
         return jsonResponse({
+          ...(input === '/api/check-links'
+            ? { linkCheck: { checked: 2, skipped: 1 } }
+            : {}),
           id: request.id,
           name: request.id === 'welcome' ? 'Welcome email' : 'Order receipt',
-          html: '<!doctype html><html><head><style>@media (prefers-color-scheme: dark) { body { background: #111; } } @media (prefers-color-scheme: light) { body { background: #fff; } }</style></head><body><h1>Hello</h1><img src="https://images.example.test/hero.png"></body></html>',
+          html: '<!doctype html><html><head><style data-chakra-email-color-mode="system">@media (prefers-color-scheme: dark){.ce-mode-0{color:#fff!important}}</style><style>@media (prefers-color-scheme: dark) { body { background: #111; } } @media (prefers-color-scheme: light) { body { background: #fff; } }</style></head><body><h1>Hello</h1><img src="https://images.example.test/hero.png"></body></html>',
           lint: [
+            ...(input === '/api/check-links'
+              ? [
+                  {
+                    category: 'links',
+                    element: 'a[href="https://example.org/missing"]',
+                    line: 95,
+                    message: 'HTTP 404: link appears broken.',
+                    ruleId: 'link-broken',
+                    severity: 'error',
+                    suggestion: 'Verify in a browser with test data.',
+                  },
+                ]
+              : []),
             {
               category: 'accessibility',
               element: '<img>',
@@ -101,6 +153,11 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
             },
             {
               category: 'compatibility',
+              compatibility: {
+                feature: 'CSS display:grid',
+                source: 'Can I Email',
+                url: 'https://www.caniemail.com/features/css-display-grid/',
+              },
               message: 'The email is missing a viewport meta tag.',
               ruleId: 'viewport-meta',
               severity: 'warning',
@@ -109,8 +166,18 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
           ],
           text: 'Hello from the plain-text email.',
           source: 'export default function WelcomeEmail() { return <Html />; }',
+          subject: `Welcome ${String(props['name'] ?? '')}`.trim(),
           props,
           variants: ['reminder', 'long-copy'],
+        });
+      }
+
+      if (input === '/api/send') {
+        const request = JSON.parse(String(init?.body)) as TestSendRequest;
+        sendRequests.push(request);
+        return jsonResponse({
+          id: 'provider-id',
+          message: `Test email sent to ${request.to}.`,
         });
       }
 
@@ -129,6 +196,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
     fetch: fetcher,
     createEventSource: vi.fn(() => eventSource),
     copyText,
+    downloadText,
     ...overrides,
   });
 
@@ -137,7 +205,9 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
     eventSource,
     fetcher,
     copyText,
+    downloadText,
     renderRequests,
+    sendRequests,
     setTemplates(nextTemplates) {
       templates = nextTemplates;
     },
@@ -145,6 +215,24 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
 }
 
 describe('PreviewApplication', () => {
+  it('forces generated dark rules only in preview without rewriting authored media queries', () => {
+    const html =
+      '<html><head><style data-chakra-email-color-mode="system">@media (prefers-color-scheme: dark){.ce-mode-0{color:#fff!important}}</style><style>@media (prefers-color-scheme: dark){.custom{color:red}}</style></head><body>Preview</body></html>';
+    expect(withPreviewColorMode(html, 'system')).toBe(html);
+    const dark = withPreviewColorMode(html, 'dark');
+    expect(dark).toContain('@media all{.ce-mode-0');
+    expect(dark).toContain('@media (prefers-color-scheme: dark){.custom');
+    expect(dark).toContain(':root{color-scheme:only dark}');
+    expect(withPreviewColorMode(html, 'light')).toContain(
+      '@media not all{.ce-mode-0',
+    );
+    expect(
+      withPreviewColorMode('<html><body>Fragment</body></html>', 'light'),
+    ).toContain('<head><style');
+    expect(withPreviewColorMode('<p>Fragment</p>', 'dark')).toContain(
+      'data-chakra-email-preview-color-mode="dark"',
+    );
+  });
   beforeEach(() => {
     const storedValues = new Map<string, string>();
     Object.defineProperty(window, 'localStorage', {
@@ -169,6 +257,7 @@ describe('PreviewApplication', () => {
     );
     document.documentElement.lang = 'en';
     document.documentElement.removeAttribute('data-theme');
+    document.documentElement.classList.remove('light', 'dark', 'host-class');
     document.documentElement.style.removeProperty('color-scheme');
     document.title = 'Chakra Email Preview';
     document.body.innerHTML = '<div id="app"></div>';
@@ -177,6 +266,257 @@ describe('PreviewApplication', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('lets the workspace recipes fill the viewport without Tabs layout defaults', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const main = getElement<HTMLElement>('.workspace');
+    const declarations = elementDeclarations(main);
+    expect(declarations.some((style) => style.display === 'flex')).toBe(true);
+    expect(declarations.some((style) => style.flexDirection === 'column')).toBe(
+      true,
+    );
+    expect(declarations.some((style) => style.display === 'block')).toBe(false);
+    harness.application.destroy();
+  });
+
+  it('applies consumer recipe overrides through the public Chakra recipe hook', async () => {
+    const harness = createHarness({
+      theme: {
+        slotRecipes: {
+          [previewSlotRecipeKeys.workspace]: {
+            base: { header: { '--preview-override-probe': 'applied' } },
+          },
+        },
+      },
+    });
+    await harness.application.start();
+    expect(
+      elementDeclarations(getElement('.topbar')).some(
+        (style) =>
+          style.getPropertyValue('--preview-override-probe') === 'applied',
+      ),
+    ).toBe(true);
+    harness.application.destroy();
+  });
+
+  it('checks links only on demand and clears network findings after a new render', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    expect(
+      harness.fetcher.mock.calls.some(([url]) => url === '/api/check-links'),
+    ).toBe(false);
+    getElement<HTMLButtonElement>('[data-action="check-links"]').click();
+    expect(
+      getElement<HTMLButtonElement>('[data-action="check-links"]').disabled,
+    ).toBe(true);
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-lint-rule="link-broken"]')?.textContent,
+      ).toContain('HTML line 95'),
+    );
+    expect(document.body.textContent).toContain(
+      '2 checked (including cached results) · 1 skipped',
+    );
+    const call = harness.fetcher.mock.calls.find(
+      ([url]) => url === '/api/check-links',
+    );
+    expect(call?.[1]).toMatchObject({
+      method: 'POST',
+      headers: { 'x-chakra-email-preview-token': 'preview-token' },
+    });
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({
+      id: 'welcome',
+      props: { name: 'Ada' },
+    });
+    getElement<HTMLButtonElement>('[data-action="apply-props"]').click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-lint-rule="link-broken"]'),
+      ).toBeNull(),
+    );
+    expect(document.body.textContent).toContain(
+      'Network links have not been checked for this render.',
+    );
+    harness.application.destroy();
+  });
+
+  it('hides network actions when the server has not enabled checks', async () => {
+    const harness = createHarness();
+    const original =
+      harness.fetcher.getMockImplementation() as PreviewApplicationOptions['fetch'];
+    if (!original) throw new Error('Missing mock fetch implementation.');
+    harness.fetcher.mockImplementation(async (url, init) => {
+      const response = await original(url, init);
+      if (url === '/api/templates')
+        return jsonResponse({ ...(await response.json()), capabilities: {} });
+      return response;
+    });
+    await harness.application.start();
+    expect(document.querySelector('[data-action="check-links"]')).toBeNull();
+    expect(document.body.textContent).toContain(
+      'Configure linkCheck.allowedHosts',
+    );
+    harness.application.destroy();
+  });
+
+  it('ignores a late link-check response after switching templates', async () => {
+    const harness = createHarness();
+    const original =
+      harness.fetcher.getMockImplementation() as PreviewApplicationOptions['fetch'];
+    if (!original) throw new Error('Missing mock fetch implementation.');
+    let finish!: (response: Response) => void;
+    harness.fetcher.mockImplementation((url, init) =>
+      url === '/api/check-links'
+        ? new Promise<Response>((resolve) => {
+            finish = resolve;
+          })
+        : original(url, init),
+    );
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-action="check-links"]').click();
+    getElement<HTMLButtonElement>('[data-template-id="receipt"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('h1')?.textContent).toContain(
+        'Order receipt',
+      ),
+    );
+    finish(
+      await original('/api/check-links', {
+        body: JSON.stringify({ id: 'welcome' }),
+      }),
+    );
+    await flush();
+    expect(document.querySelector('[data-lint-rule="link-broken"]')).toBeNull();
+    expect(document.querySelector('h1')?.textContent).toContain(
+      'Order receipt',
+    );
+    harness.application.destroy();
+  });
+
+  it('shows link-check failures and permits retrying', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    harness.fetcher.mockResolvedValueOnce(
+      jsonResponse(
+        { error: { message: 'A link check is already running.' } },
+        409,
+      ),
+    );
+    getElement<HTMLButtonElement>('[data-action="check-links"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain(
+        'A link check is already running.',
+      ),
+    );
+    expect(
+      getElement<HTMLButtonElement>('[data-action="check-links"]').disabled,
+    ).toBe(false);
+    getElement<HTMLButtonElement>('[data-action="check-links"]').click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-lint-rule="link-broken"]'),
+      ).not.toBeNull(),
+    );
+    harness.application.destroy();
+  });
+
+  it('collapses panels without losing draft props and returns focus on Escape', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const editor = getElement<HTMLTextAreaElement>('#preview-props');
+    editor.value = '{"name":"Unapplied draft"}';
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+    const toggle = getElement<HTMLButtonElement>(
+      '[data-action="toggle-inspector"]',
+    );
+    toggle.click();
+    await vi.waitFor(() =>
+      expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(true),
+    );
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    toggle.click();
+    await vi.waitFor(() =>
+      expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(false),
+    );
+    expect(getElement<HTMLTextAreaElement>('#preview-props').value).toContain(
+      'Unapplied draft',
+    );
+    getElement<HTMLTextAreaElement>('#preview-props').dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(toggle.getAttribute('aria-expanded')).toBe('false'),
+    );
+    expect(document.activeElement).toBe(toggle);
+    expect(harness.renderRequests).toHaveLength(1);
+
+    getElement<HTMLButtonElement>('[data-template-id="welcome"]').focus();
+    await flush();
+    getElement<HTMLButtonElement>('[data-template-id="welcome"]').dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(true),
+    );
+    expect(document.activeElement).toBe(
+      getElement('[data-action="toggle-templates"]'),
+    );
+    harness.application.destroy();
+  });
+
+  it('restores a resized frame without changing email output or safety', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const frame = getElement<HTMLElement>('.email-frame-shell');
+    frame.style.width = '480px';
+    getElement<HTMLButtonElement>('[data-action="reset-frame"]').click();
+    await vi.waitFor(() =>
+      expect(getElement('.email-frame-shell')).not.toBe(frame),
+    );
+    expect(getElement<HTMLElement>('.email-frame-shell').style.width).not.toBe(
+      '480px',
+    );
+    expect(getElement('#email-preview-frame').getAttribute('sandbox')).toBe('');
+    expect(harness.renderRequests).toHaveLength(1);
+    harness.application.destroy();
+  });
+
+  it('starts with an unobstructed canvas on small screens and closes templates after selection', async () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 375,
+    });
+    const harness = createHarness();
+    try {
+      await harness.application.start();
+      expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(true);
+      expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(true);
+      getElement<HTMLButtonElement>('[data-action="toggle-templates"]').click();
+      await vi.waitFor(() =>
+        expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(
+          false,
+        ),
+      );
+      getElement<HTMLButtonElement>('[data-template-id="receipt"]').click();
+      await vi.waitFor(() =>
+        expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(true),
+      );
+      getElement<HTMLButtonElement>('[data-action="toggle-inspector"]').click();
+      await vi.waitFor(() =>
+        expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(
+          false,
+        ),
+      );
+    } finally {
+      harness.application.destroy();
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: originalWidth,
+      });
+    }
   });
 
   it('loads templates with authentication and renders the first email safely', async () => {
@@ -194,6 +534,9 @@ describe('PreviewApplication', () => {
     ).toBe('page');
     expect(document.querySelector('h1')?.textContent).toContain(
       'Welcome email',
+    );
+    expect(document.querySelector('.preview-subject')?.textContent).toContain(
+      'Welcome Ada',
     );
     expect(harness.fetcher).toHaveBeenNthCalledWith(1, '/api/templates', {
       headers: {
@@ -245,6 +588,9 @@ describe('PreviewApplication', () => {
       expect(
         document.querySelector<HTMLTextAreaElement>('#preview-props')?.value,
       ).toContain('Grace');
+      expect(
+        document.querySelector<HTMLInputElement>('#test-send-subject')?.value,
+      ).toBe('Welcome Grace');
     });
 
     let editor = getElement<HTMLTextAreaElement>('#preview-props');
@@ -306,6 +652,45 @@ describe('PreviewApplication', () => {
     expect(document.querySelector('.lint-panel')?.textContent).toContain(
       'HTML line 1',
     );
+    expect(
+      document.querySelector<HTMLAnchorElement>('.lint-panel a')?.href,
+    ).toBe('https://www.caniemail.com/features/css-display-grid/');
+
+    harness.application.destroy();
+  });
+
+  it('validates and sends the active template through the configured transport', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+
+    getElement<HTMLButtonElement>('[data-action="test-send"]').click();
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      'valid recipient',
+    );
+    expect(harness.sendRequests).toHaveLength(0);
+
+    const recipient = getElement<HTMLInputElement>('#test-send-to');
+    recipient.value = 'ada@example.com';
+    recipient.dispatchEvent(new Event('input', { bubbles: true }));
+    const subject = getElement<HTMLInputElement>('#test-send-subject');
+    expect(subject.value).toBe('Welcome Ada');
+    subject.value = 'A preview for Ada';
+    subject.dispatchEvent(new Event('input', { bubbles: true }));
+    getElement<HTMLButtonElement>('[data-action="test-send"]').click();
+
+    await vi.waitFor(() => {
+      expect(harness.sendRequests).toEqual([
+        {
+          id: 'welcome',
+          props: { name: 'Ada' },
+          subject: 'A preview for Ada',
+          to: 'ada@example.com',
+        },
+      ]);
+      expect(
+        document.querySelector('.test-send [role="status"]')?.textContent,
+      ).toContain('sent to ada@example.com');
+    });
 
     harness.application.destroy();
   });
@@ -314,8 +699,26 @@ describe('PreviewApplication', () => {
     const harness = createHarness();
     await harness.application.start();
 
+    document
+      .querySelector<HTMLButtonElement>('[data-action="download"]')
+      ?.click();
+    expect(harness.downloadText).toHaveBeenCalledWith(
+      expect.stringContaining('<h1>Hello</h1>'),
+      'welcome-email.html',
+      'text/html;charset=utf-8',
+    );
+
     const htmlTab = getElement<HTMLButtonElement>('[data-tab="html"]');
     htmlTab.click();
+    await flush();
+    const panel = document.getElementById(
+      htmlTab.getAttribute('aria-controls') ?? '',
+    );
+    expect(panel?.getAttribute('role')).toBe('tabpanel');
+    expect(panel?.getAttribute('aria-labelledby')).toBe(htmlTab.id);
+    expect(htmlTab.getAttribute('data-ownedby')).toBe(
+      document.querySelector('[role="tablist"]')?.id,
+    );
     expect(document.querySelector('.code-heading')?.textContent).toContain(
       'Rendered HTML',
     );
@@ -326,15 +729,22 @@ describe('PreviewApplication', () => {
         expect.stringContaining('<h1>Hello</h1>'),
       );
     });
-    expect(
-      document.querySelector('[data-action="copy"]')?.textContent,
-    ).toContain('Copied');
+    expect(document.querySelector('[data-copy-status]')?.textContent).toContain(
+      'Copied',
+    );
 
     const currentHtmlTab = getElement<HTMLButtonElement>('[data-tab="html"]');
+    currentHtmlTab.focus();
+    await flush();
     currentHtmlTab.dispatchEvent(
       new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }),
     );
-    await flush();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('text');
+      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
+        'true',
+      );
+    });
 
     expect(
       document
@@ -344,6 +754,15 @@ describe('PreviewApplication', () => {
     expect(document.activeElement?.getAttribute('data-tab')).toBe('text');
     expect(document.querySelector('.code-heading')?.textContent).toContain(
       'Plain text',
+    );
+
+    document
+      .querySelector<HTMLButtonElement>('[data-action="download"]')
+      ?.click();
+    expect(harness.downloadText).toHaveBeenCalledWith(
+      'Hello from the plain-text email.',
+      'welcome-email.txt',
+      'text/plain;charset=utf-8',
     );
 
     document.querySelector<HTMLButtonElement>('[data-action="copy"]')?.click();
@@ -357,21 +776,45 @@ describe('PreviewApplication', () => {
     textTab.dispatchEvent(
       new KeyboardEvent('keydown', { bubbles: true, key: 'End' }),
     );
-    await flush();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
+      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
+        'true',
+      );
+    });
     expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
+
+    document
+      .querySelector<HTMLButtonElement>('[data-action="download"]')
+      ?.click();
+    expect(harness.downloadText).toHaveBeenLastCalledWith(
+      'export default function WelcomeEmail() { return <Html />; }',
+      'welcome-email.tsx',
+      'text/plain;charset=utf-8',
+    );
 
     const sourceTab = getElement<HTMLButtonElement>('[data-tab="source"]');
     sourceTab.dispatchEvent(
       new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }),
     );
-    await flush();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('preview');
+      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
+        'true',
+      );
+    });
     expect(document.activeElement?.getAttribute('data-tab')).toBe('preview');
 
     const previewTab = getElement<HTMLButtonElement>('[data-tab="preview"]');
     previewTab.dispatchEvent(
       new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' }),
     );
-    await flush();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
+      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
+        'true',
+      );
+    });
     expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
 
     document.querySelector<HTMLButtonElement>('[data-action="copy"]')?.click();
@@ -383,6 +826,83 @@ describe('PreviewApplication', () => {
 
     harness.application.destroy();
   });
+
+  it('surfaces download failures without discarding the rendered email', async () => {
+    const harness = createHarness({
+      downloadText: () => {
+        throw new Error('Downloads are blocked.');
+      },
+    });
+    await harness.application.start();
+
+    document
+      .querySelector<HTMLButtonElement>('[data-action="download"]')
+      ?.click();
+
+    expect(document.querySelector('.error-banner')?.textContent).toContain(
+      'Downloads are blocked.',
+    );
+    expect(document.querySelector('#email-preview-frame')).not.toBeNull();
+
+    harness.application.destroy();
+  });
+
+  it('clears copied announcements when the output context changes', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-action="copy"]').click();
+    await vi.waitFor(() =>
+      expect(getElement('[data-copy-status]').textContent).toContain(
+        'Copied HTML',
+      ),
+    );
+    getElement<HTMLButtonElement>('[data-tab="text"]').click();
+    await vi.waitFor(() =>
+      expect(getElement('[data-copy-status]').textContent).toBe(''),
+    );
+    expect(getElement('[data-action="copy"]').getAttribute('aria-label')).toBe(
+      'Copy text',
+    );
+    getElement<HTMLButtonElement>('[data-action="copy"]').click();
+    await vi.waitFor(() =>
+      expect(getElement('[data-copy-status]').textContent).toContain(
+        'Copied text',
+      ),
+    );
+    getElement<HTMLButtonElement>('[data-action="apply-props"]').click();
+    expect(getElement('[data-copy-status]').textContent).toBe('');
+    await flush();
+    harness.application.destroy();
+  });
+
+  it.each(['resolve', 'reject'])(
+    'ignores a late clipboard %s after changing tabs',
+    async (outcome) => {
+      let resolveCopy: () => void = () => undefined;
+      let rejectCopy: (error: Error) => void = () => undefined;
+      const harness = createHarness({
+        copyText: () =>
+          new Promise<void>((resolve, reject) => {
+            resolveCopy = resolve;
+            rejectCopy = reject;
+          }),
+      });
+      await harness.application.start();
+      getElement<HTMLButtonElement>('[data-action="copy"]').click();
+      getElement<HTMLButtonElement>('[data-tab="text"]').click();
+      await vi.waitFor(() =>
+        expect(
+          getElement('[data-action="copy"]').getAttribute('aria-label'),
+        ).toBe('Copy text'),
+      );
+      if (outcome === 'resolve') resolveCopy();
+      else rejectCopy(new Error('Old clipboard failure'));
+      await flush();
+      expect(getElement('[data-copy-status]').textContent).toBe('');
+      expect(document.body.textContent).not.toContain('Old clipboard failure');
+      harness.application.destroy();
+    },
+  );
 
   it('changes viewport size and only permits remote images after explicit opt-in', async () => {
     const harness = createHarness();
@@ -396,8 +916,8 @@ describe('PreviewApplication', () => {
     ).toBe('mobile');
 
     const remoteImages = getElement<HTMLInputElement>('#remote-images');
-    remoteImages.checked = true;
-    remoteImages.dispatchEvent(new Event('change', { bubbles: true }));
+    remoteImages.click();
+    await flush();
 
     const iframe = document.querySelector<HTMLIFrameElement>(
       '#email-preview-frame',
@@ -408,53 +928,405 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
-  it('persists the workspace theme independently from the email preview mode', async () => {
+  it('keeps the shell dark and persists only the header email toggle', async () => {
+    document.documentElement.classList.add('host-class', 'light');
+    window.localStorage.setItem(
+      'chakra-email.preview.workspace-color-mode',
+      'light',
+    );
+    const harness = createHarness();
+    await harness.application.start();
+    const toggle = getElement<HTMLButtonElement>(
+      '[data-action="toggle-email-color-mode"]',
+    );
+    const iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
+    const requests = harness.renderRequests.length;
+    expect(iframe.style.colorScheme).toBe('only light');
+    expect(toggle.getAttribute('aria-label')).toBe(
+      'Preview email in dark mode',
+    );
+    expect(
+      document.querySelector('[data-action="toggle-workspace-color-mode"]'),
+    ).toBeNull();
+    expect(
+      document.querySelector('[aria-label="Email preview color mode"]'),
+    ).toBeNull();
+    expect(document.querySelector('button[data-email-color-mode]')).toBeNull();
+    toggle.focus();
+    for (const mode of ['dark', 'light', 'dark']) {
+      toggle.click();
+      expect(document.activeElement).toBe(toggle);
+      expect(iframe.style.colorScheme).toBe(`only ${mode}`);
+      expect(
+        window.localStorage.getItem('chakra-email.preview.email-color-mode'),
+      ).toBe(mode);
+      expect(document.documentElement.dataset['theme']).toBe('dark');
+      expect(document.documentElement.style.colorScheme).toBe('dark');
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+      expect(document.documentElement.classList.contains('light')).toBe(false);
+      expect(document.documentElement.classList.contains('host-class')).toBe(
+        true,
+      );
+      expect(harness.renderRequests).toHaveLength(requests);
+    }
+    // The obsolete shell preference is ignored, not repurposed for the email.
+    expect(
+      window.localStorage.getItem('chakra-email.preview.workspace-color-mode'),
+    ).toBe('light');
+    harness.application.destroy();
+    const restored = createHarness();
+    await restored.application.start();
+    expect(
+      getElement<HTMLIFrameElement>('#email-preview-frame').style.colorScheme,
+    ).toBe('only dark');
+    expect(
+      getElement('[data-action="toggle-email-color-mode"]').getAttribute(
+        'aria-label',
+      ),
+    ).toBe('Preview email in light mode');
+    restored.application.destroy();
+  });
+
+  it('connects the Remote Images tooltip to the switch input and dismisses it with Escape', async () => {
     const harness = createHarness();
     await harness.application.start();
 
-    expect(document.documentElement.dataset['theme']).toBe('light');
-    expect(document.documentElement.style.colorScheme).toBe('light');
+    const input = getElement<HTMLInputElement>('#remote-images');
+    expect(input.checked).toBe(false);
+    input.focus();
 
-    getElement<HTMLButtonElement>(
-      '[data-action="toggle-workspace-color-mode"]',
+    await vi.waitFor(() => {
+      const descriptionId = input.getAttribute('aria-describedby');
+      expect(descriptionId).toBeTruthy();
+      expect(
+        document.getElementById(descriptionId ?? '')?.textContent,
+      ).toContain('Allow the rendered email to load images from remote URLs');
+    });
+    expect(input.checked).toBe(false);
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(input.getAttribute('aria-describedby')).toBeNull(),
+    );
+
+    getElement<HTMLElement>(
+      '#remote-images-control [data-part="control"]',
     ).click();
-
-    expect(document.documentElement.dataset['theme']).toBe('dark');
-    expect(
-      window.localStorage.getItem('chakra-email.preview.workspace-color-mode'),
-    ).toBe('dark');
-    expect(
-      document
-        .querySelector('button[data-email-color-mode="system"]')
-        ?.getAttribute('aria-pressed'),
-    ).toBe('true');
+    await vi.waitFor(() => expect(input.checked).toBe(true));
+    getElement<HTMLButtonElement>('[data-tab="html"]').click();
+    await vi.waitFor(() => expect(input.disabled).toBe(true));
+    input.click();
+    expect(input.checked).toBe(true);
 
     harness.application.destroy();
   });
 
-  it('forces the rendered email color mode while preserving a system option', async () => {
+  it('composes icon output tabs with tooltips without losing tab ownership or panel labels', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const list = getElement('[role="tablist"]');
+    expect(list.getAttribute('aria-label')).toBe('Email output format');
+    expect(list.querySelectorAll('button')).toHaveLength(4);
+    for (const [id, label] of [
+      ['preview', 'Preview'],
+      ['html', 'HTML'],
+      ['text', 'Text'],
+      ['source', 'Source'],
+    ]) {
+      const tab = getElement<HTMLButtonElement>(`[data-tab="${id}"]`);
+      tab.click();
+      await vi.waitFor(() =>
+        expect(tab.getAttribute('aria-selected')).toBe('true'),
+      );
+      expect(tab.getAttribute('role')).toBe('tab');
+      expect(tab.getAttribute('aria-label')).toBe(label);
+      expect(tab.getAttribute('data-ownedby')).toBe(list.id);
+      expect(tab.textContent).toBe('');
+      expect(tab.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
+        'true',
+      );
+      expect(list.querySelectorAll('[tabindex="0"]')).toHaveLength(1);
+      const panel = document.getElementById(
+        tab.getAttribute('aria-controls') ?? '',
+      );
+      expect(panel?.getAttribute('aria-labelledby')).toBe(tab.id);
+      tab.focus();
+      await vi.waitFor(() =>
+        expect(
+          document.getElementById(tab.getAttribute('aria-describedby') ?? '')
+            ?.textContent,
+        ).toBe(label),
+      );
+      expect(tab.getAttribute('data-ownedby')).toBe(list.id);
+      tab.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      );
+      await vi.waitFor(() =>
+        expect(tab.hasAttribute('aria-describedby')).toBe(false),
+      );
+    }
+    const source = getElement<HTMLButtonElement>('[data-tab="source"]');
+    source.blur();
+    source.focus();
+    await vi.waitFor(() =>
+      expect(source.hasAttribute('aria-describedby')).toBe(true),
+    );
+    source.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    );
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('preview');
+      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
+        'true',
+      );
+    });
+    harness.application.destroy();
+  });
+
+  it('gives compact icon actions accessible names, state, and focus tooltips', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const controls = [
+      ['[data-action="copy"]', 'Copy HTML'],
+      ['[data-action="download"]', 'Download HTML'],
+      ['[data-action="reset-frame"]', 'Reset preview size'],
+      ['button[data-viewport="desktop"]', 'Desktop preview'],
+      ['button[data-viewport="mobile"]', 'Mobile preview'],
+      ['button[data-viewport="fluid"]', 'Fit preview'],
+    ];
+    for (const [selector, name] of controls) {
+      const button = getElement<HTMLButtonElement>(selector);
+      expect(button.getAttribute('aria-label')).toBe(name);
+      expect(button.textContent).toBe('');
+      expect(button.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
+        'true',
+      );
+      expect(button.querySelector('svg')?.getAttribute('focusable')).toBe(
+        'false',
+      );
+      button.focus();
+      await vi.waitFor(() => {
+        const tooltipId = button.getAttribute('aria-describedby');
+        expect(
+          document.getElementById(tooltipId ?? '')?.textContent,
+        ).toBeTruthy();
+      });
+      button.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      );
+      await vi.waitFor(() =>
+        expect(button.getAttribute('aria-describedby')).toBeNull(),
+      );
+    }
+    expect(
+      document
+        .querySelector('[aria-label="Preview viewport"]')
+        ?.getAttribute('role'),
+    ).toBe('group');
+    getElement<HTMLButtonElement>('button[data-viewport="mobile"]').click();
+    expect(
+      getElement('button[data-viewport="mobile"]').getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(
+      getElement('button[data-viewport="desktop"]').getAttribute(
+        'aria-pressed',
+      ),
+    ).toBe('false');
+
+    for (const [tab, label] of [
+      ['html', 'HTML'],
+      ['text', 'text'],
+      ['source', 'source'],
+    ]) {
+      getElement<HTMLButtonElement>(`[data-tab="${tab}"]`).click();
+      await vi.waitFor(() =>
+        expect(
+          getElement('[data-action="copy"]').getAttribute('aria-label'),
+        ).toBe(`Copy ${label}`),
+      );
+      expect(
+        getElement('[data-action="download"]').getAttribute('aria-label'),
+      ).toBe(`Download ${label}`);
+      expect(
+        getElement<HTMLButtonElement>('button[data-viewport="mobile"]')
+          .disabled,
+      ).toBe(true);
+    }
+    harness.application.destroy();
+  });
+
+  it('explains ambiguous controls with accessible tooltips', async () => {
     const harness = createHarness();
     await harness.application.start();
 
-    getElement<HTMLButtonElement>('[data-email-color-mode="dark"]').click();
+    const themeToggle = getElement<HTMLButtonElement>(
+      '[data-action="toggle-email-color-mode"]',
+    );
+    themeToggle.focus();
+
+    await vi.waitFor(
+      () => {
+        expect(
+          document.querySelector('[data-scope="tooltip"][data-part="content"]')
+            ?.textContent,
+        ).toContain('Preview the email in dark mode. The workspace stays dark');
+      },
+      { timeout: 2_000 },
+    );
+
+    themeToggle.blur();
+    await new Promise((resolve) => window.setTimeout(resolve, 150));
+
+    const fitViewport = getElement<HTMLButtonElement>(
+      '[data-viewport="fluid"]',
+    );
+    fitViewport.focus();
+
+    await vi.waitFor(
+      () => {
+        expect(
+          [...document.querySelectorAll('[data-scope="tooltip"]')].some(
+            (element) =>
+              element.textContent?.includes(
+                'Fit the email preview to the available workspace',
+              ),
+          ),
+        ).toBe(true);
+      },
+      { timeout: 2_000 },
+    );
+
+    expect(themeToggle.getAttribute('title')).toBeNull();
+    expect(themeToggle.getAttribute('aria-label')).toBe(
+      'Preview email in dark mode',
+    );
+
+    harness.application.destroy();
+  });
+
+  it.each([false, true])(
+    'ignores the OS preference and legacy System selection (OS dark: %s)',
+    async (initialDark) => {
+      let dark = initialDark;
+      const query = new EventTarget() as MediaQueryList;
+      Object.defineProperty(query, 'matches', { get: () => dark });
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn(() => query),
+      );
+      window.localStorage.setItem(
+        'chakra-email.preview.email-color-mode',
+        'system',
+      );
+      const harness = createHarness();
+      await harness.application.start();
+      const iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
+      expect(iframe.style.colorScheme).toBe('only light');
+      dark = !dark;
+      query.dispatchEvent(new Event('change'));
+      expect(iframe.style.colorScheme).toBe('only light');
+      expect(document.documentElement.dataset['theme']).toBe('dark');
+      harness.application.destroy();
+    },
+  );
+
+  it('disables the email mode toggle when no template is available', async () => {
+    const harness = createHarness();
+    harness.setTemplates([]);
+    await harness.application.start();
+    expect(
+      getElement<HTMLButtonElement>('[data-action="toggle-email-color-mode"]')
+        .disabled,
+    ).toBe(true);
+    expect(document.documentElement.dataset['theme']).toBe('dark');
+    harness.application.destroy();
+  });
+
+  it('toggles authored email colors without changing copied or downloaded output', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+
+    getElement<HTMLButtonElement>(
+      '[data-action="toggle-email-color-mode"]',
+    ).click();
 
     let iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
     expect(iframe.dataset['emailColorMode']).toBe('dark');
     expect(iframe.style.colorScheme).toBe('only dark');
     expect(iframe.srcdoc).toContain('(prefers-color-scheme: dark)');
     expect(iframe.srcdoc).toContain('(prefers-color-scheme: light)');
-    expect(iframe.srcdoc).not.toContain('data-chakra-email-preview-color-mode');
+    expect(iframe.srcdoc).toContain(
+      'data-chakra-email-preview-color-mode="dark"',
+    );
+    expect(iframe.srcdoc).toContain('@media all{.ce-mode-0');
+    getElement<HTMLButtonElement>('[data-action="download"]').click();
+    getElement<HTMLButtonElement>('[data-action="copy"]').click();
+    await vi.waitFor(() => expect(harness.copyText).toHaveBeenCalled());
+    for (const output of [
+      harness.copyText.mock.calls[0]?.[0],
+      harness.downloadText.mock.calls[0]?.[0],
+    ]) {
+      expect(output).toContain(
+        '@media (prefers-color-scheme: dark){.ce-mode-0',
+      );
+      expect(output).not.toContain('data-chakra-email-preview-color-mode');
+      expect(output).not.toContain('@media all');
+    }
     expect(
       window.localStorage.getItem('chakra-email.preview.email-color-mode'),
     ).toBe('dark');
 
-    getElement<HTMLButtonElement>('[data-email-color-mode="system"]').click();
+    getElement<HTMLButtonElement>(
+      '[data-action="toggle-email-color-mode"]',
+    ).click();
 
     iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
-    expect(iframe.style.colorScheme).toBe('light dark');
+    expect(iframe.style.colorScheme).toBe('only light');
     expect(iframe.srcdoc).toContain('(prefers-color-scheme: dark)');
     expect(iframe.srcdoc).toContain('(prefers-color-scheme: light)');
+    expect(iframe.srcdoc).toContain('@media not all{.ce-mode-0');
+    expect(iframe.srcdoc).toContain(
+      'data-chakra-email-preview-color-mode="light"',
+    );
 
+    harness.application.destroy();
+  });
+
+  it('keeps the dark canvas and its recipe override independent of the email', async () => {
+    const harness = createHarness({
+      theme: {
+        slotRecipes: {
+          [previewSlotRecipeKeys.viewer]: {
+            base: { surface: { bg: 'var(--test-canvas-color)' } },
+          },
+        },
+      },
+    });
+    await harness.application.start();
+    const surface = getElement('.preview-surface');
+    const canvasClass = surface.className;
+    const workspaceClass = document.documentElement.className;
+    expect(
+      elementDeclarations(surface).some(
+        (style) =>
+          (style.getPropertyValue('background') ||
+            style.getPropertyValue('background-color')) ===
+          'var(--test-canvas-color)',
+      ),
+    ).toBe(true);
+    for (const mode of ['dark', 'light']) {
+      getElement<HTMLButtonElement>(
+        '[data-action="toggle-email-color-mode"]',
+      ).click();
+      const iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
+      expect(iframe.dataset['emailColorMode']).toBe(mode);
+      expect(iframe.style.colorScheme).toBe(`only ${mode}`);
+      expect(surface.className).toBe(canvasClass);
+      expect(surface.hasAttribute('data-email-color-mode')).toBe(false);
+      expect(document.documentElement.className).toBe(workspaceClass);
+      expect(document.documentElement.dataset['theme']).toBe('dark');
+    }
     harness.application.destroy();
   });
 

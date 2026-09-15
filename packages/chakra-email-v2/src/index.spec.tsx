@@ -60,6 +60,31 @@ const legacyChakraV2Theme = {
 };
 
 describe('@chakra-email/chakra-v2', () => {
+  it('preserves dark values through aliases and provider color modes', async () => {
+    const theme = {
+      ...legacyChakraV2Theme,
+      semanticTokens: {
+        colors: {
+          primary: { default: 'red.500', _dark: 'red.300' },
+          alias: 'primary',
+        },
+      },
+    };
+    const dark = await render(
+      <ChakraEmailV2Provider theme={theme} colorMode="dark">
+        <Text color="alias">Dark</Text>
+      </ChakraEmailV2Provider>,
+    );
+    expect(dark).toContain('color:#fc8181');
+    expect(dark).not.toContain('prefers-color-scheme');
+    const system = await render(
+      <ChakraEmailV2Provider theme={theme}>
+        <Text color="alias">Auto</Text>
+      </ChakraEmailV2Provider>,
+    );
+    expect(system).toContain('color:#e53e3e');
+    expect(system).toContain('color: #fc8181 !important');
+  });
   it('renders with a flat Chakra v2-style theme object', async () => {
     // Scale values intentionally differ from the built-in defaults so the
     // assertions fail if the user scale is ignored.
@@ -150,7 +175,7 @@ describe('@chakra-email/chakra-v2', () => {
   it('resolves Chakra v2 semanticTokens through the default mode', () => {
     const theme = createChakraV2EmailTheme(legacyChakraV2Theme);
 
-    // `{ default, _dark }` object form: uses `default`, ignores `_dark`.
+    // Light is the inline fallback; dark resolution remains available.
     expect(mapChakraPropsToStyles({ color: 'danger' }, theme)).toEqual({
       color: '#e53e3e',
     });

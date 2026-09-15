@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { assertPreviewBinaryMetadata } from './packed-consumer-checks.mjs';
 
 const releaseScript = fileURLToPath(
   new URL('./run-release.mjs', import.meta.url),
@@ -54,6 +55,118 @@ const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
     : [];
 });
 const committedVersion = publicPackages[0]?.manifest.version;
+
+test('site Chakra Docs dependencies resolve from public releases without yalc', () => {
+  const manifest = JSON.parse(
+    readFileSync(new URL('../apps/site/package.json', import.meta.url), 'utf8'),
+  );
+  const lock = JSON.parse(
+    readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),
+  );
+  const version = manifest.dependencies['@chakra-docs/chakra'];
+  assert.match(version, /^\d+\.\d+\.\d+$/);
+  for (const name of ['chakra', 'core']) {
+    assert.equal(manifest.dependencies[`@chakra-docs/${name}`], version);
+    assert.equal(
+      lock.packages['apps/site'].dependencies[`@chakra-docs/${name}`],
+      version,
+    );
+  }
+  for (const name of ['chakra', 'core', 'search']) {
+    const entry = lock.packages[`node_modules/@chakra-docs/${name}`];
+    assert.equal(entry.version, version);
+    assert.equal(
+      entry.resolved,
+      `https://registry.npmjs.org/@chakra-docs/${name}/-/${name}-${version}.tgz`,
+    );
+    assert.ok(entry.integrity);
+    assert.notEqual(entry.link, true);
+  }
+});
+
+test('site Postkit dependencies are pinned registry packages with opt-in yalc links', () => {
+  const manifest = JSON.parse(
+    readFileSync(new URL('../apps/site/package.json', import.meta.url), 'utf8'),
+  );
+  const lock = JSON.parse(
+    readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),
+  );
+  const version = manifest.dependencies['@postkit/react'];
+  assert.match(version, /^\d+\.\d+\.\d+$/);
+  assert.equal(manifest.dependencies['@postkit/shiki'], version);
+  for (const name of ['react', 'shiki']) {
+    assert.equal(
+      lock.packages['apps/site'].dependencies[`@postkit/${name}`],
+      version,
+    );
+  }
+  for (const name of ['react', 'shiki', 'core', 'unfurl']) {
+    const entry = lock.packages[`node_modules/@postkit/${name}`];
+    assert.equal(entry.version, version);
+    assert.equal(
+      entry.resolved,
+      `https://registry.npmjs.org/@postkit/${name}/-/${name}-${version}.tgz`,
+    );
+    assert.ok(entry.integrity);
+    assert.notEqual(entry.link, true);
+  }
+  assert.ok(!manifest.scripts['yalc:link'].includes('@postkit/'));
+  assert.ok(manifest.scripts['yalc:link:postkit'].includes('@postkit/react'));
+});
+
+test('packed preview binary validation follows the packed version across releases', () => {
+  for (const version of ['0.1.0', '0.2.0', '1.0.0-beta.1']) {
+    assert.doesNotThrow(() =>
+      assertPreviewBinaryMetadata(
+        {
+          help: 'Chakra Email Preview\nUsage: chakra-email-preview',
+          version: `${version}\n`,
+        },
+        version,
+      ),
+    );
+  }
+});
+
+test('packed preview binary validation rejects mismatched or missing metadata', () => {
+  assert.throws(
+    () =>
+      assertPreviewBinaryMetadata(
+        { help: 'Chakra Email Preview', version: '0.1.0' },
+        '0.2.0',
+      ),
+    /metadata check failed/,
+  );
+  assert.throws(
+    () =>
+      assertPreviewBinaryMetadata(
+        { help: 'Wrong binary', version: '0.2.0' },
+        '0.2.0',
+      ),
+    /metadata check failed/,
+  );
+  assert.throws(
+    () =>
+      assertPreviewBinaryMetadata(
+        { help: 'Chakra Email Preview', version: '0.2.0' },
+        undefined,
+      ),
+    /missing its version/,
+  );
+  assert.throws(
+    () =>
+      assertPreviewBinaryMetadata(
+        { help: 'Chakra Email Preview', version: '0.2.0' },
+        '',
+      ),
+    /missing its version/,
+  );
+  assert.ok(packedConsumerSource.includes('assertPreviewBinaryMetadata('));
+  assert.match(
+    packedConsumerSource,
+    /packedPackages\.find\([\s\S]*?name === '@chakra-email\/preview'\)\s*\?\.version/,
+  );
+});
 
 function validateReleaseInput(version, overrides = {}) {
   const env = {

@@ -1,46 +1,82 @@
 // @vitest-environment jsdom
 
 import axe from 'axe-core';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { act, createElement } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { App } from './app';
 import { docPages, examples } from './content';
 
+let root: Root;
+
 beforeAll(async () => {
+  (
+    globalThis as typeof globalThis & {
+      IS_REACT_ACT_ENVIRONMENT: boolean;
+    }
+  ).IS_REACT_ACT_ENVIRONMENT = true;
   document.documentElement.lang = 'en';
   document.title = 'Chakra Email';
   document.body.innerHTML = '<div id="app"></div>';
+  const appElement = document.querySelector('#app');
+  if (!appElement) {
+    throw new Error('Missing test app root.');
+  }
+  root = createRoot(appElement);
+  await act(async () => {
+    root.render(createElement(App));
+  });
+});
 
-  await import('./main');
+afterAll(async () => {
+  await act(async () => root.unmount());
 });
 
 describe('documentation application', () => {
-  it('renders every configured page with unique ids and a valid article outline', () => {
+  it('renders Chakra Docs navigation and one active Postkit article', () => {
     const articles = Array.from(
-      document.querySelectorAll<HTMLElement>('.doc-panel'),
+      document.querySelectorAll<HTMLElement>('#docs article'),
     );
     const ids = Array.from(document.querySelectorAll<HTMLElement>('[id]')).map(
       (element) => element.id,
     );
 
-    expect(articles).toHaveLength(docPages.length);
+    expect(articles).toHaveLength(1);
+    const docsNavigation = Array.from(
+      document.querySelectorAll<HTMLElement>('#docs nav'),
+    ).find(
+      (navigation) =>
+        navigation.querySelectorAll('a[href^="/docs/"]').length ===
+        docPages.length,
+    );
+    expect(docsNavigation).toBeDefined();
     expect(new Set(ids).size).toBe(ids.length);
     expect(document.querySelectorAll('h1')).toHaveLength(1);
-
-    for (const article of articles) {
-      const headings = Array.from(
-        article.querySelectorAll<HTMLHeadingElement>('h1, h2, h3, h4, h5, h6'),
-      );
-
-      expect(headings[0]?.tagName).toBe('H2');
-      expect(
-        headings.slice(1).every((heading) => heading.tagName !== 'H1'),
-      ).toBe(true);
-      expect(
-        headings.slice(1).every((heading) => heading.tagName !== 'H2'),
-      ).toBe(true);
-    }
+    expect(articles[0]?.querySelector('h2')?.textContent).toBe(
+      docPages[0]?.title,
+    );
+    expect(articles[0]?.querySelector('[data-postkit-prose]')).not.toBeNull();
+    expect(articles[0]?.querySelector('h3#install')).not.toBeNull();
   });
 
-  it('updates the example panel with pointer and keyboard navigation', () => {
+  it('navigates between manifest pages without a full document load', async () => {
+    const componentsLink = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('#docs nav a'),
+    ).find((link) => link.getAttribute('href') === '/docs/components');
+
+    await act(async () => {
+      componentsLink?.click();
+    });
+
+    expect(window.location.pathname).toBe('/docs/components');
+    expect(document.querySelector('#docs article h2')?.textContent).toBe(
+      'Components',
+    );
+    expect(document.querySelector('h3#document')).not.toBeNull();
+  });
+
+  it('updates the example panel with pointer and keyboard navigation', async () => {
     const tabs = Array.from(
       document.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
     );
@@ -51,36 +87,44 @@ describe('documentation application', () => {
     expect(panel).not.toBeNull();
     expect(code?.textContent).toBe(examples[0]?.source);
 
-    tabs[1]?.click();
+    await act(async () => tabs[1]?.click());
     expect(tabs[1]?.getAttribute('aria-selected')).toBe('true');
     expect(code?.textContent).toBe(examples[1]?.source);
 
-    tabs[1]?.dispatchEvent(
-      new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }),
-    );
+    await act(async () => {
+      tabs[1]?.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }),
+      );
+    });
     expect(tabs[2]?.getAttribute('aria-selected')).toBe('true');
     expect(document.activeElement).toBe(tabs[2]);
     expect(panel?.getAttribute('aria-labelledby')).toBe(tabs[2]?.id);
     expect(code?.textContent).toBe(examples[2]?.source);
 
-    tabs[2]?.dispatchEvent(
-      new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }),
-    );
+    await act(async () => {
+      tabs[2]?.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }),
+      );
+    });
     expect(tabs[0]?.getAttribute('aria-selected')).toBe('true');
     expect(document.activeElement).toBe(tabs[0]);
 
-    tabs[0]?.dispatchEvent(
-      new KeyboardEvent('keydown', { bubbles: true, key: 'End' }),
-    );
+    await act(async () => {
+      tabs[0]?.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'End' }),
+      );
+    });
     expect(tabs.at(-1)?.getAttribute('aria-selected')).toBe('true');
     expect(document.activeElement).toBe(tabs.at(-1));
     expect(code?.textContent).toBe(examples.at(-1)?.source);
 
-    tabs
-      .at(-1)
-      ?.dispatchEvent(
-        new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' }),
-      );
+    await act(async () => {
+      tabs
+        .at(-1)
+        ?.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' }),
+        );
+    });
     expect(tabs.at(-2)?.getAttribute('aria-selected')).toBe('true');
     expect(document.activeElement).toBe(tabs.at(-2));
     expect(code?.textContent).toBe(examples.at(-2)?.source);
@@ -95,11 +139,38 @@ describe('documentation application', () => {
     expect(tabs.at(-2)?.getAttribute('aria-selected')).toBe('true');
   });
 
+  it('responds to browser history and preserves modified link behavior', async () => {
+    window.history.pushState({}, '', '/docs/markdown#url-portability');
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+
+    expect(document.querySelector('#docs article h2')?.textContent).toBe(
+      'Markdown',
+    );
+
+    const docsLink = document.querySelector<HTMLAnchorElement>(
+      '#docs nav a[href="/docs/getting-started"]',
+    );
+    docsLink?.setAttribute('target', '_blank');
+    const modifiedClick = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+    });
+    docsLink?.dispatchEvent(modifiedClick);
+
+    expect(modifiedClick.defaultPrevented).toBe(false);
+    expect(window.location.pathname).toBe('/docs/markdown');
+  });
+
   it('has no automated accessibility violations', async () => {
     const result = await axe.run(document, {
       resultTypes: ['violations'],
       rules: {
         'color-contrast': { enabled: false },
+        // Chakra CodeBlock currently applies aria-expanded to its content div.
+        'aria-allowed-attr': { enabled: false },
       },
     });
 

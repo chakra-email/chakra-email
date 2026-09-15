@@ -4,6 +4,7 @@ import type {
   PreviewLintFinding,
   PreviewLintSeverity,
 } from './protocol.js';
+import { compatibilityReferenceForRule } from './compatibility.js';
 
 type Document = DefaultTreeAdapterTypes.Document;
 type Element = DefaultTreeAdapterTypes.Element;
@@ -155,6 +156,7 @@ function finding(
   return {
     category,
     column: location?.startCol,
+    compatibility: compatibilityReferenceForRule(ruleId),
     element: element ? `<${element.tagName}>` : undefined,
     line: location?.startLine,
     message,
@@ -321,6 +323,22 @@ function lintElement(element: Element): PreviewLintFinding[] {
     );
   }
 
+  if (
+    element.tagName === 'style' &&
+    /@font-face\b/iu.test(textContent(element))
+  ) {
+    findings.push(
+      finding(
+        element,
+        'css-font-face',
+        'compatibility',
+        'info',
+        'Web fonts are unavailable in many email clients.',
+        'Declare a dependable fallback font stack and verify the result without the remote font.',
+      ),
+    );
+  }
+
   if (element.tagName === 'img') {
     if (attribute(element, 'alt') === undefined) {
       findings.push(
@@ -386,11 +404,13 @@ function lintElement(element: Element): PreviewLintFinding[] {
 
   const style = attribute(element, 'style');
   if (style) {
-    if (/display\s*:\s*(?:inline-)?(?:flex|grid)\b/i.test(style)) {
+    const layout = /display\s*:\s*((?:inline-)?(?:flex|grid))\b/iu.exec(style);
+    if (layout) {
+      const layoutKind = layout[1]?.includes('grid') ? 'grid' : 'flex';
       findings.push(
         finding(
           element,
-          'css-layout',
+          `css-display-${layoutKind}`,
           'compatibility',
           'warning',
           'Flexbox or grid layout can fail in legacy email clients.',

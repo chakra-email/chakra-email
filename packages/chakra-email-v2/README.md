@@ -15,7 +15,7 @@ Use this package when an existing codebase still uses Chakra UI v2-style theme s
 `ChakraEmailV2Provider` and `createChakraV2EmailTheme` adapt a Chakra UI v2 theme (e.g. `extendTheme` output) into email-safe tokens:
 
 - **`rem`/`em` → `px`** at a 16px root font size across length scales (`space`, `spacing`, `sizes`, `fontSizes`, `lineHeights`, `letterSpacings`, `radii`, `borders`, `borderWidths`), including inside composite border strings such as `'0.0625rem solid #cbd5e0'`. Unitless values (e.g. numeric line-heights) are preserved as-is. `rem`/`em` is not reliable in email clients like Outlook desktop, so everything becomes `px`.
-- **v2 `semanticTokens`** are rewritten so the token resolver understands them. Only the `default` mode is used — `_dark` and other conditions are ignored because email has no reliable dark-mode CSS. Bare token references like `'red.500'` are resolved against the matching scale (e.g. `colors`), while literal CSS values (`'#fff'`, `'rgba(...)'`) pass through untouched. Both object form (`{ default: 'red.500', _dark: 'red.300' }`) and plain-string form (`'red.500'`) are supported.
+- **v2 `semanticTokens`** preserve `default` and `_dark` values, including aliases to other semantic tokens. Bare token references like `'red.500'` resolve against the matching scale; literal CSS values pass through. The default renderer keeps light styles inline and adds dark CSS as progressive enhancement. Use provider or render `colorMode` to force inline light or dark output. Other conditions are not supported. See the [color-mode guide](https://github.com/chakra-email/chakra-email/blob/main/docs/theming.md#light-and-dark-email-colors).
 - **Non-visual v2 keys are dropped**: `components`, `styles`, `config`, `breakpoints`, `transition`, and `zIndices` have no effect on rendered email and are removed rather than silently carried along.
 
 ## Install
@@ -63,6 +63,12 @@ Use `@chakra-email/chakra-v2` when you already have a Chakra UI v2 theme and wan
 Use `chakra-email` for new projects or Chakra UI v3-style token objects.
 
 The shared email renderer, primitives, and markdown-body components come from `@chakra-email/core`.
+
+The focused `@chakra-email/chakra-v2/security` entry point re-exports strict URL
+policies, typed rendering errors, and output limits without requiring consumers
+to import the core package directly.
+
+The shared components also support Chakra Email's `recipes` and `slotRecipes` theme keys. Chakra UI v2's legacy `components` configurations are still dropped because they depend on the browser-oriented v2 style runtime; define email recipes with the exports re-exported by `@chakra-email/chakra-v2` instead.
 
 ## More Docs
 

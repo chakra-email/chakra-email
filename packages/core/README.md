@@ -22,11 +22,14 @@ npm install @chakra-email/core react react-dom
 ## Includes
 
 - React email primitives.
+- Theme-aware font stacks and safe optional web-font declarations.
 - Markdown-body primitives for blockquotes, code, preformatted blocks, and tables.
 - Email-safe Chakra-style style prop mapping.
 - Chakra v3 token object and semantic token resolution.
 - Chakra v2-style flat theme scale compatibility.
+- Email-safe component recipes and multipart slot recipes.
 - HTML and plain-text render helpers.
+- Strict, configurable URL policies and bounded-output helpers.
 
 ## Exports
 
@@ -38,9 +41,26 @@ import {
   Table,
   Text,
 } from '@chakra-email/core/components';
-import { render, renderPlainText } from '@chakra-email/core/render';
-import { ThemeProvider } from '@chakra-email/core/theme';
+import {
+  chakraEmailRenderer,
+  render,
+  renderEmail,
+  renderPlainText,
+} from '@chakra-email/core/render';
+import {
+  EmailRenderError,
+  strictEmailOutputLimits,
+  strictEmailSecurityPolicy,
+} from '@chakra-email/core/security';
+import {
+  ThemeProvider,
+  chakraEmailRecipeKeys,
+  chakraEmailSlotRecipeKeys,
+  chakraEmailThemeConfig,
+} from '@chakra-email/core/theme';
 ```
+
+See the [theming guide](https://github.com/chakra-email/chakra-email/blob/main/docs/theming.md#component-recipes) for recipe keys, multipart slots, and Chakra UI `createSystem()` integration.
 
 ## Package Role
 

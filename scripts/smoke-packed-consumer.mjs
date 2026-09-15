@@ -1,8 +1,15 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertPreviewBinaryMetadata } from './packed-consumer-checks.mjs';
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const workspaceRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -14,6 +21,9 @@ const packageNames = [
   'chakra-email',
   '@chakra-email/chakra-v2',
   '@chakra-email/preview',
+  '@chakra-email/react-email',
+  '@chakra-email/code-block',
+  '@chakra-email/markdown',
 ];
 const commandEnvironment = {
   ...process.env,
@@ -71,11 +81,17 @@ try {
         type: 'module',
         dependencies: {
           '@chakra-email/chakra-v2': tarballs.get('@chakra-email/chakra-v2'),
+          '@chakra-email/code-block': tarballs.get('@chakra-email/code-block'),
           '@chakra-email/core': tarballs.get('@chakra-email/core'),
+          '@chakra-email/markdown': tarballs.get('@chakra-email/markdown'),
           '@chakra-email/preview': tarballs.get('@chakra-email/preview'),
+          '@chakra-email/react-email': tarballs.get(
+            '@chakra-email/react-email',
+          ),
           'chakra-email': tarballs.get('chakra-email'),
           react: '18.3.1',
           'react-dom': '18.3.1',
+          'react-email': '6.9.1',
         },
         devDependencies: {
           '@types/react': '18.3.31',
@@ -93,11 +109,15 @@ try {
     `import React from 'react';
 import { ThemeProvider } from '@chakra-email/core';
 import { ChakraEmailV2Provider } from '@chakra-email/chakra-v2';
+import { CodeBlock } from '@chakra-email/code-block';
+import { Markdown } from '@chakra-email/markdown';
 import {
   createPreviewServer,
   defineConfig,
+  exportTemplates,
   lintRenderedEmail,
 } from '@chakra-email/preview';
+import { reactEmailRenderer } from '@chakra-email/react-email';
 import { Body, Head, Html, Preview, Text, render } from 'chakra-email';
 
 if (!React.version.startsWith('18.')) {
@@ -106,12 +126,29 @@ if (!React.version.startsWith('18.')) {
 
 if (
   typeof createPreviewServer !== 'function' ||
+  typeof exportTemplates !== 'function' ||
   defineConfig({ port: 0 }).port !== 0 ||
   !lintRenderedEmail('<img src="https://example.com/logo.png">').some(
     (finding) => finding.ruleId === 'image-alt'
   )
 ) {
   throw new Error('The packed preview package did not expose its public API.');
+}
+
+if (typeof reactEmailRenderer !== 'function') {
+  throw new Error('@chakra-email/react-email did not expose its renderer adapter.');
+}
+
+const markdownHtml = await render(
+  React.createElement(
+    ThemeProvider,
+    null,
+    React.createElement(Markdown, null, '# Packed markdown'),
+    React.createElement(CodeBlock, { code: 'const packed = true;' })
+  )
+);
+if (!markdownHtml.includes('Packed markdown') || !markdownHtml.includes('const packed = true;')) {
+  throw new Error('The optional content packages did not render.');
 }
 
 const email = React.createElement(
@@ -135,6 +172,14 @@ const email = React.createElement(
 );
 const html = await render(email);
 
+if (!html.includes('data-chakra-email-color-mode="system"')) {
+  throw new Error('The packed React 18 renderer lost adaptive color styles.');
+}
+const forcedDarkHtml = await render(email, { colorMode: 'dark' });
+if (forcedDarkHtml.includes('data-chakra-email-color-mode="system"')) {
+  throw new Error('Forced dark rendering should use inline styles only.');
+}
+
 if (!html.includes('Packed consumer smoke') || !html.startsWith('<!DOCTYPE')) {
   throw new Error('The packed ESM consumer did not render the expected email.');
 }
@@ -156,14 +201,17 @@ if (
 const packageSubpaths = [
   '@chakra-email/core/components',
   '@chakra-email/core/render',
+  '@chakra-email/core/security',
   '@chakra-email/core/system',
   '@chakra-email/core/theme',
   'chakra-email/components',
   'chakra-email/render',
+  'chakra-email/security',
   'chakra-email/system',
   'chakra-email/theme',
   '@chakra-email/chakra-v2/components',
   '@chakra-email/chakra-v2/render',
+  '@chakra-email/chakra-v2/security',
   '@chakra-email/chakra-v2/system',
   '@chakra-email/chakra-v2/theme',
 ];
@@ -198,22 +246,40 @@ const previewExports = require('@chakra-email/preview');
 if (
   typeof previewExports.createPreviewServer !== 'function' ||
   typeof previewExports.defineConfig !== 'function' ||
+  typeof previewExports.exportTemplates !== 'function' ||
   typeof previewExports.lintRenderedEmail !== 'function'
 ) {
   throw new Error('@chakra-email/preview did not expose its require(esm) API.');
 }
 
+const reactEmailAdapter = require('@chakra-email/react-email');
+if (typeof reactEmailAdapter.reactEmailRenderer !== 'function') {
+  throw new Error('@chakra-email/react-email did not expose its require(esm) API.');
+}
+
+const codeBlockPackage = require('@chakra-email/code-block');
+const markdownPackage = require('@chakra-email/markdown');
+if (
+  typeof codeBlockPackage.CodeBlock !== 'function' ||
+  typeof markdownPackage.Markdown !== 'function'
+) {
+  throw new Error('Optional content packages did not expose require(esm) APIs.');
+}
+
 const packageSubpaths = [
   '@chakra-email/core/components',
   '@chakra-email/core/render',
+  '@chakra-email/core/security',
   '@chakra-email/core/system',
   '@chakra-email/core/theme',
   'chakra-email/components',
   'chakra-email/render',
+  'chakra-email/security',
   'chakra-email/system',
   'chakra-email/theme',
   '@chakra-email/chakra-v2/components',
   '@chakra-email/chakra-v2/render',
+  '@chakra-email/chakra-v2/security',
   '@chakra-email/chakra-v2/system',
   '@chakra-email/chakra-v2/theme',
 ];
@@ -233,8 +299,16 @@ console.log('ok packed require(esm) runtime and subpaths');
     join(consumerDirectory, 'smoke.tsx'),
     `import type { ComponentType, ReactElement } from 'react';
 import { ThemeProvider, type ThemeProviderProps } from '@chakra-email/core';
+import { CodeBlock, type CodeBlockProps } from '@chakra-email/code-block';
+import {
+  Markdown,
+  strictMarkdownLimits,
+  type MarkdownDirectiveRegistry,
+  type MarkdownProps,
+} from '@chakra-email/markdown';
 import * as CoreComponents from '@chakra-email/core/components';
 import * as CoreRender from '@chakra-email/core/render';
+import { type EmailSecurityPolicy } from '@chakra-email/core/security';
 import * as CoreSystem from '@chakra-email/core/system';
 import * as CoreTheme from '@chakra-email/core/theme';
 import {
@@ -244,23 +318,45 @@ import {
 import {
   createPreviewServer,
   defineConfig,
+  exportTemplates,
   lintRenderedEmail,
+  type ExportManifest,
   type PreviewLintFinding,
   type PreviewConfig,
+  type PreviewSubject,
+  type PreviewTestTransport,
 } from '@chakra-email/preview';
+import { reactEmailRenderer } from '@chakra-email/react-email';
 import * as V2Components from '@chakra-email/chakra-v2/components';
 import * as V2Render from '@chakra-email/chakra-v2/render';
+import * as V2Security from '@chakra-email/chakra-v2/security';
 import * as V2System from '@chakra-email/chakra-v2/system';
 import * as V2Theme from '@chakra-email/chakra-v2/theme';
 import { Body, Html, Text, render } from 'chakra-email';
 import * as ChakraComponents from 'chakra-email/components';
 import * as ChakraRender from 'chakra-email/render';
+import * as ChakraSecurity from 'chakra-email/security';
 import * as ChakraSystem from 'chakra-email/system';
-import * as ChakraTheme from 'chakra-email/theme';
+import {
+  chakraEmailThemeConfig,
+  type ChakraEmailThemeConfig,
+} from 'chakra-email/theme';
 
 const CoreProvider: ComponentType<ThemeProviderProps> = ThemeProvider;
 const V2Provider: ComponentType<ChakraEmailV2ProviderProps> =
   ChakraEmailV2Provider;
+const codeBlockProps: CodeBlockProps = { code: 'const typed = true;' };
+const markdownProps: MarkdownProps = { children: '# Typed markdown' };
+const directives: MarkdownDirectiveRegistry = {
+  callout: {
+    kind: 'container',
+    render: ({ children }) => children,
+  },
+};
+const packedThemeConfig: ChakraEmailThemeConfig = chakraEmailThemeConfig;
+const urlPolicy: EmailSecurityPolicy = { link: { onInvalidUrl: 'throw' } };
+const subject: PreviewSubject<{ name: string }> = ({ name }) => 'Hello ' + name;
+const manifest: ExportManifest = { templates: [], version: 1 };
 const email: ReactElement = (
   <CoreProvider>
     <V2Provider>
@@ -273,13 +369,24 @@ const email: ReactElement = (
   </CoreProvider>
 );
 
-void render(email);
+void render(email, { colorMode: 'system' });
+void <CoreProvider colorMode="dark"><Text _light={{ color: 'fg' }} _dark={{ color: 'white' }}>Modes</Text></CoreProvider>;
+const testSend: PreviewTestTransport = {
+  async send(message) {
+    return { id: message.to };
+  },
+};
 const previewConfig: PreviewConfig = defineConfig({
   root: '.',
   templates: 'emails',
   port: 0,
+  testSend,
 });
+void reactEmailRenderer();
+void <CodeBlock {...codeBlockProps} />;
+void <Markdown {...markdownProps} />;
 void createPreviewServer({ config: previewConfig, port: 0 });
+void exportTemplates;
 const lintFindings: PreviewLintFinding[] = lintRenderedEmail('<main>Test</main>');
 void lintFindings;
 void [
@@ -289,10 +396,17 @@ void [
   CoreTheme,
   ChakraComponents,
   ChakraRender,
+  ChakraSecurity,
   ChakraSystem,
-  ChakraTheme,
+  packedThemeConfig,
+  directives,
+  manifest,
+  strictMarkdownLimits,
+  subject,
+  urlPolicy,
   V2Components,
   V2Render,
+  V2Security,
   V2System,
   V2Theme,
 ];
@@ -305,6 +419,7 @@ void [
 import { Body, Html, Text } from 'chakra-email';
 
 export const previewProps = { name: 'Packed preview' };
+export const previewSubject = ({ name }) => 'Hello ' + name;
 
 export default function PackedPreviewEmail({ name }) {
   return React.createElement(
@@ -402,7 +517,12 @@ try {
     body: JSON.stringify({ id }),
   });
   const rendered = await renderResponse.json();
-  if (!renderResponse.ok || !rendered.html?.includes('Hello Packed preview')) {
+  if (
+    !renderResponse.ok ||
+    !rendered.html?.includes('Hello Packed preview') ||
+    !rendered.html?.includes('data-chakra-email-color-mode="system"') ||
+    rendered.subject !== 'Hello Packed preview'
+  ) {
     throw new Error('Packed preview did not render its fixture.');
   }
 
@@ -463,18 +583,42 @@ try {
     cwd: consumerDirectory,
     encoding: 'utf8',
   });
-  if (
-    !previewHelp.includes('Chakra Email Preview') ||
-    previewVersion.trim() !== '0.1.0'
-  ) {
-    throw new Error(
-      `Packed preview binary metadata check failed: ${JSON.stringify({
-        help: previewHelp,
-        version: previewVersion,
-      })}`,
-    );
-  }
+  assertPreviewBinaryMetadata(
+    { help: previewHelp, version: previewVersion },
+    packedPackages.find(({ name }) => name === '@chakra-email/preview')
+      ?.version,
+  );
   console.log('ok packed preview binary help and version');
+  execFileSync(
+    previewBin,
+    [
+      'export',
+      '--config',
+      'chakra-email.config.mjs',
+      '--out-dir',
+      'exports',
+      '--format',
+      'both',
+      '--default-only',
+    ],
+    { cwd: consumerDirectory, stdio: 'inherit' },
+  );
+  const exportedHtml = readFileSync(
+    join(consumerDirectory, 'exports', 'preview-template.html'),
+    'utf8',
+  );
+  const exportedText = readFileSync(
+    join(consumerDirectory, 'exports', 'preview-template.txt'),
+    'utf8',
+  );
+  if (
+    !exportedHtml.includes('Hello Packed preview') ||
+    !exportedHtml.includes('data-chakra-email-color-mode="system"') ||
+    !exportedText.includes('Hello Packed preview')
+  ) {
+    throw new Error('Packed preview CLI export did not render its fixture.');
+  }
+  console.log('ok packed preview CLI export');
   execFileSync(process.execPath, ['smoke.mjs'], {
     cwd: consumerDirectory,
     stdio: 'inherit',

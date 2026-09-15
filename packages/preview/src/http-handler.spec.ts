@@ -14,6 +14,7 @@ describe('preview HTTP handler', () => {
   let events: EventHub;
   let server: Server;
   const token = 'test-preview-token';
+  const send = vi.fn(async () => ({ id: 'sent-id', message: 'Delivered.' }));
 
   beforeEach(async () => {
     directory = await mkdtemp(join(tmpdir(), 'chakra-email-http-'));
@@ -21,13 +22,25 @@ describe('preview HTTP handler', () => {
     await mkdir(join(directory, 'public'), { recursive: true });
     await writeFile(
       join(directory, 'ui', 'index.html'),
-      '<meta name="preview-token" content="__CHAKRA_EMAIL_PREVIEW_TOKEN__"><main>Preview</main>',
+      '<meta name="preview-token" content="__CHAKRA_EMAIL_PREVIEW_TOKEN__"><meta name="preview-theme" content="__CHAKRA_EMAIL_PREVIEW_THEME__"><main>Preview</main>',
     );
     await writeFile(join(directory, 'ui', 'assets', 'app.js'), 'export {};');
     await writeFile(join(directory, 'public', 'logo.txt'), 'logo');
 
     const config = normalizeConfig(
-      { assets: 'public', host: '127.0.0.1', port: 0, templates: 'emails' },
+      {
+        assets: 'public',
+        allowedHosts: ['chakra-email.test'],
+        linkCheck: { allowedHosts: ['example.org'] },
+        host: '127.0.0.1',
+        port: 0,
+        templates: 'emails',
+        theme: {
+          semanticTokens: {
+            colors: { preview: { accent: { value: '#111111' } } },
+          },
+        },
+      },
       undefined,
       directory,
     );
@@ -50,16 +63,19 @@ describe('preview HTTP handler', () => {
       name: template.name,
       props: {},
       source: 'export default Welcome;',
+      subject: 'Welcome',
       text: 'Hello',
       variants: [],
     };
     events = new EventHub();
+    send.mockClear();
     const handler = createPreviewHttpHandler({
       allowRemote: false,
       config,
       events,
       getRegistry: () => registry,
       render: async () => rendered,
+      send,
       token,
       uiRoot: join(directory, 'ui'),
     });
@@ -89,7 +105,16 @@ describe('preview HTTP handler', () => {
     await expect(health.json()).resolves.toEqual({ status: 'ok' });
 
     const index = await fetch(baseUrl);
-    expect(await index.text()).toContain(`content="${token}"`);
+    const indexHtml = await index.text();
+    expect(indexHtml).toContain(`content="${token}"`);
+    const encodedTheme = Buffer.from(
+      JSON.stringify({
+        semanticTokens: {
+          colors: { preview: { accent: { value: '#111111' } } },
+        },
+      }),
+    ).toString('base64url');
+    expect(indexHtml).toContain(`content="${encodedTheme}"`);
     expect(index.headers.get('content-security-policy')).toContain(
       "default-src 'self'",
     );
@@ -109,6 +134,7 @@ describe('preview HTTP handler', () => {
       headers: { 'x-chakra-email-preview-token': token },
     });
     await expect(templates.json()).resolves.toEqual({
+      capabilities: { testSend: true, linkCheck: true },
       templates: [
         { id: 'template-id', name: 'Welcome', path: 'emails/welcome.tsx' },
       ],
@@ -124,6 +150,45 @@ describe('preview HTTP handler', () => {
     });
     expect(rendered.status).toBe(200);
     await expect(rendered.json()).resolves.toMatchObject({ text: 'Hello' });
+  });
+
+  it('validates and delegates authenticated test sends', async () => {
+    const headers = {
+      'content-type': 'application/json',
+      'x-chakra-email-preview-token': token,
+    };
+    const sent = await fetch(`${baseUrl}/api/send`, {
+      body: JSON.stringify({
+        id: 'template-id',
+        props: { firstName: 'Ada' },
+        subject: 'Welcome Ada',
+        to: ' ada@example.com ',
+        variant: 'friendly',
+      }),
+      headers,
+      method: 'POST',
+    });
+
+    expect(sent.status).toBe(200);
+    await expect(sent.json()).resolves.toEqual({
+      id: 'sent-id',
+      message: 'Delivered.',
+    });
+    expect(send).toHaveBeenCalledWith({
+      id: 'template-id',
+      props: { firstName: 'Ada' },
+      subject: 'Welcome Ada',
+      to: 'ada@example.com',
+      variant: 'friendly',
+    });
+
+    const invalid = await fetch(`${baseUrl}/api/send`, {
+      body: JSON.stringify({ id: 'template-id', to: 'not-an-email' }),
+      headers,
+      method: 'POST',
+    });
+    expect(invalid.status).toBe(400);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('streams invalidation events over authenticated SSE', async () => {
@@ -196,22 +261,118 @@ describe('preview HTTP handler', () => {
     ).toBe(400);
   });
 
-  it('rejects DNS-rebinding Host headers', async () => {
-    const status = await new Promise<number | undefined>(
-      (resolveStatus, reject) => {
+  it('checks only registered rendered templates behind token, origin, method and body guards', async () => {
+    const headers = {
+      'content-type': 'application/json',
+      'x-chakra-email-preview-token': token,
+    };
+    const body = JSON.stringify({ id: 'template-id' });
+    const checked = await fetch(`${baseUrl}/api/check-links`, {
+      method: 'POST',
+      headers,
+      body,
+    });
+    expect(checked.status).toBe(200);
+    expect(await checked.json()).toMatchObject({
+      html: '<p>Hello</p>',
+      lint: [],
+      linkCheck: { checked: 0, skipped: 0 },
+    });
+    const normal = await fetch(`${baseUrl}/api/render`, {
+      method: 'POST',
+      headers,
+      body,
+    });
+    expect(await normal.json()).not.toHaveProperty('linkCheck');
+    for (const [init, status] of [
+      [{ method: 'POST', body }, 401],
+      [{ method: 'GET', headers }, 405],
+      [
+        {
+          method: 'POST',
+          headers: { ...headers, origin: 'https://evil.example' },
+          body,
+        },
+        403,
+      ],
+      [
+        {
+          method: 'POST',
+          headers: { 'x-chakra-email-preview-token': token },
+          body,
+        },
+        415,
+      ],
+      [{ method: 'POST', headers, body: '{}' }, 400],
+      [
+        { method: 'POST', headers, body: JSON.stringify({ id: 'missing' }) },
+        404,
+      ],
+    ] as const) {
+      expect((await fetch(`${baseUrl}/api/check-links`, init)).status).toBe(
+        status,
+      );
+    }
+  });
+
+  it.each([
+    'attacker.example',
+    '127.attacker.example',
+    '127.0.0.1.attacker.example:3000',
+    'localhost.attacker.example',
+  ])(
+    'rejects DNS-rebinding Host header %s without exposing the UI token',
+    async (host) => {
+      const status = await new Promise<number | undefined>(
+        (resolveStatus, reject) => {
+          const request = get(
+            baseUrl,
+            {
+              headers: { host },
+            },
+            (response) => {
+              let body = '';
+              response.setEncoding('utf8');
+              response.on('data', (chunk) => {
+                body += chunk;
+              });
+              response.on('end', () => {
+                expect(body).not.toContain(token);
+                resolveStatus(response.statusCode);
+              });
+            },
+          );
+          request.once('error', reject);
+        },
+      );
+      expect(status).toBe(400);
+    },
+  );
+
+  it('accepts only explicitly configured reverse-proxy hostnames', async () => {
+    async function requestWithHost(host: string) {
+      return new Promise<number | undefined>((resolveStatus, reject) => {
         const request = get(
           `${baseUrl}/api/health`,
-          {
-            headers: { host: 'attacker.example' },
-          },
+          { headers: { host } },
           (response) => {
             response.resume();
             resolveStatus(response.statusCode);
           },
         );
         request.once('error', reject);
-      },
-    );
-    expect(status).toBe(400);
+      });
+    }
+
+    await expect(requestWithHost('chakra-email.test')).resolves.toBe(200);
+    await expect(requestWithHost('docs.chakra-email.test')).resolves.toBe(400);
+    for (const host of [
+      'localhost',
+      '127.0.0.1',
+      '127.10.20.30:3000',
+      '[::1]:3000',
+    ]) {
+      await expect(requestWithHost(host)).resolves.toBe(200);
+    }
   });
 });

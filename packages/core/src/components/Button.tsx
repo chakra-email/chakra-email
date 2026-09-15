@@ -1,11 +1,18 @@
+import {
+  getEmailStyleProps,
+  updateEmailStyleModes,
+} from '../system/color-mode.js';
 import type { AnchorHTMLAttributes, CSSProperties } from 'react';
 import {
+  mergeInlineStyles,
   splitStyleProps,
   useChakraStyles,
+  useSlotRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { chakraEmailSlotRecipeKeys } from '../theme/index.js';
+import { useEmailUrlPolicy, type EmailUrlPolicy } from '../security/index.js';
 import { getMsoPaddingAlt, splitStyles } from './layout-styles.js';
-import { sanitizeHref } from './Link.js';
 
 export interface ButtonProps
   extends
@@ -18,13 +25,8 @@ export interface ButtonProps
   variant?: 'solid' | 'outline' | 'ghost' | 'link';
   size?: 'sm' | 'md' | 'lg';
   align?: 'left' | 'center' | 'right';
+  urlPolicy?: EmailUrlPolicy;
 }
-
-const sizeProps = {
-  sm: { px: 4, py: 2, fontSize: 'sm' },
-  md: { px: 6, py: 3, fontSize: 'md' },
-  lg: { px: 8, py: 4, fontSize: 'lg' },
-} as const;
 
 const buttonCellStyleKeys = [
   'background',
@@ -39,70 +41,59 @@ const buttonCellStyleKeys = [
   'borderRadius',
 ] as const satisfies ReadonlyArray<keyof CSSProperties>;
 
+const buttonMarginStyleKeys = [
+  'margin',
+  'marginTop',
+  'marginRight',
+  'marginBottom',
+  'marginLeft',
+] as const satisfies ReadonlyArray<keyof CSSProperties>;
+
 export function Button({
   href,
   variant = 'solid',
   size = 'md',
   align = 'left',
+  urlPolicy,
   children,
   ...props
 }: ButtonProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps, {
-    bg: variant === 'solid' ? 'brand.500' : 'transparent',
-    color: variant === 'solid' ? 'white' : 'brand.500',
-    rounded: 'md',
-    fontFamily: 'body',
-    fontWeight: 'semibold',
-    lineHeight: 'none',
-    textAlign: 'center',
-    textDecoration: variant === 'link' ? 'underline' : 'none',
-    ...(variant === 'link'
-      ? {
-          p: 0,
-          bg: 'transparent',
-          border: 'none',
-          fontSize: sizeProps[size].fontSize,
-        }
-      : sizeProps[size]),
+  const sanitizeUrl = useEmailUrlPolicy('link', urlPolicy);
+  const recipeStyles = useSlotRecipeStyles(chakraEmailSlotRecipeKeys.button, {
+    size,
+    variant,
   });
-
-  if (variant === 'outline' && !styles.border) {
-    styles.border = `1px solid ${styles.borderColor ?? styles.color ?? '#6366f1'}`;
-  }
-
-  const tableStyles: CSSProperties = {
-    borderCollapse: 'separate',
-    margin: styles.margin,
-    marginTop: styles.marginTop,
-    marginRight: styles.marginRight,
-    marginBottom: styles.marginBottom,
-    marginLeft: styles.marginLeft,
-  };
-
-  // Margins are rendered on the outer table only; keeping them on the
-  // inline-block anchor as well would apply them twice.
-  const [anchorBaseStyles, cellStyles] = splitStyles(
-    styles,
+  const instanceStyles = useChakraStyles(styleProps);
+  const [anchorAndMarginOverrides, cellOverrides] = splitStyles(
+    instanceStyles,
     buttonCellStyleKeys,
   );
-  const outlookPadding = getMsoPaddingAlt(styles);
-  const outlookCellStyles: CSSProperties & { msoPaddingAlt?: string } = {
-    ...cellStyles,
-    ...(outlookPadding ? { msoPaddingAlt: outlookPadding } : {}),
-  };
-  const anchorStyles: CSSProperties = {
-    ...anchorBaseStyles,
-    display: 'inline-block',
-    textDecoration: styles.textDecoration ?? 'none',
-  };
-  delete anchorStyles.margin;
-  delete anchorStyles.marginTop;
-  delete anchorStyles.marginRight;
-  delete anchorStyles.marginBottom;
-  delete anchorStyles.marginLeft;
-  const legacyBackgroundAttribute = styles.backgroundColor
-    ? { bgcolor: styles.backgroundColor.toString() }
+  const [anchorOverrides, tableOverrides] = splitStyles(
+    anchorAndMarginOverrides,
+    buttonMarginStyleKeys,
+  );
+
+  const tableStyles = mergeInlineStyles(recipeStyles.root, tableOverrides);
+  const cellStyles = mergeInlineStyles(recipeStyles.cell, cellOverrides);
+  const anchorStyles = mergeInlineStyles(recipeStyles.link, anchorOverrides);
+
+  updateEmailStyleModes(cellStyles, (styles) => {
+    if (variant === 'outline' && !styles.border)
+      styles.border = `1px solid ${styles.borderColor ?? 'currentColor'}`;
+  });
+
+  const outlookPadding = getMsoPaddingAlt(anchorStyles);
+  const outlookCellStyles = mergeInlineStyles(
+    cellStyles,
+    outlookPadding ? ({ msoPaddingAlt: outlookPadding } as CSSProperties) : {},
+  );
+  updateEmailStyleModes(anchorStyles, (styles) => {
+    styles.display ??= 'inline-block';
+    styles.textDecoration ??= 'none';
+  });
+  const legacyBackgroundAttribute = cellStyles.backgroundColor
+    ? { bgcolor: cellStyles.backgroundColor.toString() }
     : {};
 
   return (
@@ -112,16 +103,20 @@ export function Button({
       cellPadding={0}
       border={0}
       align={align}
-      style={tableStyles}
+      {...getEmailStyleProps(tableStyles)}
     >
       <tbody>
         <tr>
           <td
             {...legacyBackgroundAttribute}
             align="center"
-            style={outlookCellStyles}
+            {...getEmailStyleProps(outlookCellStyles)}
           >
-            <a {...elementProps} href={sanitizeHref(href)} style={anchorStyles}>
+            <a
+              {...elementProps}
+              href={sanitizeUrl(href)}
+              {...getEmailStyleProps(anchorStyles, elementProps.className)}
+            >
               {children}
             </a>
           </td>

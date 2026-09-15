@@ -11,7 +11,10 @@ import {
   Grid,
   Heading,
   IconButton,
+  Input,
+  Link,
   NativeSelect,
+  Portal,
   Skeleton,
   Spinner,
   Stack,
@@ -19,62 +22,89 @@ import {
   Tabs,
   Text,
   Textarea,
+  Tooltip,
+  VisuallyHidden,
 } from '@chakra-ui/react';
-import { useEffect, useRef } from 'react';
+import type { IconButtonProps } from '@chakra-ui/react';
+import { forwardRef, useMemo, useRef, useState } from 'react';
+import type { ReactElement } from 'react';
 import type {
   ApplicationState,
-  EmailColorMode,
   LintFinding,
   LintSeverity,
   PreviewTab,
   Viewport,
 } from './app';
-import { previewSystem } from './theme';
+import {
+  createPreviewSystem,
+  previewFeedbackSlotRecipe,
+  previewInspectorSlotRecipe,
+  previewSlotRecipeKeys,
+  previewTemplatesSlotRecipe,
+  previewViewerSlotRecipe,
+  previewWorkspaceSlotRecipe,
+} from './theme';
+import { usePreviewSlotRecipe } from './use-slot-recipe';
 
-const tabs: ReadonlyArray<{ id: PreviewTab; label: string }> = [
+const tabs: ReadonlyArray<{
+  id: PreviewTab;
+  label: string;
+}> = [
   { id: 'preview', label: 'Preview' },
   { id: 'html', label: 'HTML' },
   { id: 'text', label: 'Text' },
   { id: 'source', label: 'Source' },
 ];
 
-const viewports: ReadonlyArray<{ id: Viewport; label: string }> = [
-  { id: 'desktop', label: 'Desktop' },
-  { id: 'mobile', label: 'Mobile' },
-  { id: 'fluid', label: 'Fit' },
-];
-
-const emailColorModes: ReadonlyArray<{
-  id: EmailColorMode;
+const viewports: ReadonlyArray<{
+  id: Viewport;
   label: string;
+  tooltip: string;
 }> = [
-  { id: 'system', label: 'System' },
-  { id: 'light', label: 'Light' },
-  { id: 'dark', label: 'Dark' },
+  {
+    id: 'desktop',
+    label: 'Desktop',
+    tooltip: 'Preview at a 680px desktop email width',
+  },
+  {
+    id: 'mobile',
+    label: 'Mobile',
+    tooltip: 'Preview at a 390px mobile email width',
+  },
+  {
+    id: 'fluid',
+    label: 'Fit',
+    tooltip: 'Fit the email preview to the available workspace',
+  },
 ];
-
-const avatarColors = ['#91d8c5', '#e6bf83', '#93bfe6', '#c8a6df'];
 
 export type PreviewWorkspaceProps = {
   state: Readonly<ApplicationState>;
   securedHtml: string | null;
+  theme?: Record<string, unknown>;
   onSelectTemplate(templateId: string): void;
   onTabChange(tab: PreviewTab): void;
   onViewportChange(viewport: Viewport): void;
-  onToggleWorkspaceColorMode(): void;
-  onEmailColorModeChange(colorMode: EmailColorMode): void;
+  onToggleEmailColorMode(): void;
   onRemoteImagesChange(checked: boolean): void;
   onVariantChange(variant: string): void;
   onPropsTextChange(value: string): void;
+  onSendToChange(value: string): void;
+  onSendSubjectChange(value: string): void;
   onApplyProps(): void;
   onCopy(): void;
+  onDownload(): void;
+  onSend(): void;
+  onCheckLinks(): void;
   onRetry(): void;
   onDismissError(): void;
 };
 
 export function PreviewRoot(props: PreviewWorkspaceProps) {
+  const system = useMemo(() => createPreviewSystem(props.theme), [props.theme]);
+
   return (
-    <ChakraProvider value={previewSystem}>
+    <ChakraProvider value={system}>
       <PreviewWorkspace {...props} />
     </ChakraProvider>
   );
@@ -82,7 +112,24 @@ export function PreviewRoot(props: PreviewWorkspaceProps) {
 
 function PreviewWorkspace(props: PreviewWorkspaceProps) {
   const { state } = props;
-  const remoteImagesInput = useRef<HTMLInputElement>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(
+    () => window.innerWidth >= 768,
+  );
+  const [inspectorOpen, setInspectorOpen] = useState(
+    () => window.innerWidth >= 960,
+  );
+  const templatesToggle = useRef<HTMLButtonElement>(null);
+  const inspectorToggle = useRef<HTMLButtonElement>(null);
+  const workspaceRecipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.workspace,
+    previewWorkspaceSlotRecipe,
+  );
+  const styles = workspaceRecipe({ templatesOpen, inspectorOpen });
+  const viewerRecipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.viewer,
+    previewViewerSlotRecipe,
+  );
+  const viewerStyles = viewerRecipe();
   const selectedTemplate = state.templates.find(
     (template) => template.id === state.selectedId,
   );
@@ -100,119 +147,96 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
     (finding) => finding.severity === 'warning',
   ).length;
 
-  useEffect(() => {
-    const input = remoteImagesInput.current;
-
-    if (!input) {
-      return;
-    }
-
-    const handleChange = () => props.onRemoteImagesChange(input.checked);
-    input.addEventListener('change', handleChange);
-
-    return () => input.removeEventListener('change', handleChange);
-  }, [props.onRemoteImagesChange]);
-
   return (
     <Grid
       className="preview-app"
-      h="100vh"
-      gridTemplateRows="68px minmax(0, 1fr)"
-      color="preview.text"
-      bg="preview.canvas"
-      backgroundImage="radial-gradient(circle at 85% -20%, rgba(73, 154, 137, 0.12), transparent 35%)"
-      _light={{
-        backgroundImage:
-          'radial-gradient(circle at 85% -20%, rgba(22, 134, 108, 0.1), transparent 35%)',
-      }}
+      css={styles.root}
+      data-templates-open={templatesOpen}
+      data-inspector-open={inspectorOpen}
     >
-      <Flex
-        as="header"
-        className="topbar"
-        zIndex="docked"
-        align="center"
-        justify="space-between"
-        px="5"
-        borderBottomWidth="1px"
-        borderColor="preview.border"
-        bg="preview.chrome"
-        backdropFilter="blur(18px)"
-      >
-        <Flex className="brand" gap="3" align="center">
-          <Grid
-            aria-hidden="true"
-            boxSize="9"
-            placeItems="center"
-            borderWidth="1px"
-            borderColor="rgba(99, 217, 187, 0.28)"
-            borderRadius="xl"
-            color="#0d1a17"
-            bg="preview.accent"
-            boxShadow="0 8px 28px rgba(53, 185, 151, 0.2)"
-            fontSize="sm"
-            fontWeight="extrabold"
-            letterSpacing="-0.05em"
-          >
+      <Flex as="header" className="topbar" css={styles.header}>
+        <Flex className="brand" css={styles.brand}>
+          <Grid aria-hidden="true" css={styles.brandMark}>
             ce
           </Grid>
-          <Stack gap="0">
+          <Stack css={styles.brandCopy}>
             <Text as="strong" fontSize="sm" letterSpacing="-0.01em">
               Chakra Email
-            </Text>
-            <Text as="small" color="preview.textMuted" fontSize="xs">
-              Preview workspace
             </Text>
           </Stack>
         </Flex>
 
-        <Flex align="center" gap="2">
-          <IconButton
-            className="workspace-color-mode-toggle"
-            type="button"
-            data-action="toggle-workspace-color-mode"
-            aria-label={`Use ${
-              state.workspaceColorMode === 'dark' ? 'light' : 'dark'
-            } workspace theme`}
-            title={`Use ${
-              state.workspaceColorMode === 'dark' ? 'light' : 'dark'
-            } workspace theme`}
-            size="sm"
-            borderWidth="1px"
-            borderColor="preview.border"
-            borderRadius="full"
-            color="preview.textSubtle"
-            bg="preview.overlay"
-            variant="ghost"
-            onClick={props.onToggleWorkspaceColorMode}
+        <Heading as="h1" css={styles.title}>
+          {shortTemplateName(
+            state.result?.name ?? selectedTemplate?.name ?? 'Choose a template',
+          )}
+        </Heading>
+        <Flex css={styles.headerActions}>
+          <PreviewTooltip content="Show or hide email templates">
+            <IconButton
+              size="sm"
+              variant="ghost"
+              css={styles.modeToggle}
+              data-action="toggle-templates"
+              ref={templatesToggle}
+              aria-label="Toggle templates"
+              aria-expanded={templatesOpen}
+              aria-controls="preview-templates"
+              onClick={() => setTemplatesOpen((open) => !open)}
+            >
+              <PanelIcon side="left" />
+            </IconButton>
+          </PreviewTooltip>
+          <PreviewTooltip content="Show or hide props and checks">
+            <IconButton
+              size="sm"
+              variant="ghost"
+              css={styles.modeToggle}
+              data-action="toggle-inspector"
+              ref={inspectorToggle}
+              aria-label="Toggle preview settings"
+              aria-expanded={inspectorOpen}
+              aria-controls="preview-inspector"
+              onClick={() => {
+                setInspectorOpen((open) => !open);
+                if (window.innerWidth < 768) setTemplatesOpen(false);
+              }}
+            >
+              <PanelIcon side="right" />
+            </IconButton>
+          </PreviewTooltip>
+          <PreviewTooltip
+            content={`Preview the email in ${
+              state.emailColorMode === 'dark' ? 'light' : 'dark'
+            } mode. The workspace stays dark; client-specific color inversion is not simulated.`}
           >
-            <Text aria-hidden="true">
-              {state.workspaceColorMode === 'dark' ? '☀' : '☾'}
-            </Text>
-          </IconButton>
+            <IconButton
+              className="email-color-mode-toggle"
+              type="button"
+              data-action="toggle-email-color-mode"
+              aria-label={`Preview email in ${
+                state.emailColorMode === 'dark' ? 'light' : 'dark'
+              } mode`}
+              disabled={!state.result}
+              size="sm"
+              css={styles.modeToggle}
+              variant="ghost"
+              onClick={props.onToggleEmailColorMode}
+            >
+              <ActionIcon
+                name={state.emailColorMode === 'dark' ? 'sun' : 'moon'}
+              />
+            </IconButton>
+          </PreviewTooltip>
 
           <Badge
             className={`connection connection--${state.connection}`}
             role="status"
-            display="flex"
-            alignItems="center"
-            gap="2"
-            minW="92px"
-            px="3"
-            py="2"
-            borderWidth="1px"
-            borderColor="preview.border"
-            borderRadius="full"
-            color="preview.textSubtle"
-            bg="preview.overlay"
-            fontSize="2xs"
-            fontWeight="bold"
-            letterSpacing="0.03em"
-            textTransform="uppercase"
+            css={styles.connection}
           >
             <Box
               aria-hidden="true"
-              boxSize="2"
-              borderRadius="full"
+              css={styles.connectionDot}
               bg={
                 state.connection === 'connected'
                   ? 'preview.accent'
@@ -220,8 +244,8 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
               }
               boxShadow={
                 state.connection === 'connected'
-                  ? '0 0 0 3px rgba(99, 217, 187, 0.12)'
-                  : '0 0 0 3px rgba(244, 189, 108, 0.12)'
+                  ? '0 0 0 3px var(--chakra-colors-preview-accent-soft)'
+                  : '0 0 0 3px var(--chakra-colors-preview-warning-soft)'
               }
             />
             {connectionLabel(state.connection)}
@@ -229,33 +253,23 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
         </Flex>
       </Flex>
 
-      <Grid
-        className="application-body"
-        minH="0"
-        gridTemplateColumns="264px minmax(0, 1fr)"
-      >
+      <Grid className="application-body" css={styles.body}>
         <Grid
           as="aside"
           className="sidebar"
+          id="preview-templates"
+          hidden={!templatesOpen}
           aria-label="Email templates"
-          minH="0"
-          gridTemplateRows="auto minmax(0, 1fr) auto"
-          borderRightWidth="1px"
-          borderColor="preview.border"
-          bg="preview.sidebar"
+          css={styles.sidebar}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.stopPropagation();
+              setTemplatesOpen(false);
+              templatesToggle.current?.focus();
+            }
+          }}
         >
-          <Flex
-            align="center"
-            justify="space-between"
-            px="4"
-            pt="6"
-            pb="3"
-            color="preview.textSubtle"
-            fontSize="2xs"
-            fontWeight="extrabold"
-            letterSpacing="0.09em"
-            textTransform="uppercase"
-          >
+          <Flex css={styles.sidebarHeader}>
             <Text>Templates</Text>
             <Badge
               minW="6"
@@ -269,31 +283,17 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
             </Badge>
           </Flex>
 
-          <Box
-            as="nav"
-            className="template-list"
-            minH="0"
-            px="2.5"
-            pb="4"
-            overflowY="auto"
-            css={{
-              scrollbarColor: 'var(--chakra-colors-preview-border) transparent',
-              scrollbarWidth: 'thin',
-            }}
-          >
-            <TemplateList {...props} />
+          <Box as="nav" className="template-list" css={styles.templateNav}>
+            <TemplateList
+              {...props}
+              onSelectTemplate={(id) => {
+                props.onSelectTemplate(id);
+                if (window.innerWidth < 768) setTemplatesOpen(false);
+              }}
+            />
           </Box>
 
-          <Flex
-            gap="2"
-            align="center"
-            px="4"
-            py="4"
-            borderTopWidth="1px"
-            borderColor="preview.border"
-            color="preview.textMuted"
-            fontSize="2xs"
-          >
+          <Flex css={styles.sidebarFooter}>
             <Box
               aria-hidden="true"
               boxSize="1.5"
@@ -304,323 +304,256 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
           </Flex>
         </Grid>
 
-        <Box as="main" className="workspace" minW="0" minH="0" p="5">
-          <Flex
-            className="workspace-heading"
-            minW="0"
-            align="center"
-            justify="space-between"
-            gap="5"
-            mb="4"
-          >
-            <Box minW="0">
-              <Text
-                mb="1"
-                color="preview.accent"
-                fontSize="2xs"
-                fontWeight="extrabold"
-                letterSpacing="0.1em"
-                textTransform="uppercase"
-              >
-                Email preview
-              </Text>
-              <Heading
-                as="h1"
-                overflow="hidden"
-                color="preview.text"
-                fontSize="xl"
-                fontWeight="bold"
-                letterSpacing="-0.035em"
-                textOverflow="ellipsis"
-                whiteSpace="nowrap"
-              >
-                {state.result?.name ??
-                  selectedTemplate?.name ??
-                  'Choose a template'}
-              </Heading>
-              {selectedTemplate?.path ? (
-                <Code
-                  display="block"
-                  maxW="500px"
-                  mt="1"
-                  overflow="hidden"
-                  color="preview.textMuted"
-                  bg="transparent"
-                  fontFamily="previewMono"
-                  fontSize="2xs"
-                  textOverflow="ellipsis"
-                  whiteSpace="nowrap"
-                >
-                  {selectedTemplate.path}
-                </Code>
-              ) : null}
-            </Box>
-
-            <Flex className="workspace-actions" align="center" gap="2">
-              <Flex
-                aria-label="Preview viewport"
-                p="1"
-                borderWidth="1px"
-                borderColor="preview.border"
-                borderRadius="xl"
-                bg="preview.panel"
-              >
-                {viewports.map((viewport) => (
-                  <Button
-                    key={viewport.id}
-                    type="button"
-                    data-viewport={viewport.id}
-                    aria-pressed={state.viewport === viewport.id}
-                    title={`${viewport.label} viewport`}
-                    disabled={state.activeTab !== 'preview'}
-                    minH="8"
-                    px="2"
-                    gap="1.5"
-                    borderRadius="lg"
-                    color={
-                      state.viewport === viewport.id
-                        ? 'preview.text'
-                        : 'preview.textMuted'
-                    }
-                    bg={
-                      state.viewport === viewport.id
-                        ? 'preview.soft'
-                        : 'transparent'
-                    }
-                    fontSize="2xs"
-                    fontWeight="bold"
-                    variant="ghost"
-                    onClick={() => props.onViewportChange(viewport.id)}
-                  >
-                    <ViewportIcon viewport={viewport.id} />
-                    {viewport.label}
-                  </Button>
-                ))}
-              </Flex>
-
-              <Switch.Root
-                checked={state.remoteImages}
-                disabled={state.activeTab !== 'preview'}
-                display="flex"
-                minH="10"
-                alignItems="center"
-                gap="2"
-                px="2.5"
-                borderWidth="1px"
-                borderColor="preview.border"
-                borderRadius="xl"
-                color="preview.textSubtle"
-                bg="preview.panel"
-                fontSize="2xs"
-                fontWeight="bold"
-              >
-                <Switch.HiddenInput
-                  ref={remoteImagesInput}
-                  id="remote-images"
-                />
-                <Switch.Control
-                  bg="preview.borderStrong"
-                  _checked={{ bg: 'preview.accentStrong' }}
-                >
-                  <Switch.Thumb />
-                </Switch.Control>
-                <Switch.Label>Remote images</Switch.Label>
-              </Switch.Root>
-
-              <Badge
-                className="lint-summary"
-                data-lint-count={lint.length}
-                display="flex"
-                minH="10"
-                alignItems="center"
-                gap="1.5"
-                px="3"
-                borderWidth="1px"
-                borderColor={
-                  lintErrors > 0
-                    ? 'rgba(255, 129, 120, 0.3)'
-                    : lintWarnings > 0
-                      ? 'rgba(244, 189, 108, 0.3)'
-                      : 'rgba(99, 217, 187, 0.25)'
-                }
-                borderRadius="xl"
-                color={
-                  lintErrors > 0
-                    ? 'preview.danger'
-                    : lintWarnings > 0
-                      ? 'preview.warning'
-                      : 'preview.accent'
-                }
-                bg="preview.panel"
-                fontSize="2xs"
-              >
-                <Box aria-hidden="true">
-                  {lintErrors > 0 ? '!' : lintWarnings > 0 ? '△' : '✓'}
-                </Box>
-                {!state.result
-                  ? 'Checks'
-                  : lint.length === 0
-                    ? 'No issues'
-                    : `${lint.length} ${lint.length === 1 ? 'issue' : 'issues'}`}
-              </Badge>
-
-              <Button
-                className="copy-button"
-                type="button"
-                data-action="copy"
-                disabled={!state.result}
-                minH="10"
-                px="3"
-                gap="2"
-                borderWidth="1px"
-                borderColor="rgba(99, 217, 187, 0.25)"
-                borderRadius="xl"
-                color="preview.accentInk"
-                bg="preview.accent"
-                boxShadow="previewAccent"
-                fontSize="xs"
-                fontWeight="extrabold"
-                _hover={{
-                  bg: 'preview.accentHover',
-                  transform: 'translateY(-1px)',
-                }}
-                onClick={props.onCopy}
-              >
-                <Box aria-hidden="true">{state.copied ? '✓' : '⧉'}</Box>
-                {state.copied ? 'Copied' : `Copy ${outputLabel}`}
-              </Button>
-            </Flex>
-          </Flex>
-
-          {state.error ? (
-            <PreviewError
-              message={state.error}
-              onRetry={props.onRetry}
-              onDismiss={props.onDismissError}
-            />
-          ) : null}
-
-          <Grid
-            className="workspace-content"
-            minH="calc(100vh - 166px)"
-            gridTemplateColumns="minmax(500px, 1fr) 286px"
-            gap="4"
-          >
-            <Tabs.Root
-              className="viewer-card"
-              id="preview-formats"
-              value={state.activeTab}
-              activationMode="automatic"
-              loopFocus
-              minW="0"
-              minH="610px"
-              display="grid"
-              gridTemplateRows="48px minmax(0, 1fr)"
-              overflow="hidden"
-              borderWidth="1px"
-              borderColor="preview.border"
-              borderRadius="2xl"
-              bg="preview.panelTranslucent"
-              boxShadow="previewPanel"
-              onValueChange={(details) =>
-                props.onTabChange(details.value as PreviewTab)
-              }
-            >
+        <Tabs.Root
+          // Workspace/viewer recipes own the layout; Chakra's Tabs root defaults
+          // to display:block and would prevent the content flex item from growing.
+          unstyled
+          css={styles.main}
+          value={state.activeTab}
+          id="preview-formats"
+          ids={{ trigger: (value) => `tab-${value}` }}
+          activationMode="automatic"
+          loopFocus
+          onValueChange={(details) =>
+            props.onTabChange(details.value as PreviewTab)
+          }
+          asChild
+        >
+          <Box as="main" className="workspace">
+            <Flex className="workspace-heading" css={styles.heading}>
               <Tabs.List
-                alignItems="end"
-                gap="1"
-                px="2"
-                pt="2"
-                borderBottomWidth="1px"
-                borderColor="preview.border"
+                aria-label="Email output format"
+                css={viewerStyles.tabs}
               >
                 {tabs.map((tab) => (
-                  <Tabs.Trigger
+                  <PreviewTooltip
                     key={tab.id}
-                    id={`tab-${tab.id}`}
-                    value={tab.id}
-                    data-tab={tab.id}
-                    h="10"
-                    px="3"
-                    color="preview.textMuted"
-                    fontSize="xs"
-                    fontWeight="bold"
-                    _selected={{
-                      color: 'preview.text',
-                      _after: {
-                        position: 'absolute',
-                        insetInline: '3',
-                        bottom: '-1px',
-                        h: '2px',
-                        borderRadius: 'full',
-                        bg: 'preview.accent',
-                        content: '""',
-                      },
-                    }}
-                    onClick={() => props.onTabChange(tab.id)}
-                    onKeyDown={(event) => {
-                      const currentIndex = tabs.findIndex(
-                        (candidate) => candidate.id === tab.id,
-                      );
-                      const nextIndex =
-                        event.key === 'ArrowRight'
-                          ? (currentIndex + 1) % tabs.length
-                          : event.key === 'ArrowLeft'
-                            ? (currentIndex - 1 + tabs.length) % tabs.length
-                            : event.key === 'Home'
-                              ? 0
-                              : event.key === 'End'
-                                ? tabs.length - 1
-                                : null;
-
-                      if (nextIndex === null) {
-                        return;
-                      }
-
-                      const nextTab = tabs[nextIndex];
-
-                      if (!nextTab) {
-                        return;
-                      }
-
-                      event.preventDefault();
-                      event.stopPropagation();
-                      props.onTabChange(nextTab.id);
-                      document
-                        .querySelector<HTMLElement>(
-                          `[data-tab="${nextTab.id}"]`,
-                        )
-                        ?.focus();
-                    }}
+                    content={tab.label}
+                    triggerId={`output-tooltip-${tab.id}`}
                   >
-                    {tab.label}
-                  </Tabs.Trigger>
+                    {/* Keep tooltip ownership on a non-focusable wrapper, not
+                        the tab itself: both primitives use data-ownedby. */}
+                    <Box as="span" display="inline-flex">
+                      <Tooltip.Context>
+                        {(tooltip) => (
+                          <Tabs.Trigger
+                            value={tab.id}
+                            data-tab={tab.id}
+                            asChild
+                          >
+                            <PreviewIconButton
+                              aria-label={tab.label}
+                              aria-describedby={
+                                tooltip.open
+                                  ? tooltip.getContentProps().id
+                                  : undefined
+                              }
+                              variant="ghost"
+                              css={viewerStyles.tab}
+                            >
+                              <OutputIcon format={tab.id} />
+                            </PreviewIconButton>
+                          </Tabs.Trigger>
+                        )}
+                      </Tooltip.Context>
+                    </Box>
+                  </PreviewTooltip>
                 ))}
               </Tabs.List>
 
-              {tabs.map((tab) => (
-                <Tabs.Content
-                  key={tab.id}
-                  value={tab.id}
-                  minH="0"
-                  h="full"
-                  p="0"
-                  tabIndex={0}
+              <Flex className="workspace-actions" css={styles.actions}>
+                <Flex
+                  role="group"
+                  aria-label="Preview viewport"
+                  css={styles.viewportControl}
                 >
-                  {state.activeTab === tab.id ? (
-                    <Viewer
-                      state={state}
-                      securedHtml={props.securedHtml}
-                      onEmailColorModeChange={props.onEmailColorModeChange}
-                    />
-                  ) : null}
-                </Tabs.Content>
-              ))}
-            </Tabs.Root>
+                  {viewports.map((viewport) => (
+                    <PreviewTooltip
+                      key={viewport.id}
+                      content={viewport.tooltip}
+                    >
+                      <PreviewIconButton
+                        type="button"
+                        aria-label={`${viewport.label} preview`}
+                        data-viewport={viewport.id}
+                        aria-pressed={state.viewport === viewport.id}
+                        disabled={state.activeTab !== 'preview'}
+                        borderRadius="lg"
+                        color={
+                          state.viewport === viewport.id
+                            ? 'preview.text'
+                            : 'preview.textMuted'
+                        }
+                        bg={
+                          state.viewport === viewport.id
+                            ? 'preview.soft'
+                            : 'transparent'
+                        }
+                        fontSize="2xs"
+                        fontWeight="bold"
+                        variant="ghost"
+                        onClick={() => props.onViewportChange(viewport.id)}
+                      >
+                        <ViewportIcon viewport={viewport.id} />
+                      </PreviewIconButton>
+                    </PreviewTooltip>
+                  ))}
+                </Flex>
 
-            <Inspector {...props} />
-          </Grid>
-        </Box>
+                <PreviewTooltip
+                  content="Allow the rendered email to load images from remote URLs"
+                  triggerId="remote-images-control"
+                  disabled={state.activeTab !== 'preview'}
+                >
+                  <Switch.Root
+                    ids={{
+                      root: 'remote-images-control',
+                      hiddenInput: 'remote-images',
+                    }}
+                    checked={state.remoteImages}
+                    onCheckedChange={({ checked }) =>
+                      props.onRemoteImagesChange(checked)
+                    }
+                    disabled={state.activeTab !== 'preview'}
+                    css={styles.remoteControl}
+                  >
+                    <Tooltip.Context>
+                      {(tooltip) => (
+                        <Switch.HiddenInput
+                          aria-describedby={
+                            tooltip.open
+                              ? tooltip.getContentProps().id
+                              : undefined
+                          }
+                        />
+                      )}
+                    </Tooltip.Context>
+                    <Switch.Control
+                      bg="preview.borderStrong"
+                      _checked={{ bg: 'preview.accentStrong' }}
+                    >
+                      <Switch.Thumb />
+                    </Switch.Control>
+                    <Switch.Label>Remote images</Switch.Label>
+                  </Switch.Root>
+                </PreviewTooltip>
+
+                <Badge
+                  className="lint-summary"
+                  data-lint-count={lint.length}
+                  css={styles.lintSummary}
+                  borderColor={
+                    lintErrors > 0
+                      ? 'preview.dangerBorder'
+                      : lintWarnings > 0
+                        ? 'preview.warningBorder'
+                        : 'preview.successBorder'
+                  }
+                  color={
+                    lintErrors > 0
+                      ? 'preview.danger'
+                      : lintWarnings > 0
+                        ? 'preview.warning'
+                        : 'preview.accent'
+                  }
+                >
+                  <Box aria-hidden="true">
+                    {lintErrors > 0 ? '!' : lintWarnings > 0 ? '△' : '✓'}
+                  </Box>
+                  {!state.result
+                    ? 'Checks'
+                    : lint.length === 0
+                      ? 'No issues'
+                      : `${lint.length} ${lint.length === 1 ? 'issue' : 'issues'}`}
+                </Badge>
+
+                <PreviewTooltip content={`Download the ${outputLabel} output`}>
+                  <PreviewIconButton
+                    type="button"
+                    data-action="download"
+                    aria-label={`Download ${outputLabel}`}
+                    disabled={!state.result}
+                    css={styles.secondaryAction}
+                    onClick={props.onDownload}
+                  >
+                    <ActionIcon name="download" />
+                  </PreviewIconButton>
+                </PreviewTooltip>
+
+                <PreviewTooltip
+                  content={
+                    state.copied
+                      ? `${outputLabel} copied`
+                      : `Copy the ${outputLabel} output to the clipboard`
+                  }
+                >
+                  <PreviewIconButton
+                    className="copy-button"
+                    type="button"
+                    data-action="copy"
+                    aria-label={`Copy ${outputLabel}`}
+                    disabled={!state.result}
+                    css={styles.primaryAction}
+                    onClick={props.onCopy}
+                  >
+                    <ActionIcon name={state.copied ? 'check' : 'copy'} />
+                  </PreviewIconButton>
+                </PreviewTooltip>
+                <VisuallyHidden
+                  role="status"
+                  aria-atomic="true"
+                  data-copy-status=""
+                >
+                  {state.copied ? `Copied ${outputLabel} to clipboard` : ''}
+                </VisuallyHidden>
+              </Flex>
+            </Flex>
+
+            {state.error ? (
+              <PreviewError
+                message={state.error}
+                onRetry={props.onRetry}
+                onDismiss={props.onDismissError}
+              />
+            ) : null}
+
+            <Grid className="workspace-content" css={styles.content}>
+              <Box
+                className="viewer-card"
+                css={viewerStyles.root}
+                display={inspectorOpen ? { base: 'none', md: 'grid' } : 'grid'}
+              >
+                {tabs.map((tab) => (
+                  <Tabs.Content
+                    key={tab.id}
+                    value={tab.id}
+                    css={viewerStyles.content}
+                    tabIndex={0}
+                  >
+                    {state.activeTab === tab.id ? (
+                      <Viewer state={state} securedHtml={props.securedHtml} />
+                    ) : null}
+                  </Tabs.Content>
+                ))}
+              </Box>
+
+              <Box
+                id="preview-inspector"
+                hidden={!inspectorOpen}
+                css={styles.inspectorPanel}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.stopPropagation();
+                    setInspectorOpen(false);
+                    inspectorToggle.current?.focus();
+                  }
+                }}
+              >
+                <Inspector {...props} />
+              </Box>
+            </Grid>
+          </Box>
+        </Tabs.Root>
       </Grid>
     </Grid>
   );
@@ -628,10 +561,14 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
 
 function TemplateList(props: PreviewWorkspaceProps) {
   const { state } = props;
+  const recipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.templates,
+    previewTemplatesSlotRecipe,
+  );
 
   if (state.loadingTemplates && state.templates.length === 0) {
     return (
-      <Stack aria-label="Loading templates" gap="2" py="2">
+      <Stack aria-label="Loading templates" css={recipe().loading}>
         {[0, 1, 2].map((item) => (
           <Skeleton key={item} h="14" borderRadius="xl" />
         ))}
@@ -641,15 +578,7 @@ function TemplateList(props: PreviewWorkspaceProps) {
 
   if (state.templates.length === 0) {
     return (
-      <Stack
-        className="empty-sidebar"
-        align="center"
-        gap="2"
-        py="8"
-        px="3"
-        color="preview.textMuted"
-        textAlign="center"
-      >
+      <Stack className="empty-sidebar" css={recipe().empty}>
         <Text aria-hidden="true" color="preview.accent" fontSize="2xl">
           ◇
         </Text>
@@ -676,88 +605,38 @@ function TemplateList(props: PreviewWorkspaceProps) {
   }
 
   return (
-    <Stack gap="0.5">
-      {state.templates.map((template, index) => {
+    <Stack css={recipe().list}>
+      {state.templates.map((template) => {
         const selected = template.id === state.selectedId;
-        const initials = template.name
-          .split(/\s+/)
-          .map((part) => part[0])
-          .join('')
-          .slice(0, 2)
-          .toUpperCase();
+        const styles = recipe({ selected });
 
         return (
-          <Button
+          <PreviewTooltip
             key={template.id}
-            type="button"
-            className="template-item"
-            data-template-id={template.id}
-            aria-current={selected ? 'page' : undefined}
-            display="grid"
-            gridTemplateColumns="36px minmax(0, 1fr) auto"
-            gap="3"
-            alignItems="center"
-            w="full"
-            minH="14"
-            px="2"
-            py="2"
-            borderWidth="1px"
-            borderColor={selected ? 'rgba(99, 217, 187, 0.2)' : 'transparent'}
-            borderRadius="xl"
-            color={selected ? 'preview.text' : 'preview.textSubtle'}
-            bg={selected ? 'preview.accentSoft' : 'transparent'}
-            textAlign="start"
-            variant="ghost"
-            _hover={{ color: 'preview.text', bg: 'preview.hover' }}
-            onClick={() => props.onSelectTemplate(template.id)}
+            content={template.path ?? template.name}
           >
-            <Grid
-              aria-hidden="true"
-              boxSize="9"
-              placeItems="center"
-              borderWidth="1px"
-              borderColor="rgba(255, 255, 255, 0.07)"
-              borderRadius="lg"
-              color="#17221f"
-              bg={avatarColors[index % avatarColors.length]}
-              fontSize="2xs"
-              fontWeight="black"
-              letterSpacing="0.03em"
+            <Button
+              type="button"
+              className="template-item"
+              data-template-id={template.id}
+              aria-current={selected ? 'page' : undefined}
+              css={styles.item}
+              variant="ghost"
+              onClick={() => props.onSelectTemplate(template.id)}
             >
-              {initials}
-            </Grid>
-            <Stack minW="0" gap="0.5">
-              <Text
-                as="strong"
-                overflow="hidden"
-                color="inherit"
-                fontSize="xs"
-                fontWeight="bold"
-                textOverflow="ellipsis"
-                whiteSpace="nowrap"
-              >
-                {template.name}
-              </Text>
-              <Text
-                as="small"
-                overflow="hidden"
-                color="preview.textMuted"
-                fontFamily="previewMono"
-                fontSize="2xs"
-                textOverflow="ellipsis"
-                whiteSpace="nowrap"
-              >
-                {template.path ?? template.id}
-              </Text>
-            </Stack>
-            <Text
-              aria-hidden="true"
-              color={selected ? 'preview.accent' : 'preview.textMuted'}
-              fontSize="xl"
-            >
-              ›
-            </Text>
-          </Button>
+              <Grid aria-hidden="true" css={styles.avatar}>
+                <FileIcon />
+              </Grid>
+              <Stack css={styles.content}>
+                <Text as="strong" css={styles.name}>
+                  {shortTemplateName(template.name)}
+                </Text>
+                <Text as="small" css={styles.path}>
+                  {template.path ?? template.id}
+                </Text>
+              </Stack>
+            </Button>
+          </PreviewTooltip>
         );
       })}
     </Stack>
@@ -766,58 +645,49 @@ function TemplateList(props: PreviewWorkspaceProps) {
 
 function Inspector(props: PreviewWorkspaceProps) {
   const { state } = props;
+  const recipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.inspector,
+    previewInspectorSlotRecipe,
+  );
+  const styles = recipe();
 
   return (
     <Stack
       as="aside"
       className="inspector"
       aria-label="Preview settings"
-      minW="0"
-      gap="4"
-      p="4"
-      borderWidth="1px"
-      borderColor="preview.border"
-      borderRadius="2xl"
-      bg="preview.panelTranslucent"
-      boxShadow="previewPanel"
-      maxH="calc(100vh - 166px)"
-      overflowY="auto"
+      css={styles.root}
     >
-      <Flex align="start" justify="space-between">
+      <Flex css={styles.header}>
         <Box>
-          <Text
-            mb="1"
-            color="preview.accent"
-            fontSize="2xs"
-            fontWeight="extrabold"
-            letterSpacing="0.1em"
-            textTransform="uppercase"
-          >
-            Template data
-          </Text>
-          <Heading as="h2" fontSize="md">
+          <Heading as="h2" fontSize="sm">
             Preview props
           </Heading>
         </Box>
         {state.propsDirty ? (
-          <Badge
-            className="unsaved"
-            color="preview.warning"
-            bg="preview.warningSoft"
-          >
+          <Badge className="unsaved" css={styles.dirty}>
             Edited
           </Badge>
         ) : null}
       </Flex>
 
+      {state.result?.subject ? (
+        <Text
+          className="preview-subject"
+          color="preview.textMuted"
+          fontSize="xs"
+        >
+          Subject: {state.result.subject}
+        </Text>
+      ) : null}
       <Field.Root disabled={!state.result}>
-        <Field.Label htmlFor="variant" color="preview.textSubtle" fontSize="xs">
+        <Field.Label htmlFor="variant" css={styles.fieldLabel}>
           Variant
         </Field.Label>
         <NativeSelect.Root
           disabled={!state.result}
           size="sm"
-          borderColor="preview.borderStrong"
+          css={styles.control}
         >
           <NativeSelect.Field
             id="variant"
@@ -841,11 +711,7 @@ function Inspector(props: PreviewWorkspaceProps) {
 
       <Field.Root invalid={Boolean(state.propsError)} disabled={!state.result}>
         <Flex w="full" align="center" justify="space-between">
-          <Field.Label
-            htmlFor="preview-props"
-            color="preview.textSubtle"
-            fontSize="xs"
-          >
+          <Field.Label htmlFor="preview-props" css={styles.fieldLabel}>
             JSON props
           </Field.Label>
           <Text color="preview.textMuted" fontSize="2xs">
@@ -855,23 +721,13 @@ function Inspector(props: PreviewWorkspaceProps) {
         <Textarea
           id="preview-props"
           value={state.propsText}
-          minH="210px"
-          resize="vertical"
-          borderColor="preview.borderStrong"
-          color="preview.text"
-          bg="preview.raised"
-          fontFamily="previewMono"
-          fontSize="xs"
+          css={styles.textarea}
           aria-describedby={`props-help${state.propsError ? ' props-error' : ''}`}
           aria-invalid={Boolean(state.propsError)}
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
           disabled={!state.result}
-          _focusVisible={{
-            borderColor: 'preview.accent',
-            boxShadow: '0 0 0 1px var(--chakra-colors-preview-accent)',
-          }}
           onInput={(event) =>
             props.onPropsTextChange(event.currentTarget.value)
           }
@@ -895,13 +751,7 @@ function Inspector(props: PreviewWorkspaceProps) {
         type="button"
         data-action="apply-props"
         disabled={!state.result || state.rendering}
-        minH="10"
-        color="preview.accentInk"
-        bg="preview.accent"
-        boxShadow="previewAccent"
-        fontSize="xs"
-        fontWeight="extrabold"
-        _hover={{ bg: 'preview.accentHover', transform: 'translateY(-1px)' }}
+        css={styles.primaryAction}
         onClick={props.onApplyProps}
       >
         {state.rendering ? (
@@ -914,18 +764,132 @@ function Inspector(props: PreviewWorkspaceProps) {
         )}
       </Button>
 
+      {state.canTestSend ? (
+        <Stack
+          as="form"
+          className="test-send"
+          css={styles.sendRoot}
+          onSubmit={(event) => {
+            event.preventDefault();
+            props.onSend();
+          }}
+        >
+          <Box css={styles.sendHeader}>
+            <Text css={styles.eyebrow}>Delivery check</Text>
+            <Heading as="h3" fontSize="sm">
+              Send a test email
+            </Heading>
+          </Box>
+          <Stack css={styles.sendFields}>
+            <Field.Root invalid={Boolean(state.sendError)}>
+              <Field.Label htmlFor="test-send-to" css={styles.fieldLabel}>
+                Recipient
+              </Field.Label>
+              <Input
+                id="test-send-to"
+                name="to"
+                type="email"
+                value={state.sendTo}
+                autoComplete="email"
+                placeholder="you@example.com"
+                css={styles.sendInput}
+                aria-describedby={
+                  state.sendError ? 'test-send-error' : undefined
+                }
+                onInput={(event) =>
+                  props.onSendToChange(event.currentTarget.value)
+                }
+              />
+            </Field.Root>
+            <Field.Root>
+              <Field.Label htmlFor="test-send-subject" css={styles.fieldLabel}>
+                Subject
+              </Field.Label>
+              <Input
+                id="test-send-subject"
+                name="subject"
+                value={state.sendSubject}
+                placeholder={state.result?.subject ?? 'Template subject'}
+                css={styles.sendInput}
+                onInput={(event) =>
+                  props.onSendSubjectChange(event.currentTarget.value)
+                }
+              />
+            </Field.Root>
+          </Stack>
+          <Button
+            type="submit"
+            data-action="test-send"
+            disabled={!state.result || state.sending}
+            css={styles.sendAction}
+          >
+            {state.sending ? (
+              <>
+                <Spinner size="xs" />
+                Sending
+              </>
+            ) : (
+              'Send test'
+            )}
+          </Button>
+          {state.sendError ? (
+            <Text
+              id="test-send-error"
+              role="alert"
+              color="preview.danger"
+              css={styles.sendFeedback}
+            >
+              {state.sendError}
+            </Text>
+          ) : state.sendMessage ? (
+            <Text
+              role="status"
+              color="preview.accent"
+              css={styles.sendFeedback}
+            >
+              {state.sendMessage}
+            </Text>
+          ) : null}
+        </Stack>
+      ) : null}
+
+      <Stack gap="2">
+        {state.canCheckLinks ? (
+          <>
+            <Text id="link-check-help" color="preview.textMuted" fontSize="2xs">
+              Check links makes HEAD requests to configured public hosts.
+              Sensitive links are skipped; redirects are not followed.
+            </Text>
+            <Button
+              type="button"
+              data-action="check-links"
+              css={styles.primaryAction}
+              disabled={!state.result || state.rendering}
+              aria-describedby="link-check-help"
+              onClick={props.onCheckLinks}
+            >
+              {state.rendering && state.checkingLinks
+                ? 'Checking links…'
+                : 'Check links'}
+            </Button>
+          </>
+        ) : (
+          <Text color="preview.textMuted" fontSize="2xs">
+            Network link checks are off. Configure linkCheck.allowedHosts to
+            enable them.
+          </Text>
+        )}
+        <Text role="status" color="preview.textMuted" fontSize="2xs">
+          {state.rendering && state.checkingLinks
+            ? 'Checking links…'
+            : state.result?.linkCheck
+              ? `${state.result.linkCheck.checked} checked (including cached results) · ${state.result.linkCheck.skipped} skipped. Redirect destinations are unverified.`
+              : 'Network links have not been checked for this render.'}
+        </Text>
+      </Stack>
       <LintPanel findings={state.result?.lint ?? null} />
 
-      <Flex
-        gap="2"
-        p="3"
-        borderWidth="1px"
-        borderColor="preview.border"
-        borderRadius="xl"
-        color="preview.textMuted"
-        bg="preview.soft"
-        fontSize="2xs"
-      >
+      <Flex css={styles.notice}>
         <Text aria-hidden="true" color="preview.accent">
           ◈
         </Text>
@@ -942,31 +906,21 @@ function Inspector(props: PreviewWorkspaceProps) {
 }
 
 function LintPanel({ findings }: { findings: LintFinding[] | null }) {
+  const recipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.inspector,
+    previewInspectorSlotRecipe,
+  );
+  const styles = recipe();
   const errors =
     findings?.filter((finding) => finding.severity === 'error').length ?? 0;
   const warnings =
     findings?.filter((finding) => finding.severity === 'warning').length ?? 0;
 
   return (
-    <Stack
-      className="lint-panel"
-      gap="3"
-      pt="4"
-      borderTopWidth="1px"
-      borderColor="preview.border"
-    >
-      <Flex align="start" justify="space-between" gap="3">
+    <Stack className="lint-panel" css={styles.lintRoot}>
+      <Flex css={styles.lintHeader}>
         <Box>
-          <Text
-            mb="1"
-            color="preview.accent"
-            fontSize="2xs"
-            fontWeight="extrabold"
-            letterSpacing="0.1em"
-            textTransform="uppercase"
-          >
-            Email lint
-          </Text>
+          <Text css={styles.eyebrow}>Email lint</Text>
           <Heading as="h3" fontSize="sm">
             Client checks
           </Heading>
@@ -998,28 +952,12 @@ function LintPanel({ findings }: { findings: LintFinding[] | null }) {
           Render a template to check its generated HTML.
         </Text>
       ) : findings.length === 0 ? (
-        <Flex
-          gap="2"
-          p="3"
-          borderWidth="1px"
-          borderColor="rgba(99, 217, 187, 0.2)"
-          borderRadius="xl"
-          color="preview.accent"
-          bg="preview.accentSoft"
-          fontSize="xs"
-        >
+        <Flex css={styles.lintEmpty}>
           <Text aria-hidden="true">✓</Text>
           <Text>No compatibility or accessibility issues detected.</Text>
         </Flex>
       ) : (
-        <Stack
-          as="ul"
-          className="lint-findings"
-          gap="2"
-          m="0"
-          p="0"
-          listStyleType="none"
-        >
+        <Stack as="ul" className="lint-findings" css={styles.lintList}>
           {findings.map((finding, index) => (
             <Box
               as="li"
@@ -1027,11 +965,7 @@ function LintPanel({ findings }: { findings: LintFinding[] | null }) {
               className="lint-finding"
               data-lint-rule={finding.ruleId}
               data-severity={finding.severity}
-              p="3"
-              borderWidth="1px"
-              borderColor="preview.border"
-              borderRadius="xl"
-              bg="preview.soft"
+              css={styles.lintItem}
             >
               <Flex align="center" justify="space-between" gap="2" mb="2">
                 <Badge
@@ -1060,6 +994,17 @@ function LintPanel({ findings }: { findings: LintFinding[] | null }) {
               <Text mt="1" color="preview.textMuted" fontSize="2xs">
                 {finding.suggestion}
               </Text>
+              {finding.compatibility ? (
+                <Link
+                  href={finding.compatibility.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  css={styles.lintReference}
+                >
+                  {finding.compatibility.feature} on{' '}
+                  {finding.compatibility.source} ↗
+                </Link>
+              ) : null}
               {finding.line || finding.element ? (
                 <Text
                   mt="2"
@@ -1110,35 +1055,21 @@ function lintSeverityBackground(severity: LintSeverity): string {
 function Viewer({
   state,
   securedHtml,
-  onEmailColorModeChange,
-}: Pick<
-  PreviewWorkspaceProps,
-  'state' | 'securedHtml' | 'onEmailColorModeChange'
->) {
+}: Pick<PreviewWorkspaceProps, 'state' | 'securedHtml'>) {
+  const recipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.viewer,
+    previewViewerSlotRecipe,
+  );
+  const styles = recipe();
+  const [frameRevision, setFrameRevision] = useState(0);
+
   if (!state.result) {
     return (
-      <Stack
-        className="empty-viewer"
-        h="full"
-        minH="500px"
-        align="center"
-        justify="center"
-        gap="3"
-        color="preview.textMuted"
-        textAlign="center"
-      >
+      <Stack className="empty-viewer" css={styles.empty}>
         {state.rendering || state.loadingTemplates ? (
           <Spinner size="xl" color="preview.accent" />
         ) : (
-          <Grid
-            aria-hidden="true"
-            boxSize="16"
-            placeItems="center"
-            borderRadius="2xl"
-            color="preview.accentInk"
-            bg="preview.accent"
-            fontWeight="black"
-          >
+          <Grid aria-hidden="true" css={styles.emptyMark}>
             ce
           </Grid>
         )}
@@ -1158,100 +1089,64 @@ function Viewer({
   }
 
   if (state.activeTab === 'preview') {
-    const previewBackground =
-      state.emailColorMode === 'dark'
-        ? '#080c0f'
-        : state.emailColorMode === 'light'
-          ? '#e8eeec'
-          : 'preview.soft';
+    const resolvedEmailColorMode = state.emailColorMode;
     const frameBackground =
-      state.emailColorMode === 'dark'
-        ? '#111827'
-        : state.emailColorMode === 'light'
-          ? 'white'
-          : 'preview.panel';
-    const iframeColorScheme =
-      state.emailColorMode === 'system'
-        ? 'light dark'
-        : `only ${state.emailColorMode}`;
+      resolvedEmailColorMode === 'dark' ? 'preview.previewFrameDark' : 'white';
+    // Keep the embedded document independent of the permanently dark shell.
+    const iframeColorScheme = `only ${resolvedEmailColorMode}`;
 
     return (
       <Box
         className="preview-surface"
         data-viewport={state.viewport}
-        data-email-color-mode={state.emailColorMode}
-        position="relative"
-        h="full"
-        minH="560px"
-        p="4"
-        bg={previewBackground}
-        overflow="auto"
+        css={styles.surface}
       >
-        <Flex
-          align="center"
-          justify="space-between"
-          gap="3"
-          wrap="wrap"
-          mb="3"
-          color="preview.textMuted"
-          fontSize="2xs"
-          fontWeight="bold"
-          textTransform="uppercase"
-        >
-          <Text>{viewportLabel(state.viewport)}</Text>
+        <Flex css={styles.stage}>
+          <Box
+            key={`${state.viewport}-${frameRevision}`}
+            className="email-frame-shell"
+            css={styles.frame}
+            width={
+              state.viewport === 'mobile'
+                ? '390px'
+                : state.viewport === 'desktop'
+                  ? '680px'
+                  : '100%'
+            }
+            bg={frameBackground}
+          >
+            <chakra.iframe
+              id="email-preview-frame"
+              title={`Rendered ${state.result.name} email`}
+              srcDoc={securedHtml ?? undefined}
+              sandbox=""
+              data-email-color-mode={state.emailColorMode}
+              data-resolved-email-color-mode={resolvedEmailColorMode}
+              w="full"
+              h="full"
+              border="0"
+              bg={frameBackground}
+              style={{ colorScheme: iframeColorScheme }}
+            />
+          </Box>
+        </Flex>
+        <Flex css={styles.surfaceHeader}>
+          <Flex gap="2" align="center">
+            <Text>{viewportLabel(state.viewport)} preset</Text>
+            <PreviewTooltip content="Restore preset dimensions after dragging the email frame’s bottom-right corner to resize it">
+              <PreviewIconButton
+                aria-label="Reset preview size"
+                size="xs"
+                variant="ghost"
+                css={styles.modeButton}
+                data-action="reset-frame"
+                onClick={() => setFrameRevision((value) => value + 1)}
+              >
+                <ActionIcon name="reset" />
+              </PreviewIconButton>
+            </PreviewTooltip>
+          </Flex>
           <Flex align="center" gap="3" wrap="wrap">
-            <Flex
-              role="group"
-              aria-label="Email preview color mode"
-              title="Simulates the browser color preference used by the rendered email"
-              align="center"
-              gap="1"
-              p="1"
-              borderWidth="1px"
-              borderColor="preview.border"
-              borderRadius="lg"
-              bg="preview.panel"
-            >
-              <Text px="1.5">Email mode</Text>
-              {emailColorModes.map((colorMode) => (
-                <Button
-                  key={colorMode.id}
-                  type="button"
-                  data-email-color-mode={colorMode.id}
-                  aria-pressed={state.emailColorMode === colorMode.id}
-                  minH="7"
-                  px="2"
-                  borderRadius="md"
-                  color={
-                    state.emailColorMode === colorMode.id
-                      ? 'preview.accentInk'
-                      : 'preview.textMuted'
-                  }
-                  bg={
-                    state.emailColorMode === colorMode.id
-                      ? 'preview.accent'
-                      : 'transparent'
-                  }
-                  fontSize="2xs"
-                  fontWeight="extrabold"
-                  textTransform="none"
-                  variant="ghost"
-                  _hover={{
-                    color:
-                      state.emailColorMode === colorMode.id
-                        ? 'preview.accentInk'
-                        : 'preview.text',
-                    bg:
-                      state.emailColorMode === colorMode.id
-                        ? 'preview.accentHover'
-                        : 'preview.hover',
-                  }}
-                  onClick={() => onEmailColorModeChange(colorMode.id)}
-                >
-                  {colorMode.label}
-                </Button>
-              ))}
-            </Flex>
             <Text>
               {state.remoteImages
                 ? 'Remote images on'
@@ -1259,38 +1154,7 @@ function Viewer({
             </Text>
           </Flex>
         </Flex>
-        <Box
-          className="email-frame-shell"
-          w="full"
-          maxW={
-            state.viewport === 'mobile'
-              ? '390px'
-              : state.viewport === 'desktop'
-                ? '680px'
-                : 'full'
-          }
-          h="calc(100% - 30px)"
-          minH="500px"
-          mx="auto"
-          overflow="hidden"
-          borderRadius="lg"
-          bg={frameBackground}
-          boxShadow="0 12px 44px rgba(0, 0, 0, 0.34)"
-          transition="max-width 180ms ease"
-        >
-          <chakra.iframe
-            id="email-preview-frame"
-            title={`Rendered ${state.result.name} email`}
-            srcDoc={securedHtml ?? undefined}
-            sandbox=""
-            data-email-color-mode={state.emailColorMode}
-            w="full"
-            h="full"
-            border="0"
-            bg={frameBackground}
-            style={{ colorScheme: iframeColorScheme }}
-          />
-        </Box>
+
         {state.rendering ? <RenderOverlay label="Refreshing preview…" /> : null}
       </Box>
     );
@@ -1307,23 +1171,9 @@ function Viewer({
     <Grid
       className="code-view"
       data-language={state.activeTab}
-      position="relative"
-      h="full"
-      minH="560px"
-      gridTemplateRows="42px minmax(0, 1fr)"
-      bg="#0a0e10"
+      css={styles.codeRoot}
     >
-      <Flex
-        className="code-heading"
-        align="center"
-        justify="space-between"
-        px="4"
-        borderBottomWidth="1px"
-        borderColor="preview.border"
-        color="preview.textMuted"
-        fontSize="2xs"
-        fontWeight="bold"
-      >
+      <Flex className="code-heading" css={styles.codeHeader}>
         <Text>
           {state.activeTab === 'text'
             ? 'Plain text'
@@ -1333,17 +1183,7 @@ function Viewer({
         </Text>
         <Text>{output.length.toLocaleString()} characters</Text>
       </Flex>
-      <Box
-        as="pre"
-        m="0"
-        p="5"
-        overflow="auto"
-        color="preview.textSubtle"
-        fontFamily="previewMono"
-        fontSize="xs"
-        lineHeight="1.7"
-        whiteSpace="pre-wrap"
-      >
+      <Box as="pre" css={styles.code}>
         <code>{output}</code>
       </Box>
       {state.rendering ? <RenderOverlay label="Refreshing output…" /> : null}
@@ -1360,17 +1200,17 @@ function PreviewError({
   onRetry(): void;
   onDismiss(): void;
 }) {
+  const recipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.feedback,
+    previewFeedbackSlotRecipe,
+  );
+
   return (
     <Alert.Root
       className="error-banner"
       role="alert"
       status="error"
-      mb="4"
-      borderWidth="1px"
-      borderColor="rgba(255, 129, 120, 0.25)"
-      borderRadius="xl"
-      color="preview.text"
-      bg="preview.dangerSoft"
+      css={recipe().error}
     >
       <Alert.Indicator color="preview.danger" />
       <Alert.Content>
@@ -1389,55 +1229,177 @@ function PreviewError({
       >
         Try again
       </Button>
-      <IconButton
-        className="dismiss-button"
-        type="button"
-        data-action="dismiss-error"
-        aria-label="Dismiss error"
-        size="sm"
-        color="preview.textSubtle"
-        variant="ghost"
-        onClick={onDismiss}
-      >
-        ×
-      </IconButton>
+      <PreviewTooltip content="Dismiss this error message">
+        <IconButton
+          className="dismiss-button"
+          type="button"
+          data-action="dismiss-error"
+          aria-label="Dismiss error"
+          size="sm"
+          color="preview.textSubtle"
+          variant="ghost"
+          onClick={onDismiss}
+        >
+          <ActionIcon name="close" />
+        </IconButton>
+      </PreviewTooltip>
     </Alert.Root>
   );
 }
 
-function RenderOverlay({ label }: { label: string }) {
+const PreviewIconButton = forwardRef<
+  HTMLButtonElement,
+  IconButtonProps & { 'aria-label': string }
+>(function PreviewIconButton({ css, ...props }, ref) {
+  const recipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.feedback,
+    previewFeedbackSlotRecipe,
+  );
+  return <IconButton ref={ref} {...props} css={[css, recipe().iconButton]} />;
+});
+
+function PreviewTooltip({
+  children,
+  content,
+  triggerId,
+  disabled,
+}: {
+  children: ReactElement;
+  content: string;
+  triggerId?: string;
+  disabled?: boolean;
+}) {
+  const recipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.feedback,
+    previewFeedbackSlotRecipe,
+  );
+
   return (
-    <Flex
-      position="absolute"
-      inset="0"
-      align="center"
-      justify="center"
-      gap="2"
-      color="preview.text"
-      bg="rgba(10, 14, 16, 0.72)"
-      backdropFilter="blur(2px)"
-      fontSize="sm"
-      fontWeight="bold"
+    <Tooltip.Root
+      ids={{ trigger: triggerId }}
+      disabled={disabled}
+      openDelay={350}
+      closeDelay={100}
     >
+      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+      <Portal>
+        <Tooltip.Positioner>
+          <Tooltip.Content css={recipe().tooltip}>
+            {content}
+            <Tooltip.Arrow>
+              <Tooltip.ArrowTip />
+            </Tooltip.Arrow>
+          </Tooltip.Content>
+        </Tooltip.Positioner>
+      </Portal>
+    </Tooltip.Root>
+  );
+}
+
+function RenderOverlay({ label }: { label: string }) {
+  const recipe = usePreviewSlotRecipe(
+    previewSlotRecipeKeys.viewer,
+    previewViewerSlotRecipe,
+  );
+
+  return (
+    <Flex css={recipe().overlay}>
       <Spinner size="sm" color="preview.accent" />
       {label}
     </Flex>
   );
 }
 
+function OutputIcon({ format }: { format: PreviewTab }) {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {format === 'preview' ? (
+        <>
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      ) : format === 'html' ? (
+        <path d="m7 7-5 5 5 5m10-10 5 5-5 5M14 4l-4 16" />
+      ) : format === 'text' ? (
+        <path d="M4 5h16M4 10h12M4 15h16M4 20h12" />
+      ) : (
+        <>
+          <path d="M14 2H5v20h14V7Z M14 2v5h5" />
+          <path d="m9 11-2 3 2 3m6-6 2 3-2 3" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 function ViewportIcon({ viewport }: { viewport: Viewport }) {
   return (
-    <Box
+    <svg
       aria-hidden="true"
-      display="block"
-      w={viewport === 'mobile' ? '6px' : viewport === 'fluid' ? '13px' : '12px'}
-      h={viewport === 'mobile' ? '11px' : '9px'}
-      borderWidth="1.5px"
-      borderStyle="solid"
-      borderInlineStyle={viewport === 'fluid' ? 'dashed' : 'solid'}
-      borderColor="currentColor"
-      borderRadius="2px"
-    />
+      focusable="false"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {viewport === 'mobile' ? (
+        <rect x="7" y="2" width="10" height="20" rx="2" />
+      ) : viewport === 'desktop' ? (
+        <>
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <path d="M8 21h8M12 17v4" />
+        </>
+      ) : (
+        <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5M7 12h10M7 12l3-3M7 12l3 3M17 12l-3-3M17 12l-3 3" />
+      )}
+    </svg>
+  );
+}
+
+function ActionIcon({
+  name,
+}: {
+  name: 'copy' | 'download' | 'check' | 'reset' | 'sun' | 'moon' | 'close';
+}) {
+  const paths = {
+    copy: 'M8 8h13v13H8zM16 8V3H3v13h5',
+    download: 'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',
+    check: 'm5 12 4 4L19 6',
+    reset: 'M3 4v6h6M3 10a9 9 0 1 1 2 8',
+    sun: 'M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
+    moon: 'M20 15.5A9 9 0 0 1 8.5 4 9 9 0 1 0 20 15.5Z',
+    close: 'm6 6 12 12M6 18 18 6',
+  };
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={paths[name]} />
+    </svg>
   );
 }
 
@@ -1463,4 +1425,43 @@ function viewportLabel(viewport: Viewport): string {
   }
 
   return 'Fit to window';
+}
+
+function PanelIcon({ side }: { side: 'left' | 'right' }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d={side === 'left' ? 'M9 4v16' : 'M15 4v16'} />
+    </svg>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8M8 16h6" />
+    </svg>
+  );
+}
+
+// Discovery-generated names include directory breadcrumbs. The complete path
+// remains available in the template row tooltip, without repeating it twice.
+function shortTemplateName(name: string): string {
+  return name.split(' / ').at(-1) ?? name;
 }

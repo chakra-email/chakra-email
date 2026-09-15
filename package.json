@@ -51,10 +51,11 @@
     "format:check": "npm exec nx -- format:check",
     "lint": "npm exec nx -- run-many -t lint",
     "pack:dry": "npm run build && npm run smoke:exports && npm run pack:inspect",
-    "pack:inspect": "npm pack --workspace @chakra-email/core --workspace chakra-email --workspace @chakra-email/chakra-v2 --workspace @chakra-email/preview --dry-run --cache ./.npm-cache",
+    "pack:inspect": "npm pack --workspace @chakra-email/core --workspace chakra-email --workspace @chakra-email/chakra-v2 --workspace @chakra-email/preview --workspace @chakra-email/react-email --workspace @chakra-email/code-block --workspace @chakra-email/markdown --dry-run --cache ./.npm-cache",
     "release:check": "npm run audit:ci && npm run format:check && npm run lint && npm run test:release && npm run build && npm run typecheck && npm run examples:check && npm run test:coverage && npm run smoke:exports && npm run pack:inspect && npm run smoke:consumer",
     "site:build": "npm exec nx -- build site",
     "site:dev": "npm exec nx -- serve site",
+    "site:yalc": "npm run yalc:link --workspace site",
     "site:preview": "npm exec nx -- preview site",
     "smoke:consumer": "node scripts/smoke-packed-consumer.mjs",
     "smoke:exports": "node scripts/smoke-built-exports.mjs",
@@ -62,14 +63,22 @@
     "test:coverage": "npm exec nx -- run-many -t test -- --coverage",
     "test:release": "npm exec nx -- run chakra-email-monorepo:release-validation",
     "typecheck": "npm exec nx -- run-many -t typecheck",
+    "types:performance:check": "npm exec nx -- run chakra-email:build && node scripts/check-theme-types.mjs",
     "yalc:publish": "npm exec nx -- run chakra-email-monorepo:yalc-publish",
     "yalc:push": "npm exec nx -- run chakra-email-monorepo:yalc-push"
   },
   "private": true,
   "overrides": {
     "axios": "^1.18.1",
-    "brace-expansion": "^5.0.9",
-    "fast-uri": "^3.1.5"
+    "browserslist": "^4.28.9",
+    "fast-uri": "^3.1.6",
+    "js-yaml": "^4.3.1",
+    "nanoid": "^3.3.18",
+    "nx": {
+      "brace-expansion": "5.0.9",
+      "smol-toml": "1.7.1"
+    },
+    "qs": "^6.16.0"
   },
   "packageManager": "npm@11.16.0",
   "engines": {
@@ -79,35 +88,43 @@
     "@chakra-ui/react": "3.36.0",
     "@chakra-ui/react-v2": "npm:@chakra-ui/react@2.10.9",
     "@eslint/js": "^9.8.0",
-    "@nx/eslint": "22.7.7",
-    "@nx/eslint-plugin": "22.7.7",
-    "@nx/js": "22.7.7",
-    "@nx/vite": "22.7.7",
-    "@nx/vitest": "22.7.7",
-    "@nx/web": "22.7.7",
+    "@nx/eslint": "22.7.9",
+    "@nx/eslint-plugin": "22.7.9",
+    "@nx/js": "22.7.9",
+    "@nx/vite": "22.7.9",
+    "@nx/vitest": "22.7.9",
+    "@nx/web": "22.7.9",
     "@swc-node/register": "1.11.1",
     "@swc/core": "1.15.8",
     "@swc/helpers": "0.5.18",
     "@types/node": "20.19.9",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/coverage-v8": "4.1.11",
     "axe-core": "4.12.1",
     "eslint": "~8.57.0",
     "fast-check": "^4.8.0",
+    "hast-util-from-html": "^2.0.3",
     "jiti": "2.4.2",
     "jsdom": "29.1.1",
     "jsonc-eslint-parser": "^2.1.0",
-    "nx": "22.7.7",
+    "minisearch": "^7.2.0",
+    "nx": "22.7.9",
     "prettier": "^3.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-email": "^6.9.3",
     "react-markdown": "^10.1.0",
+    "remark-directive": "^4.0.0",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^4.3.1",
     "tslib": "^2.3.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.40.0",
+    "unified": "^11.0.5",
     "vite": "^8.1.4",
-    "vitest": "4.1.10",
+    "vitest": "4.1.11",
     "yalc": "1.0.0-pre.53"
   },
   "workspaces": [
@@ -142,7 +159,10 @@
               "@chakra-email/core",
               "chakra-email",
               "@chakra-email/chakra-v2",
-              "@chakra-email/preview"
+              "@chakra-email/preview",
+              "@chakra-email/react-email",
+              "@chakra-email/code-block",
+              "@chakra-email/markdown"
             ],
             "target": "build",
             "params": "ignore"
@@ -174,7 +194,10 @@
               "@chakra-email/core",
               "chakra-email",
               "@chakra-email/chakra-v2",
-              "@chakra-email/preview"
+              "@chakra-email/preview",
+              "@chakra-email/react-email",
+              "@chakra-email/code-block",
+              "@chakra-email/markdown"
             ],
             "target": "build",
             "params": "ignore"
@@ -192,7 +215,10 @@
               "@chakra-email/core",
               "chakra-email",
               "@chakra-email/chakra-v2",
-              "@chakra-email/preview"
+              "@chakra-email/preview",
+              "@chakra-email/react-email",
+              "@chakra-email/code-block",
+              "@chakra-email/markdown"
             ],
             "target": "build",
             "params": "ignore"
@@ -206,7 +232,8 @@
   },
   "allowScripts": {
     "@swc/core@1.15.8": true,
+    "esbuild@0.28.2": true,
     "fsevents@2.3.3": true,
-    "nx@22.7.7": true
+    "nx@22.7.9": true
   }
 }

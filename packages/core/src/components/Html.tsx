@@ -1,16 +1,17 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import {
   Children,
   cloneElement,
   isValidElement,
-  type CSSProperties,
   type ReactElement,
   type ReactNode,
 } from 'react';
 import {
   splitStyleProps,
-  useChakraStyles,
+  useRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { chakraEmailRecipeKeys } from '../theme/index.js';
 import { Body, type BodyProps } from './Body.js';
 import { Preview } from './Preview.js';
 
@@ -52,14 +53,18 @@ function placePreviewsInBody(children: ReactNode): ReactNode {
 
 export function Html({ lang = 'en', dir, children, ...props }: HtmlProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps);
+  const styles = useRecipeStyles(
+    chakraEmailRecipeKeys.html,
+    undefined,
+    styleProps,
+  );
 
   return (
     <html
       {...elementProps}
       lang={lang}
       dir={dir}
-      style={styles as CSSProperties}
+      {...getEmailStyleProps(styles, elementProps.className)}
     >
       {placePreviewsInBody(children)}
     </html>

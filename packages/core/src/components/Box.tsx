@@ -1,9 +1,11 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { ComponentPropsWithoutRef, ElementType } from 'react';
 import {
   splitStyleProps,
-  useChakraStyles,
+  useRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { chakraEmailRecipeKeys } from '../theme/index.js';
 
 type BoxElement = 'div' | 'span' | 'table' | 'tbody' | 'tr' | 'td';
 
@@ -17,11 +19,18 @@ export function Box<T extends BoxElement = 'div'>({
   ...props
 }: BoxProps<T>) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps);
+  const styles = useRecipeStyles(
+    chakraEmailRecipeKeys.box,
+    undefined,
+    styleProps,
+  );
   const BoxElement = Component as ElementType;
 
   return (
-    <BoxElement {...elementProps} style={styles}>
+    <BoxElement
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </BoxElement>
   );

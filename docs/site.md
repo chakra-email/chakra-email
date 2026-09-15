@@ -6,13 +6,39 @@ It is an Nx-managed Vite application that imports the markdown files in `docs/` 
 
 ## Commands
 
+The site uses published Chakra Docs and Postkit `0.2.0` packages, pinned in
+`apps/site/package.json` and the root lockfile. `@chakra-docs/search` is installed
+transitively by `@chakra-docs/chakra`; `@postkit/core` and `@postkit/unfurl` are
+installed transitively by `@postkit/react`. Use the repository's pinned Node 24
+runtime (`nvm use`); Chakra Docs requires Node 22.22 or newer. This does not
+change the published Chakra Email packages' Node compatibility floor.
+
 ```bash
+npm ci
 npm run site:dev
 npm run site:build
 npm run site:preview
 ```
 
 `npm run build` also builds the site because Nx discovers the app target.
+
+For optional local development, `npm run site:yalc` links Chakra Docs and
+`npm run yalc:link:postkit --workspace site` links Postkit from your local yalc
+store. Neither is required for a normal build. To return to public packages
+and unregister the site from future local pushes, run:
+
+```bash
+npm exec --workspace site -- yalc remove --all
+npm ci
+```
+
+### Clean-install release prerequisite
+
+Run `npm ci`, `npm run site:build`, and the site tests without yalc links before
+releasing. Both Chakra Docs' focused `/theme` entry point and Postkit's `/remark`
+entry point are supplied by the locked public releases. Release regression
+tests check registry URLs, integrity hashes, and versions for both package
+families. Do not externalize unresolved browser imports to make the gate pass.
 
 ## Production Hosting
 

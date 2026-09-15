@@ -17,6 +17,7 @@ Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](http
 
 - **A familiar styling model** — compose templates with Chakra-style props and reusable theme tokens.
 - **Email-safe output** — render static inline HTML and plain text without relying on browser-only layout or interaction.
+- **Configurable safety boundaries** — apply strict URL policies, Markdown admission limits, and rendered-output byte ceilings.
 - **A complete local workflow** — preview templates, edit representative props, exercise variants, and catch common email issues before sending.
 
 ## Install
@@ -123,7 +124,21 @@ programmatic API, and Nx target configuration.
 
 ## Markdown Bodies
 
-Markdown rendering is easiest when your markdown parser maps elements to Chakra Email components. This keeps the rendered HTML email-safe while letting the email body come from a markdown document.
+Install the optional Markdown package for a ready-to-use, recipe-driven GFM renderer:
+
+```bash
+npm install @chakra-email/markdown
+```
+
+```tsx
+import { Markdown } from '@chakra-email/markdown';
+
+<Markdown codeBlockLineNumbers>{markdown}</Markdown>;
+```
+
+Fenced code uses the optional `@chakra-email/code-block` package, which is installed with the Markdown adapter. Both packages expose slot recipes and CodeBlock accepts a synchronous Prism, Shiki, or custom highlighter adapter.
+
+If you need complete control of the AST mapping, use `react-markdown` directly. Mapping its elements to Chakra Email components keeps the rendered HTML email-safe while letting the email body come from a markdown document.
 
 For example, with `react-markdown`:
 
@@ -229,7 +244,7 @@ allowlists still provide the final output safeguard.
 
 | Markdown or email need | Components                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------------ |
-| Document shell         | `Html`, `Head`, `Preview`, `Body`                                                                      |
+| Document shell         | `Html`, `Head`, `Font`, `Preview`, `Body`                                                              |
 | Layout                 | `Container`, `Section`, `Row`, `Column`, `Box`, `Stack`, `Spacer`                                      |
 | Text                   | `Text`, `Heading`, `Link`, `Badge`                                                                     |
 | Markdown blocks        | `Blockquote`, `Code`, `Pre`, `Hr`                                                                      |
@@ -240,13 +255,19 @@ allowlists still provide the final output safeguard.
 ## Rendering
 
 ```tsx
-import { render, renderPlainText } from 'chakra-email';
+import { render, renderEmail, renderPlainText } from 'chakra-email/render';
 
 const html = await render(<Email />, { pretty: true });
 const text = await renderPlainText(<Email />);
+const output = await renderEmail(<Email />, { pretty: true });
 ```
 
-`render` outputs static HTML with an email doctype. `renderPlainText` creates a plain-text version from the rendered email.
+`render` outputs static HTML with an email doctype. `renderPlainText` creates a plain-text version from the rendered email. `renderEmail` produces matching HTML and plain text from one React render.
+
+Security-focused applications can import `EmailRenderError`,
+`strictEmailSecurityPolicy`, and `strictEmailOutputLimits` from
+`chakra-email/security`. URL policy can be set per component, provider, or
+render call; output limits apply to final UTF-8 HTML and plain text.
 
 ## Packages
 
@@ -254,6 +275,9 @@ const text = await renderPlainText(<Email />);
 - `@chakra-email/chakra-v2` - adapter for Chakra UI v2-style theme objects.
 - `@chakra-email/core` - shared implementation for adapter authors and custom tooling.
 - `@chakra-email/preview` - local template discovery, live rendering, and browser preview tooling.
+- `@chakra-email/react-email` - optional React Email renderer integration for preview and export tooling.
+- `@chakra-email/code-block` - optional recipe-driven code blocks with a pluggable highlighter.
+- `@chakra-email/markdown` - optional GFM rendering through email-safe Chakra components.
 
 Most applications should start with `chakra-email`.
 
@@ -276,6 +300,16 @@ Most applications should start with `chakra-email`.
 - [Markdown body](examples/markdown-body)
 - [Chakra UI v2 adapter](examples/chakra-v2)
 - [Preview workspace](examples/preview)
+- [Copyable transactional patterns](examples/patterns)
+
+## Agent skill
+
+The repository publishes a portable
+[`compose-chakra-email`](skills/compose-chakra-email) skill for agents that are
+composing, theming, previewing, rendering, migrating, or troubleshooting Chakra
+Email templates. Install it from this repository with a compatible Agent Skills
+client, or ask Codex's `$skill-installer` to install the skill from its GitHub
+directory.
 
 ## FAQ
 

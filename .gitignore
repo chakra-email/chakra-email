@@ -9,6 +9,8 @@ out-tsc
 # dependencies
 node_modules
 .npm-cache
+**/.yalc
+**/yalc.lock
 
 # IDEs and editors
 /.idea

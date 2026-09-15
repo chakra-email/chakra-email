@@ -1,5 +1,15 @@
 {
   "name": "site",
   "version": "0.0.1",
-  "private": true
+  "private": true,
+  "scripts": {
+    "yalc:link": "yalc link --no-pure @chakra-docs/chakra @chakra-docs/core @chakra-docs/search",
+    "yalc:link:postkit": "yalc link --no-pure @postkit/core @postkit/react @postkit/shiki @postkit/unfurl"
+  },
+  "dependencies": {
+    "@chakra-docs/chakra": "0.2.0",
+    "@chakra-docs/core": "0.2.0",
+    "@postkit/react": "0.2.0",
+    "@postkit/shiki": "0.2.0"
+  }
 }

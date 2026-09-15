@@ -1,6 +1,6 @@
 {
   "name": "@chakra-email/preview",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local React email preview server with live rendering, template variants, and email linting.",
   "license": "MIT",
   "author": {
@@ -78,7 +78,7 @@
     ]
   },
   "dependencies": {
-    "@chakra-email/core": "^0.1.0",
+    "@chakra-email/core": "^0.2.0",
     "jiti": "^2.4.2",
     "parse5": "^8.0.0",
     "tinyglobby": "^0.2.17",

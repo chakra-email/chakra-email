@@ -29,6 +29,7 @@ describe('preview config', () => {
     const config = normalizeConfig({ root: '.', templates: 'src' }, configFile);
 
     expect(config).toMatchObject({
+      allowedHosts: [],
       assets: '/workspace/libs/emails/public',
       host: '127.0.0.1',
       port: 4100,
@@ -48,12 +49,70 @@ describe('preview config', () => {
     expect(config.include).toEqual(['src/**/*.email.tsx']);
   });
 
+  it('preserves a JSON-safe preview theme', () => {
+    const theme = {
+      semanticTokens: {
+        colors: {
+          preview: {
+            accent: { value: { _dark: '#fafafa', _light: '#171717' } },
+          },
+        },
+      },
+    };
+
+    expect(normalizeConfig({ theme }, undefined, '/workspace').theme).toEqual(
+      theme,
+    );
+  });
+
+  it('preserves a server-side renderer without serializing it', () => {
+    const renderer = {
+      render: vi.fn(async () => ({ html: '<p>HTML</p>', text: 'Text' })),
+    };
+
+    expect(
+      normalizeConfig({ renderer }, undefined, '/workspace').renderer,
+    ).toBe(renderer);
+  });
+
+  it('preserves a server-only test-send transport', () => {
+    const testSend = { send: vi.fn(async () => ({ id: 'message-id' })) };
+
+    expect(
+      normalizeConfig({ testSend }, undefined, '/workspace').testSend,
+    ).toBe(testSend);
+  });
+
+  it('normalizes exact trusted reverse-proxy hosts', () => {
+    expect(
+      normalizeConfig({
+        allowedHosts: ['CHAKRA-EMAIL.TEST', '127.0.0.1', 'chakra-email.test'],
+      }).allowedHosts,
+    ).toEqual(['chakra-email.test', '127.0.0.1']);
+  });
+
+  it('rejects a circular preview theme', () => {
+    const theme: Record<string, unknown> = {};
+    theme['self'] = theme;
+
+    expect(() =>
+      normalizeConfig(
+        { theme: theme as never },
+        '/workspace/chakra-email.config.ts',
+      ),
+    ).toThrow('serializable as JSON');
+  });
+
   it.each([
     [{ templates: '../private' }, 'templates directory'],
     [{ assets: '../private' }, 'assets'],
     [{ host: 'http://localhost' }, 'hostname'],
+    [{ allowedHosts: ['*.example.test'] }, 'exact hostname'],
+    [{ allowedHosts: ['example.test:4100'] }, 'exact hostname'],
+    [{ allowedHosts: [' https://example.test'] }, 'exact hostname'],
     [{ port: 65_536 }, 'integer'],
     [{ include: [] }, 'include'],
+    [{ testSend: {} as never }, 'send(message)'],
   ] as const)('rejects invalid config %#', (input, message) => {
     expect(() =>
       normalizeConfig(input, '/workspace/chakra-email.config.ts'),

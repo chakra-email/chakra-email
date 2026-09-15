@@ -20,6 +20,15 @@
     },
     {
       "path": "./apps/preview-ui"
+    },
+    {
+      "path": "./packages/react-email"
+    },
+    {
+      "path": "./packages/code-block"
+    },
+    {
+      "path": "./packages/markdown"
     }
   ]
 }

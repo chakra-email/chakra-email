@@ -7,16 +7,22 @@ type JsonRecord = Record<string, unknown>;
 
 export type PreviewTab = 'preview' | 'html' | 'text' | 'source';
 export type Viewport = 'desktop' | 'mobile' | 'fluid';
-export type WorkspaceColorMode = 'light' | 'dark';
-export type EmailColorMode = 'system' | WorkspaceColorMode;
+export type EmailColorMode = 'light' | 'dark';
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting';
 export type LintSeverity = 'error' | 'warning' | 'info';
 export type LintCategory =
+  | 'links'
   | 'accessibility'
   | 'compatibility'
   | 'content'
   | 'deliverability'
   | 'markup';
+
+export type CompatibilityReference = {
+  feature: string;
+  source: 'Can I Email';
+  url: string;
+};
 
 export type TemplateSummary = {
   id: string;
@@ -25,12 +31,14 @@ export type TemplateSummary = {
 };
 
 export type RenderResult = {
+  linkCheck?: { checked: number; skipped: number };
   id: string;
   name: string;
   html: string;
   lint: LintFinding[];
   text: string;
   source: string;
+  subject: string;
   props: JsonRecord;
   variants: string[];
 };
@@ -38,6 +46,7 @@ export type RenderResult = {
 export type LintFinding = {
   category: LintCategory;
   column?: number;
+  compatibility?: CompatibilityReference;
   element?: string;
   line?: number;
   message: string;
@@ -61,18 +70,21 @@ type EventSourceFactory = (url: string) => EventSourceLike;
 export type PreviewApplicationOptions = {
   root: HTMLElement;
   token: string;
+  theme?: JsonRecord;
   fetch?: Fetcher;
   createEventSource?: EventSourceFactory;
   copyText?: (value: string) => Promise<void>;
+  downloadText?: (value: string, filename: string, mimeType: string) => void;
 };
 
 export type ApplicationState = {
+  canCheckLinks: boolean;
+  checkingLinks: boolean;
   templates: TemplateSummary[];
   selectedId: string | null;
   result: RenderResult | null;
   activeTab: PreviewTab;
   viewport: Viewport;
-  workspaceColorMode: WorkspaceColorMode;
   emailColorMode: EmailColorMode;
   selectedVariant: string;
   propsText: string;
@@ -85,6 +97,13 @@ export type ApplicationState = {
   error: string | null;
   connection: ConnectionStatus;
   copied: boolean;
+  canTestSend: boolean;
+  sendTo: string;
+  sendSubject: string;
+  sendSubjectDirty: boolean;
+  sending: boolean;
+  sendError: string | null;
+  sendMessage: string | null;
 };
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -103,8 +122,17 @@ function formatJson(value: JsonRecord): string {
   return JSON.stringify(value, null, 2);
 }
 
-const workspaceColorModeStorageKey =
-  'chakra-email.preview.workspace-color-mode';
+function downloadFilename(name: string, extension: string): string {
+  const stem = name
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, '-')
+    .replace(/^-|-$/gu, '')
+    .slice(0, 80);
+  return `${stem || 'email'}.${extension}`;
+}
+
 const emailColorModeStorageKey = 'chakra-email.preview.email-color-mode';
 
 function readStoredValue(key: string): string | null {
@@ -123,27 +151,17 @@ function storeValue(key: string, value: string): void {
   }
 }
 
-function initialWorkspaceColorMode(): WorkspaceColorMode {
-  const stored = readStoredValue(workspaceColorModeStorageKey);
-
-  if (stored === 'light' || stored === 'dark') {
-    return stored;
-  }
-
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
-}
-
 function initialEmailColorMode(): EmailColorMode {
   const stored = readStoredValue(emailColorModeStorageKey);
-
-  return stored === 'light' || stored === 'dark' || stored === 'system'
-    ? stored
-    : 'system';
+  // Legacy System preferences now use the predictable light preview default.
+  return stored === 'dark' ? 'dark' : 'light';
 }
 
-function parseTemplates(value: unknown): TemplateSummary[] {
+function parseTemplates(value: unknown): {
+  canCheckLinks: boolean;
+  canTestSend: boolean;
+  templates: TemplateSummary[];
+} {
   const candidates = Array.isArray(value)
     ? value
     : isRecord(value) && Array.isArray(value['templates'])
@@ -154,7 +172,7 @@ function parseTemplates(value: unknown): TemplateSummary[] {
     throw new Error('The preview server returned an invalid template list.');
   }
 
-  return candidates.flatMap((candidate) => {
+  const templates = candidates.flatMap((candidate) => {
     if (
       !isRecord(candidate) ||
       typeof candidate['id'] !== 'string' ||
@@ -168,6 +186,16 @@ function parseTemplates(value: unknown): TemplateSummary[] {
 
     return [{ id: candidate['id'], name: candidate['name'], path }];
   });
+
+  const capabilities = isRecord(value) ? value['capabilities'] : undefined;
+  const canTestSend =
+    isRecord(capabilities) && capabilities['testSend'] === true;
+
+  return {
+    canCheckLinks: isRecord(capabilities) && capabilities['linkCheck'] === true,
+    canTestSend,
+    templates,
+  };
 }
 
 function parseRenderResult(value: unknown): RenderResult {
@@ -179,6 +207,7 @@ function parseRenderResult(value: unknown): RenderResult {
     !Array.isArray(value['lint']) ||
     typeof value['text'] !== 'string' ||
     typeof value['source'] !== 'string' ||
+    typeof value['subject'] !== 'string' ||
     !isRecord(value['props']) ||
     !Array.isArray(value['variants']) ||
     !value['variants'].every((variant) => typeof variant === 'string')
@@ -187,6 +216,7 @@ function parseRenderResult(value: unknown): RenderResult {
   }
 
   const lint = value['lint'].flatMap((candidate): LintFinding[] => {
+    const compatibility = candidateCompatibility(candidate);
     if (
       !isRecord(candidate) ||
       ![
@@ -195,6 +225,7 @@ function parseRenderResult(value: unknown): RenderResult {
         'content',
         'deliverability',
         'markup',
+        'links',
       ].includes(String(candidate['category'])) ||
       !['error', 'warning', 'info'].includes(String(candidate['severity'])) ||
       typeof candidate['message'] !== 'string' ||
@@ -205,7 +236,8 @@ function parseRenderResult(value: unknown): RenderResult {
       (candidate['column'] !== undefined &&
         typeof candidate['column'] !== 'number') ||
       (candidate['element'] !== undefined &&
-        typeof candidate['element'] !== 'string')
+        typeof candidate['element'] !== 'string') ||
+      compatibility === null
     ) {
       return [];
     }
@@ -214,6 +246,7 @@ function parseRenderResult(value: unknown): RenderResult {
       {
         category: candidate['category'] as LintCategory,
         column: candidate['column'] as number | undefined,
+        compatibility,
         element: candidate['element'] as string | undefined,
         line: candidate['line'] as number | undefined,
         message: candidate['message'],
@@ -228,16 +261,48 @@ function parseRenderResult(value: unknown): RenderResult {
     throw new Error('The preview server returned invalid lint results.');
   }
 
+  const linkCheck = value['linkCheck'];
+  if (
+    linkCheck !== undefined &&
+    (!isRecord(linkCheck) ||
+      !Number.isInteger(linkCheck['checked']) ||
+      Number(linkCheck['checked']) < 0 ||
+      !Number.isInteger(linkCheck['skipped']) ||
+      Number(linkCheck['skipped']) < 0)
+  ) {
+    throw new Error('The preview server returned invalid link-check results.');
+  }
+
   return {
+    linkCheck: linkCheck as RenderResult['linkCheck'],
     id: value['id'],
     name: value['name'],
     html: value['html'],
     lint,
     text: value['text'],
     source: value['source'],
+    subject: value['subject'],
     props: value['props'],
     variants: value['variants'],
   };
+}
+
+function candidateCompatibility(
+  candidate: unknown,
+): CompatibilityReference | null | undefined {
+  if (!isRecord(candidate) || candidate['compatibility'] === undefined) {
+    return undefined;
+  }
+  const compatibility = candidate['compatibility'];
+  if (
+    !isRecord(compatibility) ||
+    typeof compatibility['feature'] !== 'string' ||
+    compatibility['source'] !== 'Can I Email' ||
+    typeof compatibility['url'] !== 'string'
+  ) {
+    return null;
+  }
+  return compatibility as CompatibilityReference;
 }
 
 async function responseError(response: Response): Promise<Error> {
@@ -288,6 +353,45 @@ async function defaultCopyText(value: string): Promise<void> {
   }
 }
 
+function defaultDownloadText(
+  value: string,
+  filename: string,
+  mimeType: string,
+): void {
+  const url = URL.createObjectURL(new Blob([value], { type: mimeType }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.hidden = true;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Force only Chakra Email's generated rules; delivery output stays untouched. */
+export function withPreviewColorMode(
+  html: string,
+  mode: EmailColorMode | 'system',
+): string {
+  if (mode === 'system') return html;
+  const media = mode === 'dark' ? 'all' : 'not all';
+  const output = html.replace(
+    /(<style\b[^>]*\bdata-chakra-email-color-mode=["']system["'][^>]*>)([\s\S]*?)(<\/style\s*>)/giu,
+    (_match, start: string, css: string, end: string) =>
+      `${start}${css.replace(/@media\s*\(prefers-color-scheme:\s*dark\)/giu, `@media ${media}`)}${end}`,
+  );
+  const style = `<style data-chakra-email-preview-color-mode="${mode}">:root{color-scheme:only ${mode}}</style>`;
+  if (/<head\b[^>]*>/iu.test(output))
+    return output.replace(/<head\b[^>]*>/iu, (tag) => `${tag}${style}`);
+  if (/<html\b[^>]*>/iu.test(output))
+    return output.replace(
+      /<html\b[^>]*>/iu,
+      (tag) => `${tag}<head>${style}</head>`,
+    );
+  return `${style}${output}`;
+}
+
 export function withPreviewContentSecurityPolicy(
   html: string,
   remoteImages: boolean,
@@ -328,23 +432,31 @@ export function withPreviewContentSecurityPolicy(
 export class PreviewApplication {
   private readonly root: HTMLElement;
   private readonly token: string;
+  private readonly theme: JsonRecord;
   private readonly request: Fetcher;
   private readonly createEventSource: EventSourceFactory;
   private readonly copyText: (value: string) => Promise<void>;
+  private readonly downloadText: (
+    value: string,
+    filename: string,
+    mimeType: string,
+  ) => void;
   private reactRoot: Root | null = null;
   private eventSource: EventSourceLike | null = null;
   private renderSequence = 0;
   private refreshScheduled = false;
   private copyTimer: number | null = null;
+  private copySequence = 0;
   private started = false;
 
   private readonly state: ApplicationState = {
+    canCheckLinks: false,
+    checkingLinks: false,
     templates: [],
     selectedId: null,
     result: null,
     activeTab: 'preview',
     viewport: 'desktop',
-    workspaceColorMode: initialWorkspaceColorMode(),
     emailColorMode: initialEmailColorMode(),
     selectedVariant: '',
     propsText: '{}',
@@ -357,16 +469,25 @@ export class PreviewApplication {
     error: null,
     connection: 'connecting',
     copied: false,
+    canTestSend: false,
+    sendTo: '',
+    sendSubject: '',
+    sendSubjectDirty: false,
+    sending: false,
+    sendError: null,
+    sendMessage: null,
   };
 
   public constructor(options: PreviewApplicationOptions) {
     this.root = options.root;
     this.token = options.token;
+    this.theme = options.theme ?? {};
     this.request = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.createEventSource =
       options.createEventSource ??
       ((url) => new EventSource(url) as EventSourceLike);
     this.copyText = options.copyText ?? defaultCopyText;
+    this.downloadText = options.downloadText ?? defaultDownloadText;
   }
 
   public async start(): Promise<void> {
@@ -383,20 +504,17 @@ export class PreviewApplication {
 
   public destroy(): void {
     this.started = false;
+    this.resetCopyFeedback();
     this.renderSequence += 1;
     this.eventSource?.close();
     this.eventSource = null;
-
-    if (this.copyTimer !== null) {
-      window.clearTimeout(this.copyTimer);
-      this.copyTimer = null;
-    }
 
     this.reactRoot?.unmount();
     this.reactRoot = null;
   }
 
   private readonly changeTab = (tab: PreviewTab): void => {
+    if (tab !== this.state.activeTab) this.resetCopyFeedback();
     this.state.activeTab = tab;
     this.render();
   };
@@ -406,18 +524,10 @@ export class PreviewApplication {
     this.render();
   };
 
-  private readonly toggleWorkspaceColorMode = (): void => {
-    this.state.workspaceColorMode =
-      this.state.workspaceColorMode === 'dark' ? 'light' : 'dark';
-    storeValue(workspaceColorModeStorageKey, this.state.workspaceColorMode);
-    this.render();
-  };
-
-  private readonly changeEmailColorMode = (
-    emailColorMode: EmailColorMode,
-  ): void => {
-    this.state.emailColorMode = emailColorMode;
-    storeValue(emailColorModeStorageKey, emailColorMode);
+  private readonly toggleEmailColorMode = (): void => {
+    this.state.emailColorMode =
+      this.state.emailColorMode === 'dark' ? 'light' : 'dark';
+    storeValue(emailColorModeStorageKey, this.state.emailColorMode);
     this.render();
   };
 
@@ -437,6 +547,21 @@ export class PreviewApplication {
     this.state.propsText = value;
     this.state.propsDirty = true;
     this.state.propsError = null;
+    this.render();
+  };
+
+  private readonly changeSendTo = (value: string): void => {
+    this.state.sendTo = value;
+    this.state.sendError = null;
+    this.state.sendMessage = null;
+    this.render();
+  };
+
+  private readonly changeSendSubject = (value: string): void => {
+    this.state.sendSubject = value;
+    this.state.sendSubjectDirty = true;
+    this.state.sendError = null;
+    this.state.sendMessage = null;
     this.render();
   };
 
@@ -469,10 +594,15 @@ export class PreviewApplication {
     this.state.appliedProps = null;
     this.state.propsDirty = false;
     this.state.propsError = null;
+    this.state.sendError = null;
+    this.state.sendMessage = null;
+    this.state.sendSubject = '';
+    this.state.sendSubjectDirty = false;
     void this.renderCurrent({ replaceEditor: true });
   }
 
   private async loadTemplates(preserveEditor: boolean): Promise<void> {
+    this.resetCopyFeedback();
     const previousId = this.state.selectedId;
     this.state.loadingTemplates = true;
     this.state.error = null;
@@ -490,7 +620,10 @@ export class PreviewApplication {
         throw await responseError(response);
       }
 
-      const templates = parseTemplates(await response.json());
+      const parsed = parseTemplates(await response.json());
+      const { templates } = parsed;
+      this.state.canTestSend = parsed.canTestSend;
+      this.state.canCheckLinks = parsed.canCheckLinks;
       this.state.templates = templates;
       this.state.loadingTemplates = false;
 
@@ -518,6 +651,8 @@ export class PreviewApplication {
         this.state.appliedProps = null;
         this.state.propsDirty = false;
         this.state.propsError = null;
+        this.state.sendSubject = '';
+        this.state.sendSubjectDirty = false;
       }
 
       this.render();
@@ -537,9 +672,11 @@ export class PreviewApplication {
   }
 
   private async renderCurrent(options: {
+    checkLinks?: boolean;
     props?: JsonRecord;
     replaceEditor: boolean;
   }): Promise<void> {
+    this.resetCopyFeedback();
     const id = this.state.selectedId;
 
     if (!id) {
@@ -562,19 +699,23 @@ export class PreviewApplication {
     }
 
     this.state.rendering = true;
+    this.state.checkingLinks = Boolean(options.checkLinks);
     this.state.error = null;
     this.render();
 
     try {
-      const response = await this.request('/api/render', {
-        method: 'POST',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-          'x-chakra-email-preview-token': this.token,
+      const response = await this.request(
+        options.checkLinks ? '/api/check-links' : '/api/render',
+        {
+          method: 'POST',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            'x-chakra-email-preview-token': this.token,
+          },
+          body: JSON.stringify(body),
         },
-        body: JSON.stringify(body),
-      });
+      );
 
       if (!response.ok) {
         throw await responseError(response);
@@ -593,6 +734,9 @@ export class PreviewApplication {
       this.state.result = result;
       this.state.rendering = false;
       this.state.appliedProps = result.props;
+      if (!this.state.sendSubjectDirty) {
+        this.state.sendSubject = result.subject;
+      }
 
       if (
         this.state.selectedVariant &&
@@ -641,12 +785,90 @@ export class PreviewApplication {
     await this.renderCurrent({ props, replaceEditor: true });
   }
 
+  private async sendTestEmail(): Promise<void> {
+    const result = this.state.result;
+    const to = this.state.sendTo.trim();
+
+    if (!this.state.canTestSend || !result || this.state.sending) {
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(to)) {
+      this.state.sendError = 'Enter a valid recipient email address.';
+      this.state.sendMessage = null;
+      this.render();
+      return;
+    }
+
+    const body: {
+      id: string;
+      props: JsonRecord;
+      subject?: string;
+      to: string;
+      variant?: string;
+    } = {
+      id: result.id,
+      props: result.props,
+      to,
+    };
+    const subject = this.state.sendSubject.trim();
+    if (subject) {
+      body.subject = subject;
+    }
+    if (this.state.selectedVariant) {
+      body.variant = this.state.selectedVariant;
+    }
+
+    this.state.sending = true;
+    this.state.sendError = null;
+    this.state.sendMessage = null;
+    this.render();
+
+    try {
+      const response = await this.request('/api/send', {
+        body: JSON.stringify(body),
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'x-chakra-email-preview-token': this.token,
+        },
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw await responseError(response);
+      }
+      const payload: unknown = await response.json();
+      if (!isRecord(payload) || typeof payload['message'] !== 'string') {
+        throw new Error('The preview server returned an invalid send result.');
+      }
+      this.state.sendMessage = payload['message'];
+    } catch (error) {
+      this.state.sendError =
+        error instanceof Error ? error.message : 'Could not send the email.';
+    } finally {
+      this.state.sending = false;
+      this.render();
+    }
+  }
+
+  private resetCopyFeedback(): void {
+    this.copySequence += 1;
+    this.state.copied = false;
+    if (this.copyTimer !== null) {
+      window.clearTimeout(this.copyTimer);
+      this.copyTimer = null;
+    }
+  }
+
   private async copyCurrentOutput(): Promise<void> {
     const result = this.state.result;
 
     if (!result) {
       return;
     }
+
+    this.resetCopyFeedback();
+    const sequence = this.copySequence;
+    this.render();
 
     const value =
       this.state.activeTab === 'text'
@@ -657,20 +879,59 @@ export class PreviewApplication {
 
     try {
       await this.copyText(value);
+      if (!this.started || sequence !== this.copySequence) return;
       this.state.copied = true;
       this.render();
 
-      if (this.copyTimer !== null) {
-        window.clearTimeout(this.copyTimer);
-      }
-
       this.copyTimer = window.setTimeout(() => {
+        this.copyTimer = null;
         this.state.copied = false;
         this.render();
       }, 1_600);
     } catch (error) {
+      if (!this.started || sequence !== this.copySequence) return;
       this.state.error =
         error instanceof Error ? error.message : 'Could not copy the output.';
+      this.render();
+    }
+  }
+
+  private downloadCurrentOutput(): void {
+    const result = this.state.result;
+    if (!result) {
+      return;
+    }
+
+    const output =
+      this.state.activeTab === 'text'
+        ? {
+            extension: 'txt',
+            mimeType: 'text/plain;charset=utf-8',
+            value: result.text,
+          }
+        : this.state.activeTab === 'source'
+          ? {
+              extension: 'tsx',
+              mimeType: 'text/plain;charset=utf-8',
+              value: result.source,
+            }
+          : {
+              extension: 'html',
+              mimeType: 'text/html;charset=utf-8',
+              value: result.html,
+            };
+
+    try {
+      this.downloadText(
+        output.value,
+        downloadFilename(result.name, output.extension),
+        output.mimeType,
+      );
+    } catch (error) {
+      this.state.error =
+        error instanceof Error
+          ? error.message
+          : 'Could not download the output.';
       this.render();
     }
   }
@@ -774,10 +1035,17 @@ export class PreviewApplication {
     }
 
     const state = { ...this.state };
-    document.documentElement.dataset['theme'] = state.workspaceColorMode;
-    document.documentElement.style.colorScheme = state.workspaceColorMode;
+    document.documentElement.dataset['theme'] = 'dark';
+    // Chakra v3's semantic tokens and condition styles follow these classes,
+    // including portalled components rendered outside the workspace root.
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
+    document.documentElement.style.colorScheme = 'dark';
     const securedHtml = state.result
-      ? withPreviewContentSecurityPolicy(state.result.html, state.remoteImages)
+      ? withPreviewContentSecurityPolicy(
+          withPreviewColorMode(state.result.html, state.emailColorMode),
+          state.remoteImages,
+        )
       : null;
 
     flushSync(() => {
@@ -785,21 +1053,42 @@ export class PreviewApplication {
         createElement(PreviewRoot, {
           state,
           securedHtml,
+          theme: this.theme,
           onSelectTemplate: (templateId: string) => {
             this.selectTemplate(templateId);
           },
           onTabChange: this.changeTab,
           onViewportChange: this.changeViewport,
-          onToggleWorkspaceColorMode: this.toggleWorkspaceColorMode,
-          onEmailColorModeChange: this.changeEmailColorMode,
+          onToggleEmailColorMode: this.toggleEmailColorMode,
           onRemoteImagesChange: this.changeRemoteImages,
           onVariantChange: this.changeVariant,
           onPropsTextChange: this.changePropsText,
+          onSendToChange: this.changeSendTo,
+          onSendSubjectChange: this.changeSendSubject,
           onApplyProps: () => {
             void this.applyProps();
           },
           onCopy: () => {
             void this.copyCurrentOutput();
+          },
+          onDownload: () => {
+            this.downloadCurrentOutput();
+          },
+          onSend: () => {
+            void this.sendTestEmail();
+          },
+          onCheckLinks: () => {
+            if (
+              !this.state.canCheckLinks ||
+              this.state.rendering ||
+              !this.state.result
+            )
+              return;
+            void this.renderCurrent({
+              checkLinks: true,
+              props: this.state.appliedProps ?? undefined,
+              replaceEditor: false,
+            });
           },
           onRetry: this.retry,
           onDismissError: this.dismissError,

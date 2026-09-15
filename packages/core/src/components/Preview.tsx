@@ -1,36 +1,34 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { getEmailStyleProps } from '../system/color-mode.js';
+import type { ReactNode } from 'react';
+import {
+  mergeInlineStyles,
+  splitStyleProps,
+  useChakraStyles,
+  useSlotRecipeStyles,
+  type BaseChakraEmailProps,
+} from '../system/index.js';
+import { chakraEmailSlotRecipeKeys } from '../theme/index.js';
 
-export interface PreviewProps {
+export interface PreviewProps extends Omit<BaseChakraEmailProps, 'children'> {
   children: ReactNode;
 }
 
-type OutlookPreviewStyles = CSSProperties & {
-  msoHide: 'all';
-};
+export function Preview({ children, ...props }: PreviewProps) {
+  const [styleProps, elementProps] = splitStyleProps(props);
+  const recipeStyles = useSlotRecipeStyles(chakraEmailSlotRecipeKeys.preview);
+  const rootStyles = mergeInlineStyles(
+    recipeStyles.root,
+    useChakraStyles(styleProps),
+  );
 
-const hiddenPreviewStyles: OutlookPreviewStyles = {
-  display: 'none',
-  fontSize: '1px',
-  color: '#ffffff',
-  lineHeight: '1px',
-  maxHeight: '0px',
-  maxWidth: '0px',
-  overflow: 'hidden',
-  visibility: 'hidden',
-  opacity: 0,
-  msoHide: 'all',
-};
-
-const hiddenPreviewSpacerStyles: OutlookPreviewStyles = {
-  display: 'none',
-  msoHide: 'all',
-};
-
-export function Preview({ children }: PreviewProps) {
   return (
-    <div aria-hidden="true" style={hiddenPreviewStyles}>
+    <div
+      {...elementProps}
+      aria-hidden="true"
+      {...getEmailStyleProps(rootStyles, elementProps.className)}
+    >
       {children}
-      <span style={hiddenPreviewSpacerStyles}>
+      <span {...getEmailStyleProps(recipeStyles.spacer)}>
         &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
       </span>
     </div>

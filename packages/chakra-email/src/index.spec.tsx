@@ -11,6 +11,27 @@ import {
 import { mapChakraPropsToStyles } from './system';
 
 describe('chakra-email', () => {
+  it('forwards explicit color modes and emits conditional styles in system mode', async () => {
+    const theme = {
+      semanticTokens: {
+        colors: { surface: { value: { _light: '#abcdef', _dark: '#123456' } } },
+      },
+    };
+    const dark = await render(
+      <ChakraEmailProvider theme={theme} colorMode="dark">
+        <Body bg="surface">Dark</Body>
+      </ChakraEmailProvider>,
+    );
+    expect(dark).toContain('bgcolor="#123456"');
+    expect(dark).not.toContain('prefers-color-scheme');
+    const system = await render(
+      <ChakraEmailProvider theme={theme} colorMode="system">
+        <Body bg="surface">Auto</Body>
+      </ChakraEmailProvider>,
+    );
+    expect(system).toContain('bgcolor="#abcdef"');
+    expect(system).toContain('background-color: #123456 !important');
+  });
   it('re-exports core rendering and components', async () => {
     const html = await render(
       <Html>

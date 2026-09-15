@@ -1,27 +1,26 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import {
   splitStyleProps,
-  useChakraStyles,
+  useRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { chakraEmailRecipeKeys } from '../theme/index.js';
 
 export type BadgeProps = BaseChakraEmailProps;
 
 export function Badge({ children, ...props }: BadgeProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps, {
-    bg: 'gray.100',
-    color: 'gray.700',
-    px: 2,
-    py: 1,
-    rounded: 'sm',
-    fontSize: 'xs',
-    fontWeight: 'semibold',
-    lineHeight: 'none',
-    textTransform: 'uppercase',
-  });
+  const styles = useRecipeStyles(
+    chakraEmailRecipeKeys.badge,
+    undefined,
+    styleProps,
+  );
 
   return (
-    <span {...elementProps} style={styles}>
+    <span
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </span>
   );

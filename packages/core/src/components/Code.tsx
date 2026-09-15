@@ -1,9 +1,11 @@
+import { getEmailStyleProps } from '../system/color-mode.js';
 import type { HTMLAttributes } from 'react';
 import {
   splitStyleProps,
-  useChakraStyles,
+  useRecipeStyles,
   type BaseChakraEmailProps,
 } from '../system/index.js';
+import { chakraEmailRecipeKeys } from '../theme/index.js';
 
 export interface CodeProps
   extends
@@ -12,22 +14,17 @@ export interface CodeProps
 
 export function Code({ children, ...props }: CodeProps) {
   const [styleProps, elementProps] = splitStyleProps(props);
-  const styles = useChakraStyles(styleProps, {
-    bg: 'gray.100',
-    color: 'gray.800',
-    px: 1,
-    py: 0,
-    rounded: 'sm',
-    fontFamily: 'mono',
-    fontSize: 'sm',
-    style: {
-      whiteSpace: 'pre-wrap',
-      wordBreak: 'break-word',
-    },
-  });
+  const styles = useRecipeStyles(
+    chakraEmailRecipeKeys.code,
+    undefined,
+    styleProps,
+  );
 
   return (
-    <code {...elementProps} style={styles}>
+    <code
+      {...elementProps}
+      {...getEmailStyleProps(styles, elementProps.className)}
+    >
       {children}
     </code>
   );

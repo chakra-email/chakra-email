@@ -12,9 +12,75 @@ import {
 import { mapChakraPropsToStyles } from './system';
 
 describe('@chakra-email/chakra-v2 adapter edge cases', () => {
+  it('resolves aliases to v3 token values with per-mode fallbacks', () => {
+    const adapted = adaptChakraV2Theme({
+      semanticTokens: {
+        colors: {
+          scalar: { value: '#123456' },
+          modes: { value: { _light: '#111111', _dark: '#eeeeee' } },
+          baseOnly: { value: { base: '#222222' } },
+          defaultOnly: { value: { default: '#333333' } },
+          lightOnly: { value: { _light: '#444444' } },
+          aliasScalar: 'scalar',
+          aliasModes: 'modes',
+          aliasBase: 'baseOnly',
+          aliasDefault: 'defaultOnly',
+          aliasLight: 'lightOnly',
+        },
+      },
+    });
+    expect(adapted.semanticTokens?.colors).toMatchObject({
+      aliasScalar: { value: '#123456' },
+      aliasModes: { value: { _light: '#111111', _dark: '#eeeeee' } },
+      aliasBase: { value: '#222222' },
+      aliasDefault: { value: '#333333' },
+      aliasLight: { value: '#444444' },
+    });
+  });
+
+  it('preserves numeric and relative-length semantic values and rejects group aliases', () => {
+    const adapted = adaptChakraV2Theme({
+      semanticTokens: {
+        space: { numeric: 12, inset: '1.5rem', alias: 'inset' },
+        colors: {
+          lightOnly: { _light: '#123456' },
+          baseOnly: { base: '#234567' },
+          aliasLight: 'lightOnly',
+          aliasBase: 'baseOnly',
+          group: { nested: '#345678' },
+          groupAlias: 'group',
+        },
+      },
+    });
+    expect(adapted.semanticTokens).toMatchObject({
+      space: {
+        numeric: { value: 12 },
+        inset: { value: '24px' },
+        alias: { value: '24px' },
+      },
+      colors: {
+        lightOnly: { value: { _light: '#123456', _dark: '#123456' } },
+        baseOnly: { value: { _light: '#234567', _dark: '#234567' } },
+        aliasLight: { value: '#123456' },
+        aliasBase: { value: '#234567' },
+        groupAlias: { value: '' },
+      },
+    });
+  });
+
+  it('uses defaults when the provider has no supplied theme', async () => {
+    const html = await render(
+      <ChakraEmailV2Provider>
+        <Text>Default theme</Text>
+      </ChakraEmailV2Provider>,
+    );
+    expect(html).toContain('Default theme');
+    expect(html).not.toContain('[object Object]');
+  });
+
   describe('_dark-only semantic tokens', () => {
     // A v2 semantic token with only a `_dark` mode has no light-mode value,
-    // and email output has no dark mode. The adapter must not let the raw
+    // so the light inline fallback is empty. The adapter must not let the raw
     // token name (or the dark-mode reference) leak into the CSS.
     const themeInput = {
       colors: { red: { 300: '#fc8181' } },
@@ -33,7 +99,7 @@ describe('@chakra-email/chakra-v2 adapter edge cases', () => {
       });
     });
 
-    it('emits no color declaration at all in rendered output', async () => {
+    it('omits the light declaration and emits the dark value only in conditional CSS', async () => {
       const html = await render(
         <ChakraEmailV2Provider theme={themeInput}>
           <Html>
@@ -47,9 +113,10 @@ describe('@chakra-email/chakra-v2 adapter edge cases', () => {
       expect(html).toContain('Night only.');
       // No invalid literal from the unresolved token name...
       expect(html).not.toContain('color:nightOnly');
-      // ...and no accidental fallback to the dark-mode value.
+      // The dark value is emitted as conditional CSS, not a light fallback.
       expect(html).not.toContain('red.300');
-      expect(html).not.toContain('#fc8181');
+      expect(html).toContain('color: #fc8181 !important');
+      expect(html).not.toContain('color:#fc8181');
     });
   });
 

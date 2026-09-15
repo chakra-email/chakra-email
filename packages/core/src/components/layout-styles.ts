@@ -1,4 +1,9 @@
 import type { CSSProperties } from 'react';
+import {
+  emailDarkStyles,
+  emailStyleRender,
+  withEmailDarkStyles,
+} from '../system/color-mode.js';
 
 export const paddingStyleKeys = [
   'padding',
@@ -12,6 +17,10 @@ export function splitStyles(
   styles: CSSProperties,
   extractedKeys: ReadonlyArray<keyof CSSProperties>,
 ): [CSSProperties, CSSProperties] {
+  const render = emailStyleRender(styles);
+  const dark = render
+    ? splitStyles(emailDarkStyles(styles) ?? {}, extractedKeys)
+    : undefined;
   const retainedStyles = { ...styles };
   const extractedStyles: CSSProperties = {};
   const retainedRecord = retainedStyles as Record<string, unknown>;
@@ -26,7 +35,12 @@ export function splitStyles(
     }
   }
 
-  return [retainedStyles, extractedStyles];
+  return dark
+    ? [
+        withEmailDarkStyles(retainedStyles, dark[0], render),
+        withEmailDarkStyles(extractedStyles, dark[1], render),
+      ]
+    : [retainedStyles, extractedStyles];
 }
 
 /**

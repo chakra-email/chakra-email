@@ -31,6 +31,11 @@ export async function createTemplateModuleLoader(
       tsconfigPaths: true,
     },
     root: config.root,
+    // Linked workspace packages must share the renderer's native module instance.
+    // Transforming core again creates separate security/theme/color-mode contexts.
+    ssr: {
+      external: ['react', 'react-dom', '@chakra-email/core'],
+    },
     server: {
       fs: {
         allow: [config.root],

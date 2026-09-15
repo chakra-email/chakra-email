@@ -27,6 +27,7 @@ describe('lintRenderedEmail', () => {
       `<!doctype html>
       <html>
         <head>
+          <style>@font-face { font-family: Example; src: url(example.woff2); }</style>
           <link rel="stylesheet" href="http://example.com/email.css">
         </head>
         <body style="display:grid;position:fixed;background-image:url(hero.png)">
@@ -45,7 +46,8 @@ describe('lintRenderedEmail', () => {
       expect.arrayContaining([
         'content-type-meta',
         'css-background-image',
-        'css-layout',
+        'css-display-grid',
+        'css-font-face',
         'css-position',
         'document-language',
         'document-title',
@@ -63,11 +65,19 @@ describe('lintRenderedEmail', () => {
     );
     expect(findings[0]?.severity).toBe('error');
     expect(
+      findings.find((finding) => finding.ruleId === 'unsupported-svg')
+        ?.compatibility,
+    ).toEqual({
+      feature: 'Embedded SVG image',
+      source: 'Can I Email',
+      url: 'https://www.caniemail.com/features/html-svg/',
+    });
+    expect(
       findings.find((finding) => finding.ruleId === 'image-alt'),
     ).toMatchObject({
       category: 'accessibility',
       element: '<img>',
-      line: 7,
+      line: 8,
       severity: 'error',
     });
   });

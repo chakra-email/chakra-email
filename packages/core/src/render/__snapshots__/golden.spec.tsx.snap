@@ -5,25 +5,21 @@ exports[`golden output snapshots > release notes email plain text 1`] = `
 
 Highlights from this release:
 
-Faster rendering pipeline
+ * Faster rendering pipeline
+ * New render() options
+ * Improved plain-text output
 
-New render() options
-
-Improved plain-text output
-
-Upgrade the package
-
-Run your test suite
+ 1. Upgrade the package
+ 2. Run your test suite
 
 Email rendering should be boring and predictable.
 
-npm install chakra-email@latest npm test
+npm install chakra-email@latest
+npm test
 
-Feature Status
-
-Pretty output Stable
-
-Plain text Stable"
+Feature         Status
+Pretty output   Stable
+Plain text      Stable"
 `;
 
 exports[`golden output snapshots > release notes email pretty HTML 1`] = `
@@ -32,42 +28,43 @@ exports[`golden output snapshots > release notes email pretty HTML 1`] = `
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-<title>Release notes</title>
-</head>
-<body bgcolor="#ffffff" style="padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#ffffff">
+<meta name="color-scheme" content="light dark"/>
+<meta name="supported-color-schemes" content="light dark"/>
+<title>Release notes</title><style data-chakra-email-color-mode="system">@media (prefers-color-scheme: dark){.ce-mode-0{color: #F7FAFC !important;padding: 0px !important;margin: 0px !important;width: 100% !important;font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif !important;background-color: #ffffff !important}.ce-mode-1{color: #F7FAFC !important;margin: 0 0 16px !important;font-weight: 700 !important;font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif !important;line-height: 1.375 !important;margin-bottom: 16px !important;font-size: 20px !important}.ce-mode-2{color: #F7FAFC !important;margin: 0 0 16px !important;font-size: 16px !important;line-height: 1.5 !important;margin-bottom: 16px !important}.ce-mode-3{background-color: #1A202C !important;color: #F7FAFC !important;padding-left: 4px !important;padding-right: 4px !important;padding-top: 0px !important;padding-bottom: 0px !important;font-size: 14px !important;font-family: Menlo, Monaco, Consolas, "Courier New", monospace !important;border-radius: 2px !important;white-space: pre-wrap !important;word-break: break-word !important}.ce-mode-4{color: #A0AEC0 !important;padding-left: 16px !important;margin: 0 0 16px !important;border-left: 4px solid #2D3748 !important}.ce-mode-5{background-color: #1A202C !important;color: #F7FAFC !important;padding: 16px !important;margin: 0 0 16px !important;font-size: 14px !important;font-family: Menlo, Monaco, Consolas, "Courier New", monospace !important;line-height: 1.5 !important;border-radius: 6px !important;white-space: pre-wrap !important;word-break: break-word !important;overflow-wrap: break-word !important}.ce-mode-6{background-color: #171923 !important;color: #F7FAFC !important;padding: 12px !important;font-weight: 600 !important;text-align: left !important;vertical-align: top !important;border: 1px solid #2D3748 !important}.ce-mode-7{padding: 12px !important;vertical-align: top !important;border: 1px solid #2D3748 !important}}</style></head>
+<body bgcolor="#ffffff" style="color:#171923;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#ffffff" class="ce-mode-0">
 <div aria-hidden="true" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden;visibility:hidden;opacity:0;mso-hide:all">What changed in version 2.0.<span style="display:none;mso-hide:all"> ‌ ‌ ‌ ‌ ‌ </span>
 </div>
 <table role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;max-width:600px">
 <tbody>
 <tr>
 <td style="padding:24px">
-<h1 style="margin:0 0 16px;font-weight:700;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375;margin-bottom:16px;font-size:20px">Release notes</h1>
-<p style="margin:0 0 16px;font-size:16px;line-height:1.5;margin-bottom:16px">Highlights from this release:</p>
+<h1 style="color:#171923;margin:0 0 16px;font-weight:700;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375;margin-bottom:16px;font-size:20px" class="ce-mode-1">Release notes</h1>
+<p style="color:#171923;margin:0 0 16px;font-size:16px;line-height:1.5;margin-bottom:16px" class="ce-mode-2">Highlights from this release:</p>
 <ul style="padding-left:24px;margin:0 0 16px">
 <li style="margin-bottom:8px">Faster rendering pipeline</li>
-<li style="margin-bottom:8px">New <code style="background-color:#EDF2F7;color:#1A202C;padding-left:4px;padding-right:4px;padding-top:0px;padding-bottom:0px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:2px;white-space:pre-wrap;word-break:break-word">render()</code> options</li>
+<li style="margin-bottom:8px">New <code style="background-color:#EDF2F7;color:#171923;padding-left:4px;padding-right:4px;padding-top:0px;padding-bottom:0px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:2px;white-space:pre-wrap;word-break:break-word" class="ce-mode-3">render()</code> options</li>
 <li style="margin-bottom:8px">Improved plain-text output</li>
 </ul>
 <ol style="padding-left:24px;margin:0 0 16px">
 <li style="margin-bottom:8px">Upgrade the package</li>
 <li style="margin-bottom:8px">Run your test suite</li>
 </ol>
-<blockquote style="color:#2D3748;padding-left:16px;margin:0 0 16px;border-left:4px solid #E2E8F0">Email rendering should be boring and predictable.</blockquote><pre style="background-color:#EDF2F7;color:#1A202C;padding:16px;margin:0 0 16px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.5;border-radius:6px;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word">npm install chakra-email@latest
-npm test</pre><table cellPadding="0" cellSpacing="0" border="0" width="100%" style="margin:0 0 16px;width:100%;border-collapse:collapse;border-spacing:0">
+<blockquote style="color:#4A5568;padding-left:16px;margin:0 0 16px;border-left:4px solid #E2E8F0" class="ce-mode-4">Email rendering should be boring and predictable.</blockquote><pre style="background-color:#EDF2F7;color:#171923;padding:16px;margin:0 0 16px;font-size:14px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.5;border-radius:6px;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word" class="ce-mode-5">npm install chakra-email@latest
+npm test</pre><table data-text-format="dataTable" cellPadding="0" cellSpacing="0" border="0" width="100%" style="margin:0 0 16px;width:100%;border-collapse:collapse;border-spacing:0">
 <thead>
 <tr>
-<th style="background-color:#F7FAFC;color:#2D3748;padding:12px;font-weight:600;text-align:left;border:1px solid #E2E8F0;vertical-align:top">Feature</th>
-<th style="background-color:#F7FAFC;color:#2D3748;padding:12px;font-weight:600;text-align:left;border:1px solid #E2E8F0;vertical-align:top">Status</th>
+<th style="background-color:#F7FAFC;color:#171923;padding:12px;font-weight:600;text-align:left;vertical-align:top;border:1px solid #E2E8F0" class="ce-mode-6">Feature</th>
+<th style="background-color:#F7FAFC;color:#171923;padding:12px;font-weight:600;text-align:left;vertical-align:top;border:1px solid #E2E8F0" class="ce-mode-6">Status</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Pretty output</td>
-<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Stable</td>
+<td style="padding:12px;vertical-align:top;border:1px solid #E2E8F0" class="ce-mode-7">Pretty output</td>
+<td style="padding:12px;vertical-align:top;border:1px solid #E2E8F0" class="ce-mode-7">Stable</td>
 </tr>
 <tr>
-<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Plain text</td>
-<td style="padding:12px;border:1px solid #E2E8F0;vertical-align:top">Stable</td>
+<td style="padding:12px;vertical-align:top;border:1px solid #E2E8F0" class="ce-mode-7">Plain text</td>
+<td style="padding:12px;vertical-align:top;border:1px solid #E2E8F0" class="ce-mode-7">Stable</td>
 </tr>
 </tbody>
 </table>
@@ -80,7 +77,9 @@ npm test</pre><table cellPadding="0" cellSpacing="0" border="0" width="100%" sty
 `;
 
 exports[`golden output snapshots > welcome email plain text 1`] = `
-"Acme logo Welcome!
+"Acme logo
+
+Welcome!
 
 Thanks for joining us. Your account is ready.
 
@@ -96,31 +95,31 @@ exports[`golden output snapshots > welcome email pretty HTML 1`] = `
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<link rel="preload" as="image" href="https://example.com/logo.png"/>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-<title>Welcome to Acme</title>
-</head>
-<body bgcolor="#F7FAFC" style="padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#F7FAFC">
+<meta name="color-scheme" content="light dark"/>
+<meta name="supported-color-schemes" content="light dark"/>
+<title>Welcome to Acme</title><style data-chakra-email-color-mode="system">@media (prefers-color-scheme: dark){.ce-mode-0{color: #F7FAFC !important;padding: 0px !important;margin: 0px !important;width: 100% !important;font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif !important;background-color: #F7FAFC !important}.ce-mode-1{color: #F7FAFC !important;margin: 0 0 16px !important;font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif !important;line-height: 1.375 !important;margin-bottom: 16px !important;font-size: 24px !important;font-weight: 700 !important}.ce-mode-2{margin: 16px 0 !important;width: 100% !important;border: none !important;margin-top: 24px !important;margin-bottom: 24px !important;border-top: 1px solid #2D3748 !important}.ce-mode-3{color: #818cf8 !important;text-decoration: underline !important}}</style></head>
+<body bgcolor="#F7FAFC" style="color:#171923;padding:0px;margin:0px;width:100%;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;background-color:#F7FAFC" class="ce-mode-0">
 <div aria-hidden="true" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;overflow:hidden;visibility:hidden;opacity:0;mso-hide:all">Your Acme account is ready.<span style="display:none;mso-hide:all"> ‌ ‌ ‌ ‌ ‌ </span>
 </div>
-<table bgcolor="#ffffff" role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;max-width:600px;background-color:#ffffff">
+<table bgcolor="#ffffff" role="presentation" cellSpacing="0" cellPadding="0" border="0" width="600" align="center" style="width:100%;background-color:#ffffff;max-width:600px">
 <tbody>
 <tr>
 <td style="padding:24px">
 <img src="https://example.com/logo.png" alt="Acme logo" width="120" height="40" style="border:none;display:block;margin-bottom:24px;width:120px;height:40px"/>
-<h1 style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375;margin-bottom:16px;font-size:24px;font-weight:700">Welcome!</h1>
+<h1 style="color:#171923;margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1.375;margin-bottom:16px;font-size:24px;font-weight:700" class="ce-mode-1">Welcome!</h1>
 <p style="margin:0 0 16px;line-height:1.5;color:#2D3748;margin-bottom:24px;font-size:16px">Thanks for joining us. Your account is ready.</p>
 <table role="presentation" cellSpacing="0" cellPadding="0" border="0" align="left" style="border-collapse:separate">
 <tbody>
 <tr>
-<td bgcolor="#2563eb" align="center" style="background-color:#2563eb;border-radius:6px;mso-padding-alt:12px 24px 12px 24px">
-<a href="https://example.com/get-started" style="padding-left:24px;padding-right:24px;padding-top:12px;padding-bottom:12px;font-size:16px;font-weight:600;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1;text-align:center;text-decoration:none;color:#ffffff;display:inline-block">Get Started</a>
+<td bgcolor="#2563eb" align="center" style="border-radius:6px;background-color:#2563eb;mso-padding-alt:12px 24px 12px 24px">
+<a href="https://example.com/get-started" style="padding-left:24px;padding-right:24px;padding-top:12px;padding-bottom:12px;font-size:16px;font-weight:600;font-family:-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;line-height:1;text-align:center;text-decoration:none;display:inline-block;color:#ffffff">Get Started</a>
 </td>
 </tr>
 </tbody>
 </table>
-<hr style="margin:16px 0;width:100%;border:none;border-top:1px solid #E2E8F0;margin-top:24px;margin-bottom:24px"/>
-<p style="margin:0 0 16px;line-height:1.5;color:#718096;font-size:14px">Questions? Visit our <a href="https://example.com/help" style="color:#2563eb;text-decoration:underline">help center</a>.</p>
+<hr style="margin:16px 0;width:100%;border:none;margin-top:24px;margin-bottom:24px;border-top:1px solid #E2E8F0" class="ce-mode-2"/>
+<p style="margin:0 0 16px;line-height:1.5;color:#718096;font-size:14px">Questions? Visit our <a href="https://example.com/help" style="color:#2563eb;text-decoration:underline" class="ce-mode-3">help center</a>.</p>
 </td>
 </tr>
 </tbody>

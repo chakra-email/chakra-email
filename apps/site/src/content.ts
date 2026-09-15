@@ -14,7 +14,7 @@ import previewExample from '../../../examples/preview/emails/welcome.email.tsx?r
 
 const repo = 'https://github.com/chakra-email/chakra-email';
 
-export type DocPage = {
+export type SiteDocPage = {
   id: string;
   title: string;
   eyebrow: string;
@@ -53,7 +53,7 @@ export const quickStartSteps = [
   },
 ];
 
-export const docPages: DocPage[] = [
+export const docPages: SiteDocPage[] = [
   {
     id: 'getting-started',
     title: 'Getting Started',

@@ -1,10 +1,91 @@
 # Markdown
 
-Chakra Email does not bundle a markdown parser. Instead, use the markdown parser you prefer and map markdown elements to Chakra Email components.
+Chakra Email keeps markdown parsing out of its core runtime. Install the optional adapter for a ready-to-use, email-safe GFM mapping:
 
-This keeps the core package small and avoids forcing a markdown AST dependency on users who write templates directly in JSX.
+```bash
+npm install @chakra-email/markdown
+```
 
-## React Markdown Example
+```tsx
+import { Markdown } from '@chakra-email/markdown';
+
+export function MarkdownBody({ markdown }: { markdown: string }) {
+  return <Markdown codeBlockLineNumbers>{markdown}</Markdown>;
+}
+```
+
+Use the `chakraEmailMarkdown` slot recipe to customize document elements and `chakraEmailCodeBlock` to customize fenced code. CodeBlock also accepts a synchronous `highlighter` adapter, keeping Prism, Shiki, or another syntax engine optional.
+
+For complete control, use the markdown parser you prefer and map markdown elements to Chakra Email components yourself.
+
+This package split keeps the core package small and avoids forcing a markdown AST dependency on users who write templates directly in JSX.
+
+## Admission limits
+
+For tenant-authored or otherwise untrusted Markdown, opt into bounded parsing:
+
+```tsx
+<Markdown limits="strict">{markdown}</Markdown>
+```
+
+`strictMarkdownLimits` caps UTF-8 source bytes, lines, AST nodes, and nesting
+depth at 256 KiB, 10,000, 5,000, and 8 respectively. A partial object customizes
+individual boundaries. Pair this with `strictEmailOutputLimits` on
+`renderEmail()` to cap the final HTML and plain-text bodies.
+
+Limits throw content-free `EmailRenderError` values with `SOURCE_TOO_LARGE`,
+`AST_TOO_LARGE`, `NESTING_TOO_DEEP`, or `OUTPUT_TOO_LARGE` codes.
+
+## Declarative components
+
+Use a trusted directive registry for a small, schema-controlled component
+vocabulary. This is intentionally not MDX: Markdown cannot import components,
+evaluate expressions, or run JavaScript.
+
+```tsx
+import { Button, Section } from 'chakra-email';
+import {
+  Markdown,
+  type MarkdownDirectiveRegistry,
+} from '@chakra-email/markdown';
+
+const directives = {
+  button: {
+    kind: 'leaf',
+    children: 'required',
+    attributes: {
+      href: { type: 'url', required: true },
+      variant: { type: 'enum', values: ['primary', 'secondary'] },
+    },
+    render: ({ attributes, children }) => (
+      <Button href={String(attributes.href)}>{children}</Button>
+    ),
+  },
+  callout: {
+    kind: 'container',
+    children: 'required',
+    attributes: {
+      tone: { type: 'enum', values: ['info', 'warning'] },
+    },
+    render: ({ children }) => <Section>{children}</Section>,
+  },
+} satisfies MarkdownDirectiveRegistry;
+
+export function MarkdownBody({ markdown }: { markdown: string }) {
+  return (
+    <Markdown directives={directives} limits="strict">
+      {markdown}
+    </Markdown>
+  );
+}
+```
+
+Supported attribute schemas are `boolean`, `enum`, bounded `string`, and `url`.
+URL attributes use Chakra Email's strict URL policy. Unknown syntax and schema
+violations fail closed once a registry is enabled; without a registry,
+directive syntax remains ordinary inert Markdown text.
+
+## Custom React Markdown Example
 
 ```bash
 npm install react-markdown

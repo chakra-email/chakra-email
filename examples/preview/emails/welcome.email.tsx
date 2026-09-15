@@ -54,7 +54,22 @@ export const previewVariants = {
   },
 } satisfies Record<string, Partial<WelcomeEmailProps>>;
 
+export const previewSubject = (props: WelcomeEmailProps) =>
+  `Welcome to ${props.workspaceName}`;
+
 const previewTheme = defineTheme({
+  semanticTokens: {
+    colors: {
+      previewPage: { value: { _light: '#f6f7fb', _dark: '#10131d' } },
+      previewSurface: { value: { _light: '#ffffff', _dark: '#1b2030' } },
+      previewMutedSurface: { value: { _light: '#f6f7fb', _dark: '#242b3d' } },
+      previewText: { value: { _light: '#15182a', _dark: '#f6f7fb' } },
+      previewSecondary: { value: { _light: '#343a52', _dark: '#d3daeb' } },
+      previewMuted: { value: { _light: '#68708a', _dark: '#aab6d0' } },
+      previewBorder: { value: { _light: '#e8eaf2', _dark: '#3b455c' } },
+      previewAccent: { value: { _light: '#4f46e5', _dark: '#a5b4fc' } },
+    },
+  },
   colors: {
     ink: {
       50: '#f6f7fb',
@@ -86,11 +101,11 @@ export default function WelcomeEmail({
       <Html lang="en">
         <Head />
         <Preview>{previewText}</Preview>
-        <Body bg="ink.50" color="ink.900" fontFamily="body" m={0}>
+        <Body bg="previewPage" color="previewText" fontFamily="body" m={0}>
           <Section px={4} py={10}>
             <Container
-              bg="white"
-              border="1px solid #e8eaf2"
+              bg="previewSurface"
+              border="1px solid {colors.previewBorder}"
               rounded="2xl"
               maxW="600px"
             >
@@ -121,7 +136,7 @@ export default function WelcomeEmail({
 
               <Section px={8} py={10}>
                 <Text
-                  color="brand.600"
+                  color="previewAccent"
                   fontSize="xs"
                   fontWeight="bold"
                   letterSpacing="0.12em"
@@ -132,7 +147,7 @@ export default function WelcomeEmail({
                 </Text>
                 <Heading
                   as="h1"
-                  color="ink.900"
+                  color="previewText"
                   fontSize="3xl"
                   lineHeight="shorter"
                   letterSpacing="-0.03em"
@@ -140,7 +155,12 @@ export default function WelcomeEmail({
                 >
                   Welcome aboard, {firstName}.
                 </Heading>
-                <Text color="ink.700" fontSize="md" lineHeight="tall" mb={6}>
+                <Text
+                  color="previewSecondary"
+                  fontSize="md"
+                  lineHeight="tall"
+                  mb={6}
+                >
                   <strong>{workspaceName}</strong> is ready for your team. We
                   have set up a focused starting point so you can invite
                   collaborators, shape your workflow, and ship the first project
@@ -148,8 +168,8 @@ export default function WelcomeEmail({
                 </Text>
 
                 <Section
-                  bg="ink.50"
-                  border="1px solid #e8eaf2"
+                  bg="previewMutedSurface"
+                  border="1px solid {colors.previewBorder}"
                   rounded="lg"
                   px={5}
                   py={4}
@@ -159,18 +179,18 @@ export default function WelcomeEmail({
                     <TableBody>
                       <Row>
                         <Column width="62%">
-                          <Text color="ink.500" fontSize="xs" mb={1}>
+                          <Text color="previewMuted" fontSize="xs" mb={1}>
                             Trial status
                           </Text>
-                          <Text color="ink.900" fontWeight="semibold" m={0}>
+                          <Text color="previewText" fontWeight="semibold" m={0}>
                             {trialDaysRemaining} days remaining
                           </Text>
                         </Column>
                         <Column width="38%" align="right">
-                          <Text color="ink.500" fontSize="xs" mb={1}>
+                          <Text color="previewMuted" fontSize="xs" mb={1}>
                             Current plan
                           </Text>
-                          <Text color="ink.900" fontWeight="semibold" m={0}>
+                          <Text color="previewText" fontWeight="semibold" m={0}>
                             {planName}
                           </Text>
                         </Column>
@@ -189,11 +209,16 @@ export default function WelcomeEmail({
                   Open {workspaceName}
                 </Button>
 
-                <Hr borderColor="ink.100" my={8} />
+                <Hr borderColor="previewBorder" my={8} />
 
-                <Text color="ink.500" fontSize="sm" lineHeight="tall" m={0}>
+                <Text
+                  color="previewMuted"
+                  fontSize="sm"
+                  lineHeight="tall"
+                  m={0}
+                >
                   Need a hand getting started? Reply to this email or write to{' '}
-                  <Link href={`mailto:${supportEmail}`} color="brand.600">
+                  <Link href={`mailto:${supportEmail}`} color="previewAccent">
                     {supportEmail}
                   </Link>
                   . A real person will help.
@@ -201,7 +226,7 @@ export default function WelcomeEmail({
               </Section>
             </Container>
 
-            <Text color="ink.500" fontSize="xs" textAlign="center" mt={6}>
+            <Text color="previewMuted" fontSize="xs" textAlign="center" mt={6}>
               Northstar, 88 Market Street, New York, NY 10013
             </Text>
           </Section>

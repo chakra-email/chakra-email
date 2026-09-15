@@ -46,10 +46,13 @@ describe('createPreviewServer', () => {
         html: string;
         lint: Array<{ ruleId: string }>;
         source: string;
+        subject: string;
         text: string;
         variants: string[];
       };
       expect(rendered.html).toContain('<!DOCTYPE html');
+      expect(rendered.html).toContain('data-chakra-email-color-mode="system"');
+      expect(rendered.html).toContain('prefers-color-scheme: dark');
       expect(rendered.lint).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ ruleId: 'document-title' }),
@@ -57,6 +60,7 @@ describe('createPreviewServer', () => {
       );
       expect(rendered.text.toLowerCase()).toContain('trial');
       expect(rendered.source).toContain('previewVariants');
+      expect(rendered.subject).toBe('Welcome to Field Notes');
       expect(rendered.variants).toEqual(['new-founder', 'trial-ending']);
 
       const index = await fetch(address.url);
@@ -74,6 +78,63 @@ describe('createPreviewServer', () => {
       }),
     ).rejects.toThrow('allowRemote');
   });
+
+  it('renders and delegates test sends through the configured transport', async () => {
+    const uiRoot = await mkdtemp(join(tmpdir(), 'chakra-email-send-ui-'));
+    await writeFile(
+      join(uiRoot, 'index.html'),
+      '<meta content="__CHAKRA_EMAIL_PREVIEW_TOKEN__">',
+    );
+    const send = vi.fn(async () => ({ id: 'provider-message-id' }));
+    const preview = await createPreviewServer({
+      config: {
+        root: resolve(process.cwd(), '../../examples/preview'),
+        templates: 'emails',
+        testSend: { send },
+      },
+      port: 0,
+      uiRoot,
+    });
+
+    try {
+      const address = await preview.listen();
+      const headers = { 'x-chakra-email-preview-token': address.token };
+      const templatesResponse = await fetch(`${address.url}/api/templates`, {
+        headers,
+      });
+      const templates = (await templatesResponse.json()) as {
+        capabilities: { testSend: boolean };
+        templates: Array<{ id: string }>;
+      };
+      expect(templates.capabilities.testSend).toBe(true);
+
+      const response = await fetch(`${address.url}/api/send`, {
+        body: JSON.stringify({
+          id: templates.templates[0]?.id,
+          to: 'test@example.com',
+          variant: 'trial-ending',
+        }),
+        headers: { ...headers, 'content-type': 'application/json' },
+        method: 'POST',
+      });
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        id: 'provider-message-id',
+      });
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          html: expect.stringContaining('<!DOCTYPE html'),
+          subject: 'Welcome to Field Notes',
+          text: expect.stringContaining('2 days remaining'),
+          to: 'test@example.com',
+          variant: 'trial-ending',
+        }),
+      );
+    } finally {
+      await preview.close();
+      await rm(uiRoot, { force: true, recursive: true });
+    }
+  }, 30_000);
 
   it('closes its module loader when the HTTP port cannot be bound', async () => {
     const blocker = createHttpServer();

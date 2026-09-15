@@ -34,9 +34,108 @@ import {
   Text,
 } from './index';
 import { render } from '../render';
-import { ThemeProvider } from '../theme';
+import {
+  chakraEmailRecipeKeys,
+  chakraEmailSlotRecipeKeys,
+  ThemeProvider,
+} from '../theme';
 
 describe('email components', () => {
+  it('applies component recipe overrides from the email theme', async () => {
+    const html = await render(
+      <ThemeProvider
+        theme={{
+          recipes: {
+            [chakraEmailRecipeKeys.badge]: {
+              base: {
+                bg: '#123456',
+                color: '#ffffff',
+                textTransform: 'none',
+              },
+            },
+            [chakraEmailRecipeKeys.heading]: {
+              variants: {
+                level: {
+                  h2: { color: '#654321', fontSize: '4xl' },
+                },
+              },
+            },
+          },
+        }}
+      >
+        <Badge>Recipe badge</Badge>
+        <Heading as="h2">Recipe heading</Heading>
+      </ThemeProvider>,
+    );
+
+    expect(html).toContain('background-color:#123456');
+    expect(html).toContain('text-transform:none');
+    expect(html).toContain('color:#654321');
+    expect(html).toContain('font-size:36px');
+  });
+
+  it('applies multipart recipe overrides and propagates table variants', async () => {
+    const html = await render(
+      <ThemeProvider
+        theme={{
+          slotRecipes: {
+            [chakraEmailSlotRecipeKeys.button]: {
+              slots: ['root', 'cell', 'link'],
+              variants: {
+                variant: {
+                  solid: {
+                    cell: { bg: '#123456' },
+                    link: { color: '#ffffff' },
+                  },
+                },
+              },
+            },
+            [chakraEmailSlotRecipeKeys.container]: {
+              slots: ['root', 'cell'],
+              base: { cell: { p: 1 } },
+            },
+            [chakraEmailSlotRecipeKeys.table]: {
+              slots: [
+                'root',
+                'header',
+                'body',
+                'footer',
+                'row',
+                'columnHeader',
+                'cell',
+                'caption',
+              ],
+              variants: {
+                size: {
+                  compact: {
+                    columnHeader: { p: 1 },
+                    cell: { p: 1 },
+                  },
+                },
+              },
+            },
+          },
+        }}
+      >
+        <Container>
+          <Button href="https://example.com">Recipe button</Button>
+          <Table size="compact">
+            <TableBody>
+              <TableRow>
+                <TableHeader>Header</TableHeader>
+                <TableCell>Cell</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Container>
+      </ThemeProvider>,
+    );
+
+    expect(html).toContain('background-color:#123456');
+    expect(html).toContain('<td style="padding:4px">');
+    expect(html.match(/padding:4px/g)).toHaveLength(3);
+  });
+
   it('renders the common document, layout, media, and text primitives', async () => {
     const html = await render(
       <ThemeProvider>
@@ -300,7 +399,7 @@ describe('email components', () => {
     expect(html).toContain('ready');
   });
 
-  it('resolves default border colors through the gray.200 theme token', async () => {
+  it('resolves default border colors through the semantic border token', async () => {
     const html = await render(
       <ThemeProvider theme={{ colors: { gray: { 200: '#ff00aa' } } }}>
         <Html>
@@ -328,10 +427,12 @@ describe('email components', () => {
     expect(html).not.toContain('#E2E8F0');
   });
 
-  it('falls back to #E2E8F0 only when the gray.200 token is missing', () => {
+  it('falls back to #E2E8F0 only when the semantic border token is missing', () => {
     expect(resolveBorderColor(undefined, {})).toBe('#E2E8F0');
     expect(
-      resolveBorderColor(undefined, { colors: { gray: { 200: '#123456' } } }),
+      resolveBorderColor(undefined, {
+        semanticTokens: { colors: { border: { value: '#123456' } } },
+      }),
     ).toBe('#123456');
     expect(
       resolveBorderColor('brand.500', {

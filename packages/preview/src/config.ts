@@ -1,6 +1,11 @@
 import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { createJiti } from 'jiti';
+import type { EmailRenderer } from '@chakra-email/core/render';
+import {
+  normalizeLinkCheck,
+  type PreviewLinkCheckConfig,
+} from './check-links.js';
 
 export type JsonPrimitive = boolean | null | number | string;
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
@@ -8,7 +13,42 @@ export interface JsonObject {
   [key: string]: JsonValue;
 }
 
+export interface PreviewTestSendMessage {
+  html: string;
+  props: JsonObject;
+  subject: string;
+  template: {
+    id: string;
+    name: string;
+    path: string;
+  };
+  text: string;
+  to: string;
+  variant?: string;
+}
+
+export interface PreviewTestSendResult {
+  id?: string;
+  message?: string;
+}
+
+/** Server-only adapter for delivering a rendered preview through any provider. */
+export interface PreviewTestTransport {
+  send(message: PreviewTestSendMessage): Promise<PreviewTestSendResult | void>;
+}
+
+/**
+ * A serializable Chakra theme fragment applied to the preview workspace.
+ *
+ * The fragment may include Chakra theme keys such as `tokens`,
+ * `semanticTokens`, `recipes`, and `slotRecipes`. Functions are intentionally
+ * unsupported because preview configuration is transferred to the browser.
+ */
+export type PreviewThemeConfig = JsonObject;
+
 export interface PreviewConfig {
+  /** Enables explicit network link checks for an exact hostname allowlist. */
+  linkCheck?: PreviewLinkCheckConfig;
   /** Directory all preview paths are contained by. Relative to the config file. */
   root?: string;
   /** One or more template directories. Relative to `root`. Defaults to `emails`. */
@@ -21,11 +61,21 @@ export interface PreviewConfig {
   assets?: string;
   /** Host to bind. Non-loopback hosts require an explicit server opt-in. */
   host?: string;
+  /** Exact reverse-proxy hostnames accepted in request Host headers. */
+  allowedHosts?: readonly string[];
   /** Port to bind. Use `0` to select an available port programmatically. */
   port?: number;
+  /** Serializable Chakra theme overrides for the preview workspace UI. */
+  theme?: PreviewThemeConfig;
+  /** Server-side renderer used to produce matching HTML and plain-text output. */
+  renderer?: EmailRenderer;
+  /** Optional server-only transport that enables test sending in the UI. */
+  testSend?: PreviewTestTransport;
 }
 
 export interface ResolvedPreviewConfig {
+  linkCheck?: PreviewLinkCheckConfig;
+  allowedHosts: readonly string[];
   assets: string;
   configFile?: string;
   exclude: readonly string[];
@@ -33,7 +83,10 @@ export interface ResolvedPreviewConfig {
   include: readonly string[];
   port: number;
   root: string;
+  renderer?: EmailRenderer;
   templateRoots: readonly string[];
+  testSend?: PreviewTestTransport;
+  theme: PreviewThemeConfig;
 }
 
 export interface LoadPreviewConfigOptions {
@@ -94,6 +147,93 @@ function normalizePort(port: number | undefined): number {
   return value;
 }
 
+function normalizeAllowedHosts(
+  allowedHosts: readonly string[] | undefined,
+): readonly string[] {
+  if (allowedHosts === undefined) {
+    return [];
+  }
+
+  const normalized = allowedHosts.map((value) => {
+    if (
+      value.length === 0 ||
+      value !== value.trim() ||
+      value.includes('*') ||
+      /[/\\\s@?#]/u.test(value) ||
+      value.includes('://')
+    ) {
+      throw new Error(
+        'Each allowedHosts entry must be an exact hostname or IP address.',
+      );
+    }
+
+    try {
+      const parsed = new URL(`http://${value}`);
+      if (
+        parsed.port ||
+        parsed.username ||
+        parsed.password ||
+        parsed.pathname !== '/'
+      ) {
+        throw new Error('invalid host');
+      }
+      return parsed.hostname.toLowerCase().replace(/^\[|\]$/gu, '');
+    } catch {
+      throw new Error(
+        'Each allowedHosts entry must be an exact hostname or IP address.',
+      );
+    }
+  });
+
+  return [...new Set(normalized)];
+}
+
+function normalizeTheme(
+  theme: PreviewThemeConfig | undefined,
+): PreviewThemeConfig {
+  if (theme === undefined) {
+    return {};
+  }
+
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(theme);
+  } catch {
+    throw new Error('Preview theme must be serializable as JSON.');
+  }
+
+  if (serialized === undefined) {
+    throw new Error('Preview theme must be a JSON object.');
+  }
+
+  const normalized: unknown = JSON.parse(serialized);
+  if (
+    typeof normalized !== 'object' ||
+    normalized === null ||
+    Array.isArray(normalized)
+  ) {
+    throw new Error('Preview theme must be a JSON object.');
+  }
+
+  return normalized as PreviewThemeConfig;
+}
+
+function normalizeTestSend(
+  testSend: PreviewTestTransport | undefined,
+): PreviewTestTransport | undefined {
+  if (testSend === undefined) {
+    return undefined;
+  }
+  if (
+    typeof testSend !== 'object' ||
+    testSend === null ||
+    typeof testSend.send !== 'function'
+  ) {
+    throw new Error('testSend must provide an async send(message) function.');
+  }
+  return testSend;
+}
+
 export function normalizeConfig(
   config: PreviewConfig = {},
   configFile?: string,
@@ -131,6 +271,11 @@ export function normalizeConfig(
   }
 
   return {
+    allowedHosts: normalizeAllowedHosts(config.allowedHosts),
+    linkCheck:
+      config.linkCheck === undefined
+        ? undefined
+        : normalizeLinkCheck(config.linkCheck),
     assets,
     configFile,
     exclude: [
@@ -144,7 +289,10 @@ export function normalizeConfig(
     include: normalizeStringList(config.include, DEFAULT_INCLUDE, 'include'),
     port: normalizePort(config.port),
     root,
+    renderer: config.renderer,
     templateRoots,
+    testSend: normalizeTestSend(config.testSend),
+    theme: normalizeTheme(config.theme),
   };
 }
 

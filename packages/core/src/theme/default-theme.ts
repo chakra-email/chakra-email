@@ -1,4 +1,7 @@
 import type { EmailTheme } from './types.js';
+import { chakraEmailRecipes } from './default-recipes.js';
+import { chakraEmailSlotRecipes } from './default-slot-recipes.js';
+import { chakraEmailSemanticTokens } from './default-semantic-tokens.js';
 
 /**
  * Chakra's spacing scale converted to px. Off-scale numbers fall back to raw
@@ -71,6 +74,7 @@ export const defaultTheme: EmailTheme = {
       900: '#312e81',
     },
   },
+  semanticTokens: chakraEmailSemanticTokens,
   space: spaceScale,
   spacing: spaceScale,
   sizes: {
@@ -134,4 +138,6 @@ export const defaultTheme: EmailTheme = {
     none: 'none',
     base: '1px solid #E2E8F0',
   },
+  recipes: chakraEmailRecipes,
+  slotRecipes: chakraEmailSlotRecipes,
 };
