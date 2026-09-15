@@ -1,6 +1,6 @@
 {
   "name": "@chakra-email/code-block",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Themeable, email-safe code blocks for Chakra Email.",
   "license": "MIT",
   "author": {
@@ -57,7 +57,7 @@
     "react": "^18.0.0 || ^19.0.0"
   },
   "dependencies": {
-    "@chakra-email/core": "^0.1.0",
+    "@chakra-email/core": "^0.2.0",
     "tslib": "^2.3.0"
   },
   "nx": {

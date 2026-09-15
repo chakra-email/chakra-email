@@ -1,6 +1,6 @@
 {
   "name": "@chakra-email/react-email",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Optional React Email renderer adapter for Chakra Email preview and tooling.",
   "license": "MIT",
   "author": {
@@ -62,7 +62,7 @@
     "react-email": "^6.0.0"
   },
   "dependencies": {
-    "@chakra-email/core": "^0.1.0",
+    "@chakra-email/core": "^0.2.0",
     "tslib": "^2.3.0"
   },
   "nx": {
