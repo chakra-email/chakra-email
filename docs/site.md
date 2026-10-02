@@ -1,15 +1,17 @@
 # Documentation Site
 
-The canonical documentation and marketing site lives in `apps/site`.
+The canonical documentation site lives in `apps/site`.
 
 It is an Nx-managed Vite application that imports the markdown files in `docs/` as raw content and renders them into the site. Keep long-form product documentation in `docs/` first, then expose it through the site navigation. This keeps the repository README, npm package docs, and website from drifting apart.
 
 ## Commands
 
-The site uses published Chakra Docs and Postkit `0.2.0` packages, pinned in
-`apps/site/package.json` and the root lockfile. `@chakra-docs/search` is installed
-transitively by `@chakra-docs/chakra`; `@postkit/core` and `@postkit/unfurl` are
-installed transitively by `@postkit/react`. Use the repository's pinned Node 24
+The committed dependencies use pinned public Chakra Docs and Postkit packages.
+For this development branch, run `npm run site:yalc` after installation to use
+the current local Chakra Docs build. This links `chakra`, `core`, `search`, and
+`shiki`; Postkit remains on its public release. `@postkit/core` and
+`@postkit/unfurl` are installed transitively by `@postkit/react`.
+Use the repository's pinned Node 24
 runtime (`nvm use`); Chakra Docs requires Node 22.22 or newer. This does not
 change the published Chakra Email packages' Node compatibility floor.
 
@@ -22,9 +24,10 @@ npm run site:preview
 
 `npm run build` also builds the site because Nx discovers the app target.
 
-For optional local development, `npm run site:yalc` links Chakra Docs and
+For local development, `npm run site:yalc` links Chakra Docs and
 `npm run yalc:link:postkit --workspace site` links Postkit from your local yalc
-store. Neither is required for a normal build. To return to public packages
+store. Yalc files and registrations stay untracked; repeat the link command
+after `npm ci`. To return to public packages
 and unregister the site from future local pushes, run:
 
 ```bash
@@ -34,15 +37,21 @@ npm ci
 
 ### Clean-install release prerequisite
 
-Run `npm ci`, `npm run site:build`, and the site tests without yalc links before
-releasing. Both Chakra Docs' focused `/theme` entry point and Postkit's `/remark`
-entry point are supplied by the locked public releases. Release regression
+Publish the upcoming Chakra Docs release first, update the site to that immutable
+version, and refresh the lockfile. Then run `npm ci`, `npm run site:build`, and
+the site tests without yalc links before releasing or deploying Chakra Email.
+The current local UI refinements must not depend on mutable yalc artifacts in production.
+Chakra Docs' focused `/theme` and Postkit's `/remark` entry points keep theme and
+Markdown tooling imports separate. Release regression
 tests check registry URLs, integrity hashes, and versions for both package
 families. Do not externalize unresolved browser imports to make the gate pass.
 
 ## Production Hosting
 
 The site is a static Vite build. Publish `apps/site/dist` with any static host.
+Configure an HTML fallback to `index.html` for application routes such as
+`/docs/getting-started`, `/examples`, `/packages`, and `/withoss` so direct visits
+and browser refreshes work.
 For a host that serves the site below a repository path, provide the public base
 path at build time:
 
@@ -53,6 +62,24 @@ SITE_BASE_PATH=/chakra-email/ npm run site:build
 Use `/` (the default) when the site is served from its own domain. The base path
 is applied to generated asset URLs, so the same source can be deployed to either
 location without hard-coded root links.
+
+## Shared site design
+
+The welcome page lives at `/`, with dedicated documentation under `/docs`.
+Examples and package entrypoints have their own pages. Chakra Docs supplies
+the layout, mobile navigation, search, breadcrumbs, page actions, and code
+blocks; Postkit renders canonical Markdown documents.
+
+The site matches Chakra Docs and react-fathom: a compact header, neutral theme,
+system light/dark mode, Suisse Intl typography, 2026 credit/license footer,
+shared OSS artwork at `/withoss`, and a black COMMUNE sub-footer. Styling lives
+in `src/theme` and Chakra props, not standalone CSS or inline `style` props.
+The shared Fontstack kit is loaded once in `index.html`:
+`https://kits.fontstack.com/kit/o0v0t0oi.css`. Ensure it allows the production
+domain and `chakra-email.test`.
+
+This theme is for the documentation site only. The email renderer and preview
+application keep their separate themes and color-mode behavior.
 
 ## Content Sources
 

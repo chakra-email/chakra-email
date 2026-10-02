@@ -1,179 +1,167 @@
 // @vitest-environment jsdom
-
 import axe from 'axe-core';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './app';
-import { docPages, examples } from './content';
+import { docPages, examples, packageLinks } from './content';
 
 let root: Root;
-
-beforeAll(async () => {
+beforeEach(async () => {
   (
-    globalThis as typeof globalThis & {
-      IS_REACT_ACT_ENVIRONMENT: boolean;
-    }
+    globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
   ).IS_REACT_ACT_ENVIRONMENT = true;
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
+    },
+  );
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    callback(0);
+    return 0;
+  });
+  vi.spyOn(window, 'scrollTo').mockImplementation(vi.fn());
+  window.history.replaceState({}, '', '/');
   document.documentElement.lang = 'en';
   document.title = 'Chakra Email';
   document.body.innerHTML = '<div id="app"></div>';
-  const appElement = document.querySelector('#app');
-  if (!appElement) {
-    throw new Error('Missing test app root.');
-  }
+  const appElement = document.getElementById('app');
+  if (!appElement) throw new Error('Missing test app root.');
   root = createRoot(appElement);
-  await act(async () => {
-    root.render(createElement(App));
-  });
+  await act(async () => root.render(createElement(App)));
+});
+afterEach(async () => {
+  await act(async () => root.unmount());
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
-afterAll(async () => {
-  await act(async () => root.unmount());
-});
+async function navigate(path: string) {
+  await act(async () => {
+    window.history.pushState({}, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+}
 
 describe('documentation application', () => {
-  it('renders Chakra Docs navigation and one active Postkit article', () => {
-    const articles = Array.from(
-      document.querySelectorAll<HTMLElement>('#docs article'),
-    );
-    const ids = Array.from(document.querySelectorAll<HTMLElement>('[id]')).map(
-      (element) => element.id,
-    );
-
-    expect(articles).toHaveLength(1);
-    const docsNavigation = Array.from(
-      document.querySelectorAll<HTMLElement>('#docs nav'),
-    ).find(
-      (navigation) =>
-        navigation.querySelectorAll('a[href^="/docs/"]').length ===
-        docPages.length,
-    );
-    expect(docsNavigation).toBeDefined();
-    expect(new Set(ids).size).toBe(ids.length);
+  it('renders a docs-first welcome page, shared header, and 2026 footers', () => {
+    expect(document.querySelectorAll('main')).toHaveLength(1);
     expect(document.querySelectorAll('h1')).toHaveLength(1);
-    expect(articles[0]?.querySelector('h2')?.textContent).toBe(
+    expect(document.querySelector('h1')?.textContent).toBe('Chakra Email');
+    expect(document.querySelector('header')?.textContent).toContain(
+      'chakra-email',
+    );
+    expect(
+      document.querySelector(
+        'header a[aria-label="View chakra-email on GitHub"]',
+      ),
+    ).not.toBeNull();
+    expect(document.querySelector('footer')?.textContent).toContain('© 2026');
+    expect(document.querySelector('footer a[href="/withoss"]')).not.toBeNull();
+    expect(
+      document
+        .querySelector('[aria-label="By Commune Software"] a')
+        ?.getAttribute('href'),
+    ).toBe('https://commune.software');
+  });
+  it('navigates from the welcome page into a single Postkit article without duplicate titles', async () => {
+    const link = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('a'),
+    ).find((item) => item.textContent === 'Read the getting-started guide');
+    await act(async () => link?.click());
+    expect(window.location.pathname).toBe('/docs/getting-started');
+    expect(document.querySelector('main article h1')?.textContent).toBe(
       docPages[0]?.title,
     );
-    expect(articles[0]?.querySelector('[data-postkit-prose]')).not.toBeNull();
-    expect(articles[0]?.querySelector('h3#install')).not.toBeNull();
-  });
-
-  it('navigates between manifest pages without a full document load', async () => {
-    const componentsLink = Array.from(
-      document.querySelectorAll<HTMLAnchorElement>('#docs nav a'),
-    ).find((link) => link.getAttribute('href') === '/docs/components');
-
-    await act(async () => {
-      componentsLink?.click();
-    });
-
+    expect(document.querySelectorAll('h1')).toHaveLength(1);
+    expect(document.querySelector('[data-postkit-prose]')).not.toBeNull();
+    expect(document.querySelector('h2#install')).not.toBeNull();
+    const componentsLink = document.querySelector<HTMLAnchorElement>(
+      'nav a[href="/docs/components"]',
+    );
+    await act(async () => componentsLink?.click());
     expect(window.location.pathname).toBe('/docs/components');
-    expect(document.querySelector('#docs article h2')?.textContent).toBe(
-      'Components',
+    expect(document.querySelector('h1')?.textContent).toBe('Components');
+    expect(document.querySelector('h2#document')).not.toBeNull();
+    const ids = Array.from(document.querySelectorAll('[id]')).map(
+      (element) => element.id,
     );
-    expect(document.querySelector('h3#document')).not.toBeNull();
+    expect(new Set(ids).size).toBe(ids.length);
   });
-
-  it('updates the example panel with pointer and keyboard navigation', async () => {
-    const tabs = Array.from(
-      document.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+  it('preserves modified link clicks and responds to browser history', async () => {
+    await navigate('/docs/markdown#url-portability');
+    expect(document.querySelector('h1')?.textContent).toBe('Markdown');
+    const link = document.querySelector<HTMLAnchorElement>(
+      'nav a[href="/docs/getting-started"]',
     );
-    const panel = document.querySelector<HTMLElement>('[role="tabpanel"]');
-    const code = document.querySelector<HTMLElement>('#example-code');
-
-    expect(tabs).toHaveLength(examples.length);
-    expect(panel).not.toBeNull();
-    expect(code?.textContent).toBe(examples[0]?.source);
-
-    await act(async () => tabs[1]?.click());
-    expect(tabs[1]?.getAttribute('aria-selected')).toBe('true');
-    expect(code?.textContent).toBe(examples[1]?.source);
-
-    await act(async () => {
-      tabs[1]?.dispatchEvent(
-        new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }),
-      );
-    });
-    expect(tabs[2]?.getAttribute('aria-selected')).toBe('true');
-    expect(document.activeElement).toBe(tabs[2]);
-    expect(panel?.getAttribute('aria-labelledby')).toBe(tabs[2]?.id);
-    expect(code?.textContent).toBe(examples[2]?.source);
-
-    await act(async () => {
-      tabs[2]?.dispatchEvent(
-        new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }),
-      );
-    });
-    expect(tabs[0]?.getAttribute('aria-selected')).toBe('true');
-    expect(document.activeElement).toBe(tabs[0]);
-
-    await act(async () => {
-      tabs[0]?.dispatchEvent(
-        new KeyboardEvent('keydown', { bubbles: true, key: 'End' }),
-      );
-    });
-    expect(tabs.at(-1)?.getAttribute('aria-selected')).toBe('true');
-    expect(document.activeElement).toBe(tabs.at(-1));
-    expect(code?.textContent).toBe(examples.at(-1)?.source);
-
-    await act(async () => {
-      tabs
-        .at(-1)
-        ?.dispatchEvent(
-          new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' }),
-        );
-    });
-    expect(tabs.at(-2)?.getAttribute('aria-selected')).toBe('true');
-    expect(document.activeElement).toBe(tabs.at(-2));
-    expect(code?.textContent).toBe(examples.at(-2)?.source);
-
-    const ignoredKey = new KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'Enter',
-    });
-    tabs.at(-2)?.dispatchEvent(ignoredKey);
-    expect(ignoredKey.defaultPrevented).toBe(false);
-    expect(tabs.at(-2)?.getAttribute('aria-selected')).toBe('true');
-  });
-
-  it('responds to browser history and preserves modified link behavior', async () => {
-    window.history.pushState({}, '', '/docs/markdown#url-portability');
-    await act(async () => {
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    });
-
-    expect(document.querySelector('#docs article h2')?.textContent).toBe(
-      'Markdown',
-    );
-
-    const docsLink = document.querySelector<HTMLAnchorElement>(
-      '#docs nav a[href="/docs/getting-started"]',
-    );
-    docsLink?.setAttribute('target', '_blank');
-    const modifiedClick = new MouseEvent('click', {
+    const event = new MouseEvent('click', {
       bubbles: true,
       cancelable: true,
       ctrlKey: true,
     });
-    docsLink?.dispatchEvent(modifiedClick);
-
-    expect(modifiedClick.defaultPrevented).toBe(false);
+    link?.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
     expect(window.location.pathname).toBe('/docs/markdown');
   });
-
-  it('has no automated accessibility violations', async () => {
-    const result = await axe.run(document, {
-      resultTypes: ['violations'],
-      rules: {
-        'color-contrast': { enabled: false },
-        // Chakra CodeBlock currently applies aria-expanded to its content div.
-        'aria-allowed-attr': { enabled: false },
-      },
-    });
-
-    expect(result.violations).toEqual([]);
+  it('uses Chakra tabs and highlighted code blocks for template examples', async () => {
+    await navigate('/examples');
+    const tabs = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+    );
+    expect(tabs).toHaveLength(examples.length);
+    expect(document.querySelector('[role="tabpanel"]')?.textContent).toContain(
+      examples[0]?.source.trim(),
+    );
+    await act(async () => tabs[1]?.click());
+    expect(tabs[1]?.getAttribute('aria-selected')).toBe('true');
+    expect(
+      document.querySelector('[role="tabpanel"]:not([hidden])')?.textContent,
+    ).toContain(examples[1]?.source.trim());
+  });
+  it('shows all package entrypoints, OSS acknowledgements, and a useful not-found page', async () => {
+    await navigate('/packages');
+    for (const item of packageLinks)
+      expect(
+        document.querySelector(`main a[href="${item.href}"]`),
+      ).not.toBeNull();
+    await navigate('/withoss');
+    expect(document.querySelector('h1')?.getAttribute('aria-label')).toBe(
+      'Made with open-source software',
+    );
+    expect(
+      document.querySelector('main img[src="/assets/oss.svg"]'),
+    ).not.toBeNull();
+    await navigate('/not-a-page');
+    expect(document.querySelector('h1')?.textContent).toBe('Page not found');
+    expect(document.querySelector('main a[href="/"]')?.textContent).toBe(
+      'Return home',
+    );
+  });
+  it('has no automated accessibility violations on welcome and docs pages', async () => {
+    for (const path of ['/', '/docs/getting-started']) {
+      await navigate(path);
+      const result = await axe.run(document, {
+        resultTypes: ['violations'],
+        rules: {
+          'color-contrast': { enabled: false },
+          'aria-allowed-attr': { enabled: false },
+        },
+      });
+      expect(result.violations).toEqual([]);
+    }
   }, 60_000);
 });

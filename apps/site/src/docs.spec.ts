@@ -28,6 +28,13 @@ describe('documentation manifest', () => {
       '## Install',
     );
   });
+  it('ignores headings inside fenced source examples', () => {
+    expect(
+      extractDocsHeadings(
+        '# Page\n\n```md\n## Not a heading\n```\n\n## Real heading',
+      ),
+    ).toEqual([{ id: 'real-heading', title: 'Real heading', level: 2 }]);
+  });
 
   it('resolves documentation links to manifest routes and repository fallbacks', () => {
     expect(resolveMarkdownHref(undefined)).toBeUndefined();

@@ -65,14 +65,15 @@ test('site Chakra Docs dependencies resolve from public releases without yalc', 
   );
   const version = manifest.dependencies['@chakra-docs/chakra'];
   assert.match(version, /^\d+\.\d+\.\d+$/);
-  for (const name of ['chakra', 'core']) {
+  for (const name of ['chakra', 'core', 'search', 'shiki']) {
     assert.equal(manifest.dependencies[`@chakra-docs/${name}`], version);
     assert.equal(
       lock.packages['apps/site'].dependencies[`@chakra-docs/${name}`],
       version,
     );
+    assert.ok(manifest.scripts['yalc:link'].includes(`@chakra-docs/${name}`));
   }
-  for (const name of ['chakra', 'core', 'search']) {
+  for (const name of ['chakra', 'core', 'search', 'shiki']) {
     const entry = lock.packages[`node_modules/@chakra-docs/${name}`];
     assert.equal(entry.version, version);
     assert.equal(
