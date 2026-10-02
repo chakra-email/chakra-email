@@ -1,8 +1,7 @@
 import {
   createDocsManifest,
   createHeadingId,
-  createHeadingIdGenerator,
-  stripMarkdown,
+  getDocsMarkdownHeadings,
   type DocsHeading,
   type DocsManifest,
   type DocsPage,
@@ -17,27 +16,9 @@ export function prepareMarkdown(source: string): string {
 }
 
 export function extractDocsHeadings(source: string): DocsHeading[] {
-  const createNextHeadingId = createHeadingIdGenerator();
-
-  return source.split(/\r?\n/).flatMap((line): DocsHeading[] => {
-    const match = /^(#{2,6})\s+(.+)$/.exec(line);
-
-    if (!match) {
-      return [];
-    }
-
-    const title = stripMarkdown(match[2] ?? '').trim();
-
-    return title
-      ? [
-          {
-            id: createNextHeadingId(title),
-            title,
-            level: match[1]?.length ?? 2,
-          },
-        ]
-      : [];
-  });
+  return getDocsMarkdownHeadings(prepareMarkdown(source)).map(
+    ({ id, title, level }) => ({ id, title, level }),
+  );
 }
 
 const pages: DocsPage[] = docPages.map((page, index) => ({
@@ -84,7 +65,6 @@ export const docsManifest: DocsManifest = createDocsManifest({
     },
   ],
   config: {
-    siteUrl: 'https://chakra-email.test',
     title: 'Chakra Email',
   },
 });

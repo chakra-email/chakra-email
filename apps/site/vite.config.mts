@@ -8,12 +8,17 @@ export default defineConfig(() => ({
   server: {
     port: 4200,
     host: 'localhost',
+    allowedHosts: ['chakra-email.test'],
   },
   preview: {
     port: 4300,
     host: 'localhost',
+    allowedHosts: ['chakra-email.test'],
   },
   plugins: [],
+  resolve: {
+    dedupe: ['react', 'react-dom', '@chakra-ui/react', '@emotion/react'],
+  },
   test: {
     name: 'site',
     watch: false,

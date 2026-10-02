@@ -5,7 +5,7 @@ export default [
   {
     // Yalc packages are external dependencies even though their linked copies
     // live beneath this app while the libraries are under active development.
-    files: ['src/app.tsx', 'src/content.ts', 'src/docs.ts'],
+    files: ['src/**/*.{ts,tsx}'],
     rules: {
       '@nx/enforce-module-boundaries': 'off',
     },

@@ -187,6 +187,24 @@ export const packageLinks: PackageLink[] = [
     href: 'https://www.npmjs.com/package/@chakra-email/chakra-v2',
   },
   {
+    name: '@chakra-email/markdown',
+    description: 'Safe GFM and declarative content for email bodies.',
+    install: 'npm install @chakra-email/markdown',
+    href: 'https://www.npmjs.com/package/@chakra-email/markdown',
+  },
+  {
+    name: '@chakra-email/code-block',
+    description: 'Email-safe syntax-highlighted code blocks.',
+    install: 'npm install @chakra-email/code-block',
+    href: 'https://www.npmjs.com/package/@chakra-email/code-block',
+  },
+  {
+    name: '@chakra-email/react-email',
+    description: 'Optional adapter for React Email rendering.',
+    install: 'npm install @chakra-email/react-email',
+    href: 'https://www.npmjs.com/package/@chakra-email/react-email',
+  },
+  {
     name: '@chakra-email/preview',
     description: 'Reusable local template preview CLI and browser application.',
     install: 'npm install --save-dev @chakra-email/preview',
