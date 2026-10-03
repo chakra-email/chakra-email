@@ -31,9 +31,11 @@ export function useSiteNavigation() {
   const [pathname, setPathname] = useState(() =>
     getSitePathname(window.location.pathname),
   );
+  const [search, setSearch] = useState(() => window.location.search);
   useEffect(() => {
     const handlePopState = () => {
       setPathname(getSitePathname(window.location.pathname));
+      setSearch(window.location.search);
       scrollToLocation(window.location.href);
     };
     window.addEventListener('popstate', handlePopState);
@@ -47,9 +49,10 @@ export function useSiteNavigation() {
     }
     window.history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
     setPathname(getSitePathname(url.pathname));
+    setSearch(url.search);
     scrollToLocation(url.href);
   }, []);
-  return { pathname, navigate };
+  return { pathname, search, navigate };
 }
 
 export function SiteNavigationProvider({

@@ -9,7 +9,15 @@ import {
 } from '@chakra-docs/chakra';
 import type { DocsPage } from '@chakra-docs/core';
 import { createChakraDocsShikiAdapter } from '@chakra-docs/shiki';
-import { Box, Container, Flex, Heading, Stack, Text } from '@chakra-ui/react';
+import {
+  Box,
+  ChakraProvider,
+  Container,
+  Flex,
+  Heading,
+  Stack,
+  Text,
+} from '@chakra-ui/react';
 import { PostkitProvider } from '@postkit/react';
 import { ThemeProvider } from 'next-themes';
 import { useEffect, type ReactNode } from 'react';
@@ -25,6 +33,8 @@ import { docsManifest } from './docs';
 import { SiteNavigationProvider, useSiteNavigation } from './navigation';
 import { docsSystem } from './theme/system';
 import { toSiteHref } from './routing';
+import { OgImageCard } from './components/og-image-card';
+import { getOgImageContent } from './og-image';
 
 const adapter = createChakraDocsShikiAdapter({
   themes: { light: 'github-dark', dark: 'github-dark' },
@@ -146,7 +156,8 @@ function Article({
 }
 
 export function App() {
-  const { pathname, navigate } = useSiteNavigation();
+  const { pathname, search, navigate } = useSiteNavigation();
+  const capture = pathname === '/og-image' || pathname === '/og-image/';
   const page =
     pathname === '/'
       ? welcome
@@ -158,13 +169,28 @@ export function App() {
               pathname === '/docs' ? '/docs/getting-started' : pathname
             ];
   useEffect(() => {
-    document.title = `${pathname === '/withoss' ? 'Made with OSS' : (page?.title ?? 'Page not found')} - Chakra Email`;
+    document.title = `${capture ? 'Open Graph image' : pathname === '/withoss' ? 'Made with OSS' : (page?.title ?? 'Page not found')} - Chakra Email`;
     const description = document.querySelector('meta[name="description"]');
     description?.setAttribute(
       'content',
       page?.description ?? 'Documentation and examples for Chakra Email.',
     );
-  }, [page, pathname]);
+    if (capture) {
+      const robots = document.createElement('meta');
+      robots.name = 'robots';
+      robots.content = 'noindex, nofollow';
+      document.head.append(robots);
+      return () => robots.remove();
+    }
+    return undefined;
+  }, [page, pathname, capture]);
+  if (capture) {
+    return (
+      <ChakraProvider value={docsSystem}>
+        <OgImageCard {...getOgImageContent(new URLSearchParams(search))} />
+      </ChakraProvider>
+    );
+  }
   return (
     <ThemeProvider
       attribute="class"

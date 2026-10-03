@@ -5,6 +5,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './app';
 import { docPages, examples, packageLinks } from './content';
+import { OG_IMAGE_DEFAULTS } from './og-image';
+import { siteOgImageRecipe } from './theme/og-image';
 
 let root: Root;
 beforeEach(async () => {
@@ -58,6 +60,35 @@ async function navigate(path: string) {
 }
 
 describe('documentation application', () => {
+  it('renders fixed OG capture pages without site chrome and cleans up noindex metadata', async () => {
+    for (const path of ['/og-image', '/og-image/']) {
+      await navigate(path);
+      expect(document.querySelector('h1')?.textContent).toBe(
+        OG_IMAGE_DEFAULTS.title,
+      );
+      expect(document.querySelector('main')?.getAttribute('aria-label')).toBe(
+        'Open Graph image',
+      );
+      expect(siteOgImageRecipe.base?.root.w).toBe('1200px');
+      expect(siteOgImageRecipe.base?.root.h).toBe('630px');
+      expect(document.querySelector('header, footer, button')).toBeNull();
+      expect(
+        document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+      ).toBe('noindex, nofollow');
+      expect(document.querySelector('[data-og-ready="true"]')).not.toBeNull();
+    }
+    await navigate(
+      '/og-image?title=%3Cscript%3Ebad()%3C%2Fscript%3E&description=Custom',
+    );
+    expect(document.querySelector('h1')?.textContent).toBe(
+      '<script>bad()</script>',
+    );
+    expect(document.querySelector('main script')).toBeNull();
+    expect(document.querySelector('main')?.textContent).toContain('Custom');
+    await navigate('/');
+    expect(document.querySelector('header')).not.toBeNull();
+    expect(document.querySelector('meta[name="robots"]')).toBeNull();
+  });
   it('renders a docs-first welcome page, shared header, and 2026 footers', () => {
     expect(document.querySelectorAll('main')).toHaveLength(1);
     expect(document.querySelectorAll('h1')).toHaveLength(1);

@@ -81,6 +81,33 @@ domain and `chakra-email.test`.
 This theme is for the documentation site only. The email renderer and preview
 application keep their separate themes and color-mode behavior.
 
+## Open Graph image capture
+
+`/og-image` matches the react-fathom capture page: a fixed 1200 × 630 canvas,
+Suisse typography, black/white colors, and COMMUNE credit. It omits site
+navigation, footers, analytics, and color-mode controls. Review locally at
+`https://chakra-email.test/og-image`.
+
+Optional `title` and `description` query parameters customize the copy:
+
+```text
+/og-image?title=Email%20preview&description=Explore%20templates%20and%20variants%20locally.
+```
+
+Blank values use defaults; whitespace is normalized and copy is limited to
+100/200 Unicode code points with visual line clamping. Values are plain text,
+never executable markup. Wait for `[data-og-ready="true"]` before capturing
+so the current copy, web fonts, and wordmark have settled.
+
+For OpenGraphs, use the publicly deployed `/og-image` URL and a 1200 × 630
+viewport. Local `.test` domains are not reachable by hosted capture services.
+The Fontstack kit must allow the capture hostname. Because this site is a
+client-rendered SPA, the capture route's robots meta tag is applied after
+JavaScript runs; also set `X-Robots-Tag: noindex, nofollow` for `/og-image` and
+`/og-image/` on the static host. Keep the route out of sitemap generation.
+Use the generated PNG/JPEG or hosted image URL for `og:image` and
+`twitter:image` metadata, **not** the HTML capture URL.
+
 ## Content Sources
 
 - `docs/*.md` - canonical documentation pages rendered in the site.
