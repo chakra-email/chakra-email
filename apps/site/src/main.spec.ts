@@ -89,6 +89,27 @@ describe('documentation application', () => {
     expect(document.querySelector('header')).not.toBeNull();
     expect(document.querySelector('meta[name="robots"]')).toBeNull();
   });
+  it('populates social-image captures from the matching page and preserves query overrides', async () => {
+    for (const path of [
+      '/docs/getting-started/social-image',
+      '/og-image/docs/getting-started',
+    ]) {
+      await navigate(path);
+      expect(document.querySelector('h1')?.textContent).toBe('Getting Started');
+      expect(document.querySelector('main')?.textContent).toContain(
+        docPages[0]?.description,
+      );
+      expect(document.querySelector('header, footer')).toBeNull();
+    }
+    await navigate('/docs/getting-started/social-image?title=Override');
+    expect(document.querySelector('h1')?.textContent).toBe('Override');
+    await navigate('/social-image');
+    expect(document.querySelector('h1')?.textContent).toBe(
+      OG_IMAGE_DEFAULTS.title,
+    );
+    await navigate('/missing/social-image');
+    expect(document.querySelector('h1')?.textContent).toBe('Page not found');
+  });
   it('renders a docs-first welcome page, shared header, and 2026 footers', () => {
     expect(document.querySelectorAll('main')).toHaveLength(1);
     expect(document.querySelectorAll('h1')).toHaveLength(1);

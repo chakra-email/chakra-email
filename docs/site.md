@@ -88,6 +88,26 @@ Suisse typography, black/white colors, and COMMUNE credit. It omits site
 navigation, footers, analytics, and color-mode controls. Review locally at
 `https://chakra-email.test/og-image`.
 
+Page-specific templates follow the same convention as ryanhefner.com:
+
+```text
+/social-image                          -> welcome capture
+/docs/getting-started/social-image      -> Getting Started capture
+/examples/social-image                  -> Template examples capture
+```
+
+The equivalent internal routes are `/og-image`, `/og-image/docs/getting-started`,
+and `/og-image/examples`. Captures use the matching page's title and description;
+unknown page paths show the not-found page. This site is Vite, so its SPA handles
+the aliases rather than a Next config. The static host must serve `index.html`
+for these **extensionless HTML** routes, as it does for ordinary docs routes.
+
+For the OpenGraphs generation flow, use the corresponding
+`/<page>/social-image.png` **template URL** in the renderer integration. It
+captures the extensionless HTML route. The configured OpenGraphs renderer must
+serve the resulting PNG; do not send `.png` requests through the SPA fallback
+or return HTML with an image content type.
+
 Optional `title` and `description` query parameters customize the copy:
 
 ```text
@@ -99,12 +119,14 @@ Blank values use defaults; whitespace is normalized and copy is limited to
 never executable markup. Wait for `[data-og-ready="true"]` before capturing
 so the current copy, web fonts, and wordmark have settled.
 
-For OpenGraphs, use the publicly deployed `/og-image` URL and a 1200 × 630
+For OpenGraphs, use the publicly deployed capture URL and a 1200 × 630
 viewport. Local `.test` domains are not reachable by hosted capture services.
 The Fontstack kit must allow the capture hostname. Because this site is a
 client-rendered SPA, the capture route's robots meta tag is applied after
-JavaScript runs; also set `X-Robots-Tag: noindex, nofollow` for `/og-image` and
-`/og-image/` on the static host. Keep the route out of sitemap generation.
+JavaScript runs; also set `X-Robots-Tag: noindex, nofollow` for `/og-image`,
+`/og-image/*`, and `/*/social-image` (including `/social-image` and trailing
+slashes) on the static host. Vite development and preview servers already set
+this header for capture routes. Keep capture routes out of sitemap generation.
 Use the generated PNG/JPEG or hosted image URL for `og:image` and
 `twitter:image` metadata, **not** the HTML capture URL.
 

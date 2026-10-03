@@ -19,3 +19,14 @@ export function getSitePathname(
     ? pathname.slice(prefix.length)
     : pathname;
 }
+
+/** HTML capture routes only; .png endpoints belong to the image renderer. */
+export function getSocialImagePageRoute(pathname: string): string | undefined {
+  const path = pathname.replace(/\/$/, '') || '/';
+  if (path === '/og-image') return '/';
+  if (path.startsWith('/og-image/')) return path.slice('/og-image'.length);
+  if (path === '/social-image') return '/';
+  if (path.endsWith('/social-image'))
+    return path.slice(0, -'/social-image'.length);
+  return undefined;
+}

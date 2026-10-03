@@ -32,9 +32,9 @@ import { WithOssPage } from './components/with-oss-page';
 import { docsManifest } from './docs';
 import { SiteNavigationProvider, useSiteNavigation } from './navigation';
 import { docsSystem } from './theme/system';
-import { toSiteHref } from './routing';
+import { getSocialImagePageRoute, toSiteHref } from './routing';
 import { OgImageCard } from './components/og-image-card';
-import { getOgImageContent } from './og-image';
+import { getOgImageContent, OG_IMAGE_DEFAULTS } from './og-image';
 
 const adapter = createChakraDocsShikiAdapter({
   themes: { light: 'github-dark', dark: 'github-dark' },
@@ -157,17 +157,20 @@ function Article({
 
 export function App() {
   const { pathname, search, navigate } = useSiteNavigation();
-  const capture = pathname === '/og-image' || pathname === '/og-image/';
+  const captureRoute = getSocialImagePageRoute(pathname);
+  const route = captureRoute ?? pathname;
   const page =
-    pathname === '/'
+    route === '/'
       ? welcome
-      : pathname === '/examples'
+      : route === '/examples'
         ? examples
-        : pathname === '/packages'
+        : route === '/packages'
           ? packages
           : docsManifest.byRoute[
-              pathname === '/docs' ? '/docs/getting-started' : pathname
+              route === '/docs' ? '/docs/getting-started' : route
             ];
+  const capture =
+    captureRoute !== undefined && (page !== undefined || route === '/withoss');
   useEffect(() => {
     document.title = `${capture ? 'Open Graph image' : pathname === '/withoss' ? 'Made with OSS' : (page?.title ?? 'Page not found')} - Chakra Email`;
     const description = document.querySelector('meta[name="description"]');
@@ -185,9 +188,23 @@ export function App() {
     return undefined;
   }, [page, pathname, capture]);
   if (capture) {
+    const defaults =
+      route === '/'
+        ? OG_IMAGE_DEFAULTS
+        : route === '/withoss'
+          ? {
+              title: 'Made with OSS',
+              description: 'The open-source software behind Chakra Email.',
+            }
+          : {
+              title: page?.title ?? OG_IMAGE_DEFAULTS.title,
+              description: page?.description ?? OG_IMAGE_DEFAULTS.description,
+            };
     return (
       <ChakraProvider value={docsSystem}>
-        <OgImageCard {...getOgImageContent(new URLSearchParams(search))} />
+        <OgImageCard
+          {...getOgImageContent(new URLSearchParams(search), defaults)}
+        />
       </ChakraProvider>
     );
   }

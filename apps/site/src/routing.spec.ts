@@ -1,7 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { getSitePathname, toSiteHref } from './routing';
+import {
+  getSitePathname,
+  getSocialImagePageRoute,
+  toSiteHref,
+} from './routing';
 
 describe('site deployment base', () => {
+  it('maps HTML social-image and internal capture routes, never image requests', () => {
+    expect(getSocialImagePageRoute('/social-image')).toBe('/');
+    expect(getSocialImagePageRoute('/og-image/')).toBe('/');
+    expect(getSocialImagePageRoute('/docs/getting-started/social-image')).toBe(
+      '/docs/getting-started',
+    );
+    expect(getSocialImagePageRoute('/docs/getting-started/social-image/')).toBe(
+      '/docs/getting-started',
+    );
+    expect(getSocialImagePageRoute('/og-image/docs/getting-started')).toBe(
+      '/docs/getting-started',
+    );
+    for (const path of [
+      '/docs/getting-started',
+      '/docs/social-image.png',
+      '/social-image.png',
+      '/my-social-image',
+      '/social-image/other',
+    ]) {
+      expect(getSocialImagePageRoute(path)).toBeUndefined();
+    }
+  });
   it('prefixes application links and artwork but leaves external URLs and fragments alone', () => {
     expect(toSiteHref('/docs/theming', '/chakra-email/')).toBe(
       '/chakra-email/docs/theming',
