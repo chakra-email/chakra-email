@@ -191,6 +191,16 @@ describe('documentation application', () => {
         document.querySelector(`main a[href="${item.href}"]`),
       ).not.toBeNull();
     await navigate('/withoss');
+    for (const [id, title] of [
+      ['library', 'Library and packages'],
+      ['site', 'Documentation site'],
+    ]) {
+      const section = document.querySelector(
+        `section[aria-labelledby="oss-${id}"]`,
+      );
+      expect(section?.querySelector('h2')?.textContent).toBe(title);
+      expect(section?.querySelectorAll('li').length).toBeGreaterThan(0);
+    }
     expect(document.querySelector('h1')?.getAttribute('aria-label')).toBe(
       'Made with open-source software',
     );
@@ -204,7 +214,7 @@ describe('documentation application', () => {
     );
   });
   it('has no automated accessibility violations on welcome and docs pages', async () => {
-    for (const path of ['/', '/docs/getting-started']) {
+    for (const path of ['/', '/docs/getting-started', '/withoss']) {
       await navigate(path);
       const result = await axe.run(document, {
         resultTypes: ['violations'],
