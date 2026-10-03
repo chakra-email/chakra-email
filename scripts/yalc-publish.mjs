@@ -60,7 +60,7 @@ for (const packageConfig of packages) {
 
   if (result.error?.code === 'ENOENT') {
     console.error(
-      'Could not find the workspace yalc binary. Run `npm ci` before invoking this target.',
+      'Could not find the workspace yalc binary. Run `pnpm install --frozen-lockfile` before invoking this target.',
     );
     process.exit(1);
   }

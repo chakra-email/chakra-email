@@ -41,18 +41,18 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
-          cache: npm
+          package-manager-cache: false
 
-      - name: Install pinned npm
-        run: npm install --global npm@11.16.0
+      - name: Enable pinned pnpm
+        run: corepack enable
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
 
       - name: Build documentation
-        run: npm run site:build
+        run: pnpm run site:build
         env:
           SITE_BASE_PATH: /chakra-email/
 
