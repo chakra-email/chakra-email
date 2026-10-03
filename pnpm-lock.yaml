@@ -5,6 +5,8 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@chakra-docs/core': file:apps/site/.yalc/@chakra-docs/core
+  '@chakra-docs/search': file:apps/site/.yalc/@chakra-docs/search
   axios: ^1.18.1
   browserslist: ^4.28.9
   fast-uri: ^3.1.6
@@ -162,17 +164,17 @@ importers:
   apps/site:
     dependencies:
       '@chakra-docs/chakra':
-        specifier: 0.2.0
-        version: 0.2.0(@chakra-ui/react@3.36.0(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(supports-color@7.2.0)
+        specifier: file:.yalc/@chakra-docs/chakra
+        version: file:apps/site/.yalc/@chakra-docs/chakra(@chakra-ui/react@3.36.0(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(supports-color@7.2.0)
       '@chakra-docs/core':
-        specifier: 0.2.0
-        version: 0.2.0(supports-color@7.2.0)
+        specifier: file:.yalc/@chakra-docs/core
+        version: file:apps/site/.yalc/@chakra-docs/core(supports-color@7.2.0)
       '@chakra-docs/search':
-        specifier: 0.2.0
-        version: 0.2.0(supports-color@7.2.0)
+        specifier: file:.yalc/@chakra-docs/search
+        version: file:apps/site/.yalc/@chakra-docs/search(supports-color@7.2.0)
       '@chakra-docs/shiki':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: file:.yalc/@chakra-docs/shiki
+        version: file:apps/site/.yalc/@chakra-docs/shiki
       '@postkit/react':
         specifier: 0.2.0
         version: 0.2.0(@chakra-ui/react@3.36.0(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react@19.2.5)(supports-color@7.2.0)
@@ -1179,11 +1181,9 @@ packages:
       }
     hasBin: true
 
-  '@chakra-docs/chakra@0.2.0':
+  '@chakra-docs/chakra@file:apps/site/.yalc/@chakra-docs/chakra':
     resolution:
-      {
-        integrity: sha512-kx36umXi0AKnNR2Qch5INg3+FMz2PWY9CKhqncL+XpOoke3HGr5l74rpdiTt+cixt+jAY0AtzD6A4hB6XcI25A==,
-      }
+      { directory: apps/site/.yalc/@chakra-docs/chakra, type: directory }
     engines: { node: '>=22.22.0' }
     peerDependencies:
       '@chakra-ui/react': '>=3.36 <4'
@@ -1191,25 +1191,19 @@ packages:
       react: '>=18 <20'
       react-dom: '>=18 <20'
 
-  '@chakra-docs/core@0.2.0':
+  '@chakra-docs/core@file:apps/site/.yalc/@chakra-docs/core':
     resolution:
-      {
-        integrity: sha512-36/oLi2z3w0ihCqsovRtSTEgyGoBCAnv9vQsS1q+//0UxXIrLsvxzxceQs6yewze0vVMtD+3zWU4P57eX1QH8w==,
-      }
+      { directory: apps/site/.yalc/@chakra-docs/core, type: directory }
     engines: { node: '>=22.22.0' }
 
-  '@chakra-docs/search@0.2.0':
+  '@chakra-docs/search@file:apps/site/.yalc/@chakra-docs/search':
     resolution:
-      {
-        integrity: sha512-f5hnIiNOw9xiqZ75ekCWGofT9sDGlIYsXc9Jt8cAlrhmYLh5tLBdntODAYrbtfE7/FHukCvc9iRqFONdRghC+Q==,
-      }
+      { directory: apps/site/.yalc/@chakra-docs/search, type: directory }
     engines: { node: '>=22.22.0' }
 
-  '@chakra-docs/shiki@0.2.0':
+  '@chakra-docs/shiki@file:apps/site/.yalc/@chakra-docs/shiki':
     resolution:
-      {
-        integrity: sha512-LRK6tzUXxfEMFVicuSFD5THG/Mmar3OSitQeM4hyDoJih768L2kHf9wwGmJT0YitSx2hfJLzZtW+25fjffqtRw==,
-      }
+      { directory: apps/site/.yalc/@chakra-docs/shiki, type: directory }
     engines: { node: '>=22.22.0' }
 
   '@chakra-ui/anatomy@2.3.6':
@@ -8358,10 +8352,10 @@ snapshots:
     dependencies:
       css-tree: 3.2.1
 
-  '@chakra-docs/chakra@0.2.0(@chakra-ui/react@3.36.0(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(supports-color@7.2.0)':
+  '@chakra-docs/chakra@file:apps/site/.yalc/@chakra-docs/chakra(@chakra-ui/react@3.36.0(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(supports-color@7.2.0)':
     dependencies:
-      '@chakra-docs/core': 0.2.0(supports-color@7.2.0)
-      '@chakra-docs/search': 0.2.0(supports-color@7.2.0)
+      '@chakra-docs/core': file:apps/site/.yalc/@chakra-docs/core(supports-color@7.2.0)
+      '@chakra-docs/search': file:apps/site/.yalc/@chakra-docs/search(supports-color@7.2.0)
       '@chakra-ui/react': 3.36.0(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@emotion/react': 11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0)
       react: 19.2.5
@@ -8373,7 +8367,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@chakra-docs/core@0.2.0(supports-color@7.2.0)':
+  '@chakra-docs/core@file:apps/site/.yalc/@chakra-docs/core(supports-color@7.2.0)':
     dependencies:
       mdast-util-from-markdown: 2.0.3(supports-color@7.2.0)
       mdast-util-gfm: 3.1.0(supports-color@7.2.0)
@@ -8382,15 +8376,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@chakra-docs/search@0.2.0(supports-color@7.2.0)':
+  '@chakra-docs/search@file:apps/site/.yalc/@chakra-docs/search(supports-color@7.2.0)':
     dependencies:
-      '@chakra-docs/core': 0.2.0(supports-color@7.2.0)
+      '@chakra-docs/core': file:apps/site/.yalc/@chakra-docs/core(supports-color@7.2.0)
       minisearch: 7.2.0
       tslib: 2.8.1
     transitivePeerDependencies:
       - supports-color
 
-  '@chakra-docs/shiki@0.2.0':
+  '@chakra-docs/shiki@file:apps/site/.yalc/@chakra-docs/shiki':
     dependencies:
       shiki: 4.4.3
       tslib: 2.8.1

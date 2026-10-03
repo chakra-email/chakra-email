@@ -13,6 +13,8 @@ allowBuilds:
   nx: true
 
 overrides:
+  '@chakra-docs/core': file:apps/site/.yalc/@chakra-docs/core
+  '@chakra-docs/search': file:apps/site/.yalc/@chakra-docs/search
   axios: ^1.18.1
   browserslist: ^4.28.9
   fast-uri: ^3.1.6
