@@ -35,6 +35,7 @@ import { docsSystem } from './theme/system';
 import { getSocialImagePageRoute, toSiteHref } from './routing';
 import { OgImageCard } from './components/og-image-card';
 import { getOgImageContent, OG_IMAGE_DEFAULTS } from './og-image';
+import { Analytics, useDocsAnalytics } from './components/analytics';
 
 const adapter = createChakraDocsShikiAdapter({
   themes: { light: 'github-dark', dark: 'github-dark' },
@@ -83,6 +84,31 @@ const nav = [
 ];
 function DocsLink(props: DocsLinkProps) {
   return <SiteLink {...props} />;
+}
+
+function DocumentationProvider({ children }: { children: ReactNode }) {
+  const analytics = useDocsAnalytics();
+  return (
+    <DocsProvider
+      config={{
+        analytics,
+        title: 'Chakra Email',
+        linkComponent: DocsLink,
+        pageActions: { size: 'sm' },
+        layout: {
+          stickyTop: docsSystem.token.var('spacing.docsStickyTop'),
+          scrollMarginTop: docsSystem.token.var('spacing.docsScrollMargin'),
+        },
+        codeBlock: {
+          adapter,
+          copyIcon: <LuCopy aria-hidden="true" />,
+          copiedIcon: <LuCheck aria-hidden="true" />,
+        },
+      }}
+    >
+      {children}
+    </DocsProvider>
+  );
 }
 
 function Article({
@@ -229,59 +255,45 @@ export function App() {
           copyFeedback: 'tooltip',
         }}
       >
-        <SiteNavigationProvider navigate={navigate}>
-          <DocsProvider
-            config={{
-              title: 'Chakra Email',
-              linkComponent: DocsLink,
-              pageActions: { size: 'sm' },
-              layout: {
-                stickyTop: docsSystem.token.var('spacing.docsStickyTop'),
-                scrollMarginTop: docsSystem.token.var(
-                  'spacing.docsScrollMargin',
-                ),
-              },
-              codeBlock: {
-                adapter,
-                copyIcon: <LuCopy aria-hidden="true" />,
-                copiedIcon: <LuCheck aria-hidden="true" />,
-              },
-            }}
-          >
-            <SiteShell>
-              {pathname === '/withoss' ? (
-                <WithOssPage />
-              ) : page ? (
-                <Article
-                  page={page}
-                  documentation={page.collectionId === 'docs'}
-                >
-                  {page === welcome ? (
-                    <WelcomePage />
-                  ) : page === examples ? (
-                    <ExamplesPage />
-                  ) : page === packages ? (
-                    <PackagesPage />
-                  ) : (
-                    <DocsMarkdown page={page} />
-                  )}
-                </Article>
-              ) : (
-                <Container maxW="7xl" py={{ base: 12, md: 20 }}>
-                  <Stack gap={4} align="flex-start">
-                    <Heading as="h1">Page not found</Heading>
-                    <Text color="fg.muted">
-                      The page may have moved, or the address may be incorrect.
-                    </Text>
-                    <SiteLink href="/">Return home</SiteLink>
-                  </Stack>
-                </Container>
-              )}
-            </SiteShell>
-            <SiteFooter year={new Date().getFullYear()} />
-            <CommuneFooter />
-          </DocsProvider>
-        </SiteNavigationProvider>
+        <Analytics pathname={pathname}>
+          <SiteNavigationProvider navigate={navigate}>
+            <DocumentationProvider>
+              <SiteShell>
+                {pathname === '/withoss' ? (
+                  <WithOssPage />
+                ) : page ? (
+                  <Article
+                    page={page}
+                    documentation={page.collectionId === 'docs'}
+                  >
+                    {page === welcome ? (
+                      <WelcomePage />
+                    ) : page === examples ? (
+                      <ExamplesPage />
+                    ) : page === packages ? (
+                      <PackagesPage />
+                    ) : (
+                      <DocsMarkdown page={page} />
+                    )}
+                  </Article>
+                ) : (
+                  <Container maxW="7xl" py={{ base: 12, md: 20 }}>
+                    <Stack gap={4} align="flex-start">
+                      <Heading as="h1">Page not found</Heading>
+                      <Text color="fg.muted">
+                        The page may have moved, or the address may be
+                        incorrect.
+                      </Text>
+                      <SiteLink href="/">Return home</SiteLink>
+                    </Stack>
+                  </Container>
+                )}
+              </SiteShell>
+              <SiteFooter year={new Date().getFullYear()} />
+              <CommuneFooter />
+            </DocumentationProvider>
+          </SiteNavigationProvider>
+        </Analytics>
       </PostkitProvider>
     </ThemeProvider>
   );

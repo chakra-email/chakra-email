@@ -11,7 +11,9 @@
         "production",
         "^production",
         { "externalDependencies": ["vite"] },
-        { "env": "SITE_BASE_PATH" }
+        { "env": "SITE_BASE_PATH" },
+        { "env": "VITE_FATHOM_SITE_ID" },
+        { "env": "VITE_FATHOM_CUSTOM_DOMAIN" }
       ]
     }
   }
