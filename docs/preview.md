@@ -258,8 +258,8 @@ npm exec nx -- run @acme/emails:email-preview
 
 `continuous: true` tells Nx that the task intentionally stays alive. The target
 is non-cacheable because it creates a local server rather than a reusable output
-artifact. The MVP does not yet ship an Nx plugin or infer this target from the
-configuration file.
+artifact. Configure the target explicitly: the preview CLI does not require an
+Nx plugin or infer targets from its configuration file.
 
 ## Programmatic API
 
@@ -439,7 +439,7 @@ in a delivered email, so replace it with an absolute public URL or attachment
 
 ## Scope
 
-The preview is not currently:
+The preview is a local development tool, not:
 
 - an email-delivery provider or inbox placement service;
 - a drag-and-drop visual editor;
