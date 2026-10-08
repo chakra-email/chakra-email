@@ -6,6 +6,16 @@ import { it } from 'vitest';
 const read = (file: string) =>
   readFileSync(new URL(file, import.meta.url), 'utf8');
 
+it('site analytics uses the pinned public React Fathom release', () => {
+  assert.equal(
+    JSON.parse(read('../package.json')).dependencies['react-fathom'],
+    '0.3.0',
+  );
+  const lockfile = read('../../../pnpm-lock.yaml');
+  assert.doesNotMatch(lockfile, /file:.*\.yalc\/react-fathom/);
+  assert.match(lockfile, /react-fathom@0\.3\.0:/);
+});
+
 it('the docs site uses pinned published Chakra Docs packages, not local links', () => {
   const manifest = JSON.parse(read('../package.json'));
   const dependencies = Object.entries(manifest.dependencies).filter(([name]) =>

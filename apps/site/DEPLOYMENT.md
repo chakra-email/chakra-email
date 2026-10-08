@@ -10,10 +10,9 @@ disables script loading and network tracking. Only event names are sent:
 search strings, clipboard contents, and feedback comments are excluded.
 Pageview URLs omit query strings and fragments; OG capture pages are untracked.
 
-The site temporarily uses the fixed React Fathom yalc build. After publishing
-React Fathom, replace `file:.yalc/react-fathom` in the site's package manifest
-with that immutable npm version and regenerate the pnpm lockfile. Replace
-local Chakra Docs pins with its new npm release too before a clean deployment.
+The site uses the published `react-fathom@0.3.0` release and Chakra Docs packages
+pinned to `0.3.0`. No local yalc copies of these packages are needed for a clean
+CI or deployment install.
 
 Build with `pnpm nx run site:build` using the pinned Node 24 and pnpm versions.
 The build cache includes both analytics environment variables, so changing a
