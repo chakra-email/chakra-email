@@ -6,6 +6,7 @@ import {
   type DocsMobileNavigationRootProps,
 } from '@chakra-docs/chakra';
 import { Box, useSlotRecipe } from '@chakra-ui/react';
+import { siteMobileNavigationStyles } from '../theme/system';
 import { LuChevronDown, LuMenu, LuX } from 'react-icons/lu';
 
 type DocsMobileControlsProps = Omit<
@@ -34,13 +35,21 @@ export function DocsMobileControls({
           icon={<LuMenu size={24} aria-hidden="true" focusable="false" />}
         />
         <DocsMobileNavigation.Content>
-          <DocsMobileNavigation.Header>
-            <DocsMobileNavigation.Title />
-            <DocsMobileNavigation.CloseTrigger>
+          <DocsMobileNavigation.Header
+            slotProps={{ css: siteMobileNavigationStyles.header }}
+          >
+            <DocsMobileNavigation.Title
+              slotProps={{ css: siteMobileNavigationStyles.title }}
+            />
+            <DocsMobileNavigation.CloseTrigger
+              slotProps={{ css: siteMobileNavigationStyles.closeTrigger }}
+            >
               <LuX size={24} aria-hidden="true" focusable="false" />
             </DocsMobileNavigation.CloseTrigger>
           </DocsMobileNavigation.Header>
-          <DocsMobileNavigation.Search />
+          <DocsMobileNavigation.Search
+            slotProps={{ css: siteMobileNavigationStyles.search }}
+          />
           <DocsMobileNavigation.Body />
         </DocsMobileNavigation.Content>
       </DocsMobileNavigation.Root>
