@@ -3,11 +3,11 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { DocsMobileNavigation } from '@chakra-docs/chakra';
 import { chakraDocsThemeConfig } from '@chakra-docs/chakra/theme';
 import { ChakraProvider, createSystem, defaultConfig } from '@chakra-ui/react';
 
 import { siteThemeConfig } from './theme/system';
+import { DocsMobileControls } from './components/docs-mobile-controls';
 
 // Keep the production recipes, but disable layers that jsdom cannot compute.
 const system = createSystem(
@@ -54,7 +54,7 @@ test('the mobile docs menu opens edge-to-edge and closes accessibly', async () =
   await act(() =>
     root.render(
       <ChakraProvider value={system}>
-        <DocsMobileNavigation.Root nav={[]} title="Browse documentation" />
+        <DocsMobileControls nav={[]} />
       </ChakraProvider>,
     ),
   );
@@ -71,11 +71,17 @@ test('the mobile docs menu opens edge-to-edge and closes accessibly', async () =
   const label = trigger.querySelector('span:not([aria-hidden])');
   if (!label) throw new Error('Missing navigation label slot');
   expect(getComputedStyle(label).display).toBe('none');
-  const icon = trigger.querySelector('[aria-hidden="true"]');
+  const icon = trigger.querySelector('svg[aria-hidden="true"]');
   if (!icon) throw new Error('Missing decorative navigation icon');
-  expect(icon.textContent).toBe('☰');
-  expect(getComputedStyle(icon).fontSize).toBe('24px');
-  expect(getComputedStyle(icon).lineHeight).toBe('1');
+  expect(trigger.textContent).not.toContain('☰');
+  expect(icon.getAttribute('focusable')).toBe('false');
+  expect(getComputedStyle(icon).width).toBe('24px');
+  expect(getComputedStyle(icon).height).toBe('24px');
+  expect(getComputedStyle(icon).display).toBe('block');
+  if (!icon.parentElement) throw new Error('Missing navigation icon wrapper');
+  expect(getComputedStyle(icon.parentElement).display).toBe('inline-flex');
+  expect(getComputedStyle(icon.parentElement).alignItems).toBe('center');
+  expect(getComputedStyle(icon.parentElement).justifyContent).toBe('center');
   expect(trigger.getAttribute('aria-haspopup')).toBe('dialog');
   expect(trigger.getAttribute('aria-expanded')).toBe('false');
   await act(async () => trigger.click());
@@ -107,7 +113,17 @@ test('the mobile docs menu opens edge-to-edge and closes accessibly', async () =
     'button[aria-label="Close navigation"]',
   );
   expect(close).not.toBeNull();
-  await act(() => close?.click());
+  if (!close) throw new Error('Missing accessible navigation close button');
+  expect(getComputedStyle(close).width).toBe('44px');
+  expect(getComputedStyle(close).height).toBe('44px');
+  expect(close.textContent).not.toContain('×');
+  const closeIcon = close.querySelector('svg[aria-hidden="true"]');
+  if (!closeIcon) throw new Error('Missing decorative close SVG');
+  expect(closeIcon.getAttribute('focusable')).toBe('false');
+  expect(getComputedStyle(closeIcon).width).toBe('24px');
+  expect(getComputedStyle(closeIcon).height).toBe('24px');
+  expect(getComputedStyle(closeIcon).display).toBe('block');
+  await act(() => close.click());
   expect(
     document.querySelector('[role="dialog"][data-state="open"]'),
   ).toBeNull();
