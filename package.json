@@ -40,7 +40,7 @@
   "bugs": {
     "url": "https://github.com/chakra-email/chakra-email/issues"
   },
-  "homepage": "https://github.com/chakra-email/chakra-email#readme",
+  "homepage": "https://chakra.email",
   "scripts": {
     "audit:ci": "pnpm audit --audit-level=high",
     "build": "pnpm run clean && pnpm nx run-many -t build --skip-nx-cache",

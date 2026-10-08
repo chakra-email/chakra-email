@@ -23,7 +23,7 @@
     "url": "git+https://github.com/chakra-email/chakra-email.git",
     "directory": "packages/markdown"
   },
-  "homepage": "https://github.com/chakra-email/chakra-email/tree/main/packages/markdown#readme",
+  "homepage": "https://chakra.email/docs/markdown",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

@@ -23,6 +23,7 @@ import { ThemeProvider } from 'next-themes';
 import { useEffect, type ReactNode } from 'react';
 import { LuCheck, LuCopy } from 'react-icons/lu';
 import { DocsMarkdown } from './components/docs-markdown';
+import { DocsMobileControls } from './components/docs-mobile-controls';
 import { ExamplesPage, PackagesPage } from './components/resource-pages';
 import { SiteFooter, CommuneFooter } from './components/site-footer';
 import { SiteLink } from './components/site-link';
@@ -129,11 +130,10 @@ function Article({
       sidebarDefaultExpanded="active"
       sidebarSlotProps={{ 'aria-label': 'Documentation pages' }}
       tocSlotProps={{ 'aria-label': 'On this page' }}
-      mobileNavigationProps={{
-        title: 'Browse documentation',
-        search: <SiteSearch />,
-      }}
+      mobileNavigation={false}
+      mobileToc={false}
     >
+      <DocsMobileControls nav={nav} page={page} search={<SiteSearch />} />
       <DocsArticle
         page={page}
         headings={page.headings}
@@ -258,7 +258,9 @@ export function App() {
         <Analytics pathname={pathname}>
           <SiteNavigationProvider navigate={navigate}>
             <DocumentationProvider>
-              <SiteShell>
+              <SiteShell
+                footer={<SiteFooter year={new Date().getFullYear()} />}
+              >
                 {pathname === '/withoss' ? (
                   <WithOssPage />
                 ) : page ? (
@@ -289,7 +291,6 @@ export function App() {
                   </Container>
                 )}
               </SiteShell>
-              <SiteFooter year={new Date().getFullYear()} />
               <CommuneFooter />
             </DocumentationProvider>
           </SiteNavigationProvider>

@@ -23,7 +23,7 @@
     "url": "git+https://github.com/chakra-email/chakra-email.git",
     "directory": "packages/code-block"
   },
-  "homepage": "https://github.com/chakra-email/chakra-email/tree/main/packages/code-block#readme",
+  "homepage": "https://chakra.email",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

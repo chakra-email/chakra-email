@@ -7,6 +7,8 @@ import { App } from './app';
 import { docPages, examples, packageLinks } from './content';
 import { OG_IMAGE_DEFAULTS } from './og-image';
 import { siteOgImageRecipe } from './theme/og-image';
+import { siteSlotRecipes } from './theme/site-recipes';
+import { siteThemeConfig } from './theme/system';
 
 let root: Root;
 beforeEach(async () => {
@@ -60,6 +62,111 @@ async function navigate(path: string) {
 }
 
 describe('documentation application', () => {
+  it('shares one mobile toolbar across home, docs, examples, and packages', async () => {
+    for (const path of [
+      '/',
+      '/docs/getting-started',
+      '/examples',
+      '/packages',
+    ]) {
+      await navigate(path);
+      const controls = document.querySelector(
+        '[aria-label="Documentation controls"]',
+      );
+      expect(controls).not.toBeNull();
+      expect(
+        controls?.querySelectorAll('button[aria-label="Open navigation"]'),
+      ).toHaveLength(1);
+      expect(controls?.querySelectorAll('summary')).toHaveLength(
+        path === '/packages' ? 0 : 1,
+      );
+      if (path !== '/packages') {
+        const indicator = controls?.querySelector('summary svg');
+        expect(indicator?.getAttribute('viewBox')).toBe('0 0 24 24');
+        expect(indicator?.getAttribute('width')).toBe('16');
+        expect(indicator?.querySelector('path')?.getAttribute('d')).toBe(
+          'm6 9 6 6 6-6',
+        );
+      }
+      expect(
+        document.querySelectorAll('button[aria-label="Open navigation"]'),
+      ).toHaveLength(1);
+    }
+  });
+
+  it('uses a full-viewport mobile drawer with safe-area spacing and compact controls', () => {
+    expect(siteSlotRecipes.siteDocsMobileControls.base?.root).toMatchObject({
+      display: { base: 'flex', xl: 'none' },
+      alignItems: 'flex-start',
+    });
+    expect(siteSlotRecipes.siteDocsMobileControls.base?.toc).toMatchObject({
+      flex: '1',
+      minW: 0,
+      mb: 0,
+      pb: 0,
+      borderBottomWidth: 0,
+    });
+    expect(
+      siteThemeConfig.theme?.slotRecipes?.chakraDocsLayout.base?.root,
+    ).toMatchObject({
+      pt: { base: 4, lg: 8 },
+    });
+    const navigation =
+      siteThemeConfig.theme?.slotRecipes?.chakraDocsMobileNavigation.base;
+    expect(navigation?.positioner).toMatchObject({
+      position: 'fixed',
+      inset: 0,
+      w: '100dvw',
+      h: '100dvh',
+      p: 0,
+    });
+    expect(navigation?.content).toMatchObject({
+      w: '100dvw',
+      h: '100dvh',
+      maxH: '100dvh',
+      maxW: 'none',
+      m: 0,
+    });
+    expect(navigation?.header).toMatchObject({
+      pt: 'env(safe-area-inset-top)',
+    });
+    expect(navigation?.body).toMatchObject({
+      pb: 'max(1rem, env(safe-area-inset-bottom))',
+    });
+  });
+
+  it('opens and closes the accessible mobile navigation on home and docs', async () => {
+    for (const path of [
+      '/',
+      '/docs/getting-started',
+      '/examples',
+      '/packages',
+    ]) {
+      await navigate(path);
+      const trigger = document.querySelector<HTMLButtonElement>(
+        'button[aria-label="Open navigation"]',
+      );
+      expect(trigger).not.toBeNull();
+      await act(async () => trigger?.click());
+      const dialog = document.querySelector(
+        '[role="dialog"][data-state="open"]',
+      );
+      expect(dialog).not.toBeNull();
+      expect(dialog?.textContent).toContain('Browse documentation');
+      expect(
+        dialog?.querySelector('button[aria-haspopup="dialog"]')?.textContent,
+      ).toContain('Search');
+      const close = dialog?.querySelector<HTMLButtonElement>(
+        'button[aria-label="Close navigation"]',
+      );
+      expect(close).not.toBeNull();
+      await act(async () => close?.click());
+      expect(
+        document.querySelector('[role="dialog"][data-state="open"]'),
+      ).toBeNull();
+    }
+  });
+
   it('renders fixed OG capture pages without site chrome and cleans up noindex metadata', async () => {
     for (const path of ['/og-image', '/og-image/']) {
       await navigate(path);
@@ -129,6 +236,28 @@ describe('documentation application', () => {
         .querySelector('[aria-label="By Commune Software"] a')
         ?.getAttribute('href'),
     ).toBe('https://commune.software');
+
+    const wrapper = document.querySelector<HTMLElement>('.site-wrapper');
+    const content = document.querySelector<HTMLElement>('.site-content');
+    const footer = document.querySelector<HTMLElement>('footer');
+    const commune = document.querySelector<HTMLElement>(
+      '[aria-label="By Commune Software"]',
+    );
+
+    expect(wrapper).not.toBeNull();
+    expect(content).not.toBeNull();
+    expect(footer).not.toBeNull();
+    expect(commune).not.toBeNull();
+    expect(wrapper?.contains(content)).toBe(true);
+    expect(wrapper?.contains(footer)).toBe(true);
+    expect(wrapper?.contains(commune)).toBe(false);
+    expect(wrapper?.nextElementSibling).toBe(commune);
+    expect(siteSlotRecipes.siteShell.base?.root).toMatchObject({
+      display: 'flex',
+      flexDirection: 'column',
+      minH: '100dvh',
+    });
+    expect(siteSlotRecipes.siteShell.base?.main).toMatchObject({ flexGrow: 1 });
   });
   it('navigates from the welcome page into a single Postkit article without duplicate titles', async () => {
     const link = Array.from(

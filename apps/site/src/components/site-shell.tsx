@@ -13,23 +13,47 @@ import type { ReactNode } from 'react';
 import { SiGithub } from 'react-icons/si';
 import { docsManifest } from '../docs';
 import { useNavigate } from '../navigation';
+import { getRecommendedSearchResults } from '../search-recommendations';
 import { SiteLink } from './site-link';
+
+const recommendedSearchResults = getRecommendedSearchResults(
+  docsManifest.search,
+);
 
 export function SiteSearch() {
   const navigate = useNavigate();
-  return <DocsSearch records={docsManifest.search} onNavigate={navigate} />;
+  return (
+    <DocsSearch
+      records={docsManifest.search}
+      defaultResults={recommendedSearchResults}
+      defaultResultsLabel="Recommended"
+      popularLimit={6}
+      onNavigate={navigate}
+    />
+  );
 }
 
-export function SiteShell({ children }: { children: ReactNode }) {
+export function SiteShell({
+  children,
+  footer,
+}: {
+  children: ReactNode;
+  footer: ReactNode;
+}) {
   const styles = useSlotRecipe({ key: 'siteShell' })();
   return (
-    <Box css={styles.root}>
+    <Box className="site-wrapper" css={styles.root}>
       <Box as="header" css={styles.header}>
         <Container css={styles.container}>
           <Flex align="center" justify="space-between" h="full" gap={2}>
-            <SiteLink href="/" css={styles.brand}>
-              chakra-email
-            </SiteLink>
+            <Flex css={styles.brandGroup}>
+              <SiteLink href="/" css={styles.brand}>
+                chakra-email
+              </SiteLink>
+              <Box as="span" css={styles.version}>
+                v0.3.0
+              </Box>
+            </Flex>
             <HStack gap={2}>
               <SiteSearch />
               <Tooltip.Root>
@@ -55,9 +79,10 @@ export function SiteShell({ children }: { children: ReactNode }) {
           </Flex>
         </Container>
       </Box>
-      <Box as="main" id="top" css={styles.main}>
+      <Box as="main" id="top" className="site-content" css={styles.main}>
         {children}
       </Box>
+      {footer}
     </Box>
   );
 }

@@ -26,7 +26,7 @@
   "bugs": {
     "url": "https://github.com/chakra-email/chakra-email/issues"
   },
-  "homepage": "https://github.com/chakra-email/chakra-email/tree/main/packages/core#readme",
+  "homepage": "https://chakra.email/docs/package-architecture",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

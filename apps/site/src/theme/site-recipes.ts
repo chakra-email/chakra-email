@@ -3,11 +3,49 @@ import { siteOgImageRecipe } from './og-image';
 
 /** Site chrome matches react-fathom; library component recipes stay reusable. */
 export const siteSlotRecipes = {
+  siteDocsMobileControls: defineSlotRecipe({
+    slots: ['root', 'navigation', 'toc', 'tocLabel'],
+    base: {
+      root: {
+        display: { base: 'flex', xl: 'none' },
+        alignItems: 'flex-start',
+        gap: 3,
+        minW: 0,
+        mb: 6,
+        pb: 3,
+        borderBottomWidth: '1px',
+      },
+      navigation: { flexShrink: 0 },
+      toc: { flex: '1', minW: 0, mb: 0, pb: 0, borderBottomWidth: 0 },
+      tocLabel: { flexShrink: 0, whiteSpace: 'nowrap' },
+    },
+    variants: {
+      hasToc: {
+        true: {},
+        false: { root: { display: { base: 'flex', lg: 'none' } } },
+      },
+    },
+  }),
   siteOgImage: siteOgImageRecipe,
   siteShell: defineSlotRecipe({
-    slots: ['root', 'header', 'container', 'brand', 'githubTrigger', 'main'],
+    slots: [
+      'root',
+      'header',
+      'container',
+      'brandGroup',
+      'brand',
+      'version',
+      'githubTrigger',
+      'main',
+    ],
     base: {
-      root: { bg: 'bg', color: 'fg', minH: '100vh' },
+      root: {
+        display: 'flex',
+        flexDirection: 'column',
+        minH: '100dvh',
+        bg: 'bg',
+        color: 'fg',
+      },
       header: {
         position: 'sticky',
         top: 0,
@@ -18,6 +56,22 @@ export const siteSlotRecipes = {
         bg: 'bg',
       },
       container: { maxW: '7xl', h: 'full' },
+      brandGroup: { alignItems: 'center', gap: 2, flexWrap: 'wrap', minW: 0 },
+      version: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        flexShrink: 0,
+        px: 2,
+        py: '0.5',
+        borderWidth: '1px',
+        borderColor: 'border',
+        borderRadius: 'full',
+        color: 'fg.muted',
+        fontFamily: 'mono',
+        fontSize: 'xs',
+        lineHeight: 'short',
+        whiteSpace: 'nowrap',
+      },
       brand: {
         fontWeight: 'medium',
         fontSize: 'lg',
@@ -30,7 +84,7 @@ export const siteSlotRecipes = {
         minW: 11,
         _hover: { bg: 'bg.muted', color: 'fg' },
       },
-      main: { minW: 0, minH: 'calc(100vh - {sizes.siteHeader})' },
+      main: { flexGrow: 1, minW: 0 },
     },
   }),
   siteFooter: defineSlotRecipe({

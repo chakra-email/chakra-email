@@ -7,10 +7,10 @@
     "yalc:link:postkit": "yalc link --no-pure @postkit/core @postkit/react @postkit/shiki @postkit/unfurl"
   },
   "dependencies": {
-    "@chakra-docs/chakra": "file:.yalc/@chakra-docs/chakra",
-    "@chakra-docs/core": "file:.yalc/@chakra-docs/core",
-    "@chakra-docs/search": "file:.yalc/@chakra-docs/search",
-    "@chakra-docs/shiki": "file:.yalc/@chakra-docs/shiki",
+    "@chakra-docs/chakra": "0.3.0",
+    "@chakra-docs/core": "0.3.0",
+    "@chakra-docs/search": "0.3.0",
+    "@chakra-docs/shiki": "0.3.0",
     "@postkit/react": "0.2.0",
     "@postkit/shiki": "0.2.0",
     "fathom-client": "3.7.2",

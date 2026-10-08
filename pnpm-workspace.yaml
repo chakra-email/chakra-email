@@ -13,8 +13,6 @@ allowBuilds:
   nx: true
 
 overrides:
-  '@chakra-docs/core': file:apps/site/.yalc/@chakra-docs/core
-  '@chakra-docs/search': file:apps/site/.yalc/@chakra-docs/search
   axios: ^1.18.1
   browserslist: ^4.28.9
   fast-uri: ^3.1.6
@@ -23,3 +21,9 @@ overrides:
   'nx>brace-expansion': 5.0.9
   'nx>smol-toml': 1.7.1
   qs: ^6.16.0
+
+minimumReleaseAgeExclude:
+  - '@chakra-docs/chakra@0.3.0'
+  - '@chakra-docs/core@0.3.0'
+  - '@chakra-docs/search@0.3.0'
+  - '@chakra-docs/shiki@0.3.0'
