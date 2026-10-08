@@ -128,7 +128,9 @@ describe('documentation application', () => {
       m: 0,
     });
     expect(navigation?.header).toMatchObject({
-      pt: 'env(safe-area-inset-top)',
+      alignItems: 'center',
+      pt: 'calc(env(safe-area-inset-top, 0px) + 6px)',
+      pb: '6px',
     });
     expect(navigation?.body).toMatchObject({
       pb: 'max(1rem, env(safe-area-inset-bottom))',
