@@ -6,41 +6,40 @@ It is an Nx-managed Vite application that imports the markdown files in `docs/` 
 
 ## Commands
 
-The committed dependencies use pinned public Chakra Docs and Postkit packages.
-For this development branch, run `npm run site:yalc` after installation to use
-the current local Chakra Docs build. This links `chakra`, `core`, `search`, and
-`shiki`; Postkit remains on its public release. `@postkit/core` and
-`@postkit/unfurl` are installed transitively by `@postkit/react`.
 Use the repository's pinned Node 24
 runtime (`nvm use`); Chakra Docs requires Node 22.22 or newer. This does not
 change the published Chakra Email packages' Node compatibility floor.
 
 ```bash
-npm ci
-npm run site:dev
-npm run site:build
-npm run site:preview
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run site:dev
+pnpm run site:build
+pnpm run site:preview
 ```
 
-`npm run build` also builds the site because Nx discovers the app target.
+`pnpm run build` also builds the site because Nx discovers the app target.
 
-For local development, `npm run site:yalc` links Chakra Docs and
-`npm run yalc:link:postkit --workspace site` links Postkit from your local yalc
-store. Yalc files and registrations stay untracked; repeat the link command
-after `npm ci`. To return to public packages
-and unregister the site from future local pushes, run:
+### Optional local package testing
+
+Use `pnpm run site:yalc` to link a local Chakra Docs build, or
+`pnpm --filter site yalc:link:postkit` to link Postkit from your local yalc store.
+These links are for dependency development, not production deployment.
+Yalc files and registrations stay untracked. Remove links and restore the
+committed dependency versions before validating a clean build:
 
 ```bash
-npm exec --workspace site -- yalc remove --all
-npm ci
+pnpm --filter site exec yalc remove --all
+pnpm install --frozen-lockfile
 ```
 
 ### Clean-install release prerequisite
 
-Publish the upcoming Chakra Docs release first, update the site to that immutable
-version, and refresh the lockfile. Then run `npm ci`, `npm run site:build`, and
-the site tests without yalc links before releasing or deploying Chakra Email.
-The current local UI refinements must not depend on mutable yalc artifacts in production.
+Production builds must resolve every site dependency from an immutable public
+release, without a local yalc store. Run `pnpm install --frozen-lockfile`,
+`pnpm run site:build`, and the site tests from a clean checkout before deploying.
+See the [deployment notes](https://github.com/chakra-email/chakra-email/blob/main/apps/site/DEPLOYMENT.md)
+for environment variables and dependency preparation.
 Chakra Docs' focused `/theme` and Postkit's `/remark` entry points keep theme and
 Markdown tooling imports separate. Release regression
 tests check registry URLs, integrity hashes, and versions for both package
@@ -56,7 +55,7 @@ For a host that serves the site below a repository path, provide the public base
 path at build time:
 
 ```bash
-SITE_BASE_PATH=/chakra-email/ npm run site:build
+SITE_BASE_PATH=/chakra-email/ pnpm run site:build
 ```
 
 Use `/` (the default) when the site is served from its own domain. The base path
