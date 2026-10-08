@@ -17,3 +17,13 @@ CI or deployment install.
 Build with `pnpm nx run site:build` using the pinned Node 24 and pnpm versions.
 The build cache includes both analytics environment variables, so changing a
 site ID does not reuse an artifact compiled for another analytics site.
+
+## LLM documentation
+
+The Vite build writes `llms.txt` and `llms-full.txt` to `apps/site/dist`, and the
+development server serves the same text endpoints. They use the site's shared
+documentation manifest: the index links to canonical `https://chakra.email`
+pages and the full file contains the Markdown bodies. Draft and hidden pages
+are excluded, and links respect `SITE_BASE_PATH` when deploying under a subpath.
+Documentation source files are included in the Nx build-cache inputs. Rebuild
+and deploy the site after editing docs; no npm publish is needed.
