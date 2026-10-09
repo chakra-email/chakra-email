@@ -5,8 +5,9 @@ import { createSiteDocPages, docPageDefinitions } from './src/doc-pages';
 import { createSiteDocsManifest } from './src/docs-manifest';
 import { createSiteLlmsText } from './src/llms';
 import { getSitePathname } from './src/routing';
+import { createSiteRobots, createSiteSitemap } from './src/site-seo';
 
-export async function createLlmsFiles(basePath = '/') {
+export async function createDiscoveryFiles(basePath = '/') {
   const sources = Object.fromEntries(
     await Promise.all(
       docPageDefinitions.map(async ({ sourceFile }) => [
@@ -22,13 +23,15 @@ export async function createLlmsFiles(basePath = '/') {
   return {
     'llms.txt': createSiteLlmsText(manifest, basePath),
     'llms-full.txt': createSiteLlmsText(manifest, basePath, true),
+    'sitemap.xml': createSiteSitemap(manifest, basePath),
+    'robots.txt': createSiteRobots(basePath),
   };
 }
 
-export function llmsFilesPlugin(): Plugin {
+export function discoveryFilesPlugin(): Plugin {
   let basePath = '/';
   return {
-    name: 'llms-files',
+    name: 'site-discovery-files',
     configResolved(config) {
       basePath = config.base;
     },
@@ -40,14 +43,26 @@ export function llmsFilesPlugin(): Plugin {
       );
       server.middlewares.use(async (request, response, next) => {
         const pathname = getSitePathname(
-          new URL(request.url ?? '/', 'http://llms.invalid').pathname,
+          new URL(request.url ?? '/', 'http://discovery.invalid').pathname,
           basePath,
         );
-        if (pathname !== '/llms.txt' && pathname !== '/llms-full.txt') {
+        if (
+          ![
+            '/llms.txt',
+            '/llms-full.txt',
+            '/sitemap.xml',
+            '/robots.txt',
+          ].includes(pathname)
+        ) {
           next();
           return;
         }
-        response.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        response.setHeader(
+          'Content-Type',
+          pathname === '/sitemap.xml'
+            ? 'application/xml; charset=utf-8'
+            : 'text/plain; charset=utf-8',
+        );
         response.setHeader('X-Content-Type-Options', 'nosniff');
         if (request.method !== 'GET' && request.method !== 'HEAD') {
           response.statusCode = 405;
@@ -56,7 +71,7 @@ export function llmsFilesPlugin(): Plugin {
           return;
         }
         try {
-          const files = await createLlmsFiles(basePath);
+          const files = await createDiscoveryFiles(basePath);
           response.end(
             request.method === 'HEAD'
               ? undefined
@@ -69,7 +84,7 @@ export function llmsFilesPlugin(): Plugin {
     },
     async generateBundle() {
       for (const [fileName, source] of Object.entries(
-        await createLlmsFiles(basePath),
+        await createDiscoveryFiles(basePath),
       )) {
         this.emitFile({ type: 'asset', fileName, source });
       }

@@ -62,6 +62,21 @@ Use `/` (the default) when the site is served from its own domain. The base path
 is applied to generated asset URLs, so the same source can be deployed to either
 location without hard-coded root links.
 
+### Crawler discovery files
+
+The build generates `/sitemap.xml`, `/robots.txt`, `/llms.txt`, and
+`/llms-full.txt` alongside the app in `apps/site/dist`. Serve these files before
+the HTML fallback so crawlers receive XML or text rather than the SPA shell.
+The sitemap includes public site pages and published docs, but not the `/docs`
+alias, draft or hidden docs, or social-image capture templates. Robots advertises
+the canonical sitemap and blocks HTML capture templates without blocking
+renderer-generated social PNGs.
+
+All discovery links use `https://chakra.email` and respect `SITE_BASE_PATH`.
+For a subpath deployment, also publish or merge the robots rules into the
+domain-root `/robots.txt`, where crawlers look for them. Rebuild the site after
+changing docs; no separate package release is needed.
+
 ## Shared site design
 
 The welcome page lives at `/`, with dedicated documentation under `/docs`.
@@ -140,7 +155,9 @@ Use the generated PNG/JPEG or hosted image URL for `og:image` and
 
 1. Add a markdown file to `docs/`.
 2. Import it in `apps/site/src/content.ts`.
-3. Add a `docPages` entry with a stable `id`, title, summary, and GitHub source link.
+3. Add a `docPageDefinitions` entry in `apps/site/src/doc-pages.ts` with a stable
+   `id`, title, summary, source filename, and GitHub source link. The site and its
+   discovery files share these definitions.
 
 ## Adding An Example
 

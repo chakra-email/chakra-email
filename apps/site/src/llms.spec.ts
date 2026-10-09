@@ -1,14 +1,17 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Connect, ResolvedConfig, ViteDevServer } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
-import { createLlmsFiles, llmsFilesPlugin } from '../llms-plugin';
+import {
+  createDiscoveryFiles,
+  discoveryFilesPlugin,
+} from '../discovery-plugin';
 import { createSiteDocPages } from './doc-pages';
 import { docsManifest } from './docs';
 import { createSiteLlmsText } from './llms';
 
 describe('LLM documentation files', () => {
   it('uses the browser manifest and complete sources for build and development', async () => {
-    const files = await createLlmsFiles();
+    const files = await createDiscoveryFiles();
     expect(files['llms.txt']).toBe(createSiteLlmsText(docsManifest));
     expect(files['llms-full.txt']).toBe(
       createSiteLlmsText(docsManifest, '/', true),
@@ -23,7 +26,7 @@ describe('LLM documentation files', () => {
   });
 
   it('keeps documentation and full-file links under the deployment base', async () => {
-    const files = await createLlmsFiles('/email/');
+    const files = await createDiscoveryFiles('/email/');
     expect(files['llms.txt']).toContain(
       'https://chakra.email/email/llms-full.txt',
     );
@@ -61,7 +64,7 @@ describe('LLM documentation files', () => {
   });
 
   it('serves text for GET/HEAD under the dev base, rejects writes, and passes other routes through', async () => {
-    const plugin = llmsFilesPlugin();
+    const plugin = discoveryFilesPlugin();
     if (
       typeof plugin.configResolved !== 'function' ||
       typeof plugin.configureServer !== 'function'
@@ -79,8 +82,13 @@ describe('LLM documentation files', () => {
       },
     } as unknown as ViteDevServer);
     if (!middleware) throw new Error('Expected LLM middleware');
-    const files = await createLlmsFiles('/email/');
-    for (const route of ['llms.txt', 'llms-full.txt'] as const) {
+    const files = await createDiscoveryFiles('/email/');
+    for (const route of [
+      'llms.txt',
+      'llms-full.txt',
+      'sitemap.xml',
+      'robots.txt',
+    ] as const) {
       for (const method of ['GET', 'HEAD', 'POST']) {
         const response = { setHeader: vi.fn(), end: vi.fn(), statusCode: 200 };
         const next = vi.fn();
@@ -92,7 +100,9 @@ describe('LLM documentation files', () => {
         expect(next).not.toHaveBeenCalled();
         expect(response.setHeader).toHaveBeenCalledWith(
           'Content-Type',
-          'text/plain; charset=utf-8',
+          route === 'sitemap.xml'
+            ? 'application/xml; charset=utf-8'
+            : 'text/plain; charset=utf-8',
         );
         expect(response.statusCode).toBe(method === 'POST' ? 405 : 200);
         expect(response.end).toHaveBeenCalledWith(

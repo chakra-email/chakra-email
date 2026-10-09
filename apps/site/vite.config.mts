@@ -1,6 +1,6 @@
 /// <reference types='vitest' />
 import { defineConfig } from 'vite';
-import { llmsFilesPlugin } from './llms-plugin';
+import { discoveryFilesPlugin } from './discovery-plugin';
 import { getSitePathname, getSocialImagePageRoute } from './src/routing';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
@@ -45,7 +45,7 @@ export default defineConfig(() => ({
     allowedHosts: ['chakra-email.test'],
   },
   plugins: [
-    llmsFilesPlugin(),
+    discoveryFilesPlugin(),
     {
       name: 'social-image-capture-headers',
       configureServer(server) {

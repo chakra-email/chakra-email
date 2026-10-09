@@ -18,6 +18,21 @@ Build with `pnpm nx run site:build` using the pinned Node 24 and pnpm versions.
 The build cache includes both analytics environment variables, so changing a
 site ID does not reuse an artifact compiled for another analytics site.
 
+## Search engine discovery
+
+The build generates `sitemap.xml` and `robots.txt` in `apps/site/dist`. The sitemap
+lists the home, examples, packages, OSS credits, and published documentation
+pages using `https://chakra.email`. Draft and hidden docs and social-image
+capture templates are excluded. Robots advertises the sitemap and disallows
+HTML capture templates while keeping renderer-generated social PNGs crawlable.
+
+Both files are also available on the development server. `SITE_BASE_PATH` is
+respected for subpath deployments; crawlers look for `robots.txt` at the domain
+root, so a subpath host must also publish or merge those rules into its root
+robots file. Serve the generated files before any SPA fallback, with
+`application/xml; charset=utf-8` for the sitemap and `text/plain; charset=utf-8`
+for robots. Check both URLs after deploying. No npm publish is required.
+
 ## LLM documentation
 
 The Vite build writes `llms.txt` and `llms-full.txt` to `apps/site/dist`, and the
