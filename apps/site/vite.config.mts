@@ -1,6 +1,7 @@
 /// <reference types='vitest' />
 import { defineConfig } from 'vite';
 import { discoveryFilesPlugin } from './discovery-plugin';
+import { siteMetadataPlugin } from './metadata-plugin';
 import { getSitePathname, getSocialImagePageRoute } from './src/routing';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
@@ -46,6 +47,7 @@ export default defineConfig(() => ({
   },
   plugins: [
     discoveryFilesPlugin(),
+    siteMetadataPlugin(),
     {
       name: 'social-image-capture-headers',
       configureServer(server) {

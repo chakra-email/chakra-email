@@ -78,6 +78,13 @@ export const ossProjectGroups = [
       'Projects used to build and run this website. Shared dependencies appear in both sections when they serve both.',
     projects: [
       {
+        name: 'next-meta',
+        packages: ['next-meta'],
+        description:
+          'Framework-free canonical and social metadata for the site.',
+        href: 'https://next-meta.dev/',
+      },
+      {
         name: 'React',
         packages: ['react', 'react-dom'],
         description: 'The component and rendering foundation for this site.',

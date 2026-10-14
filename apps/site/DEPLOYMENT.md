@@ -20,6 +20,18 @@ site ID does not reuse an artifact compiled for another analytics site.
 
 ## Search engine discovery
 
+The site uses published `next-meta@0.5.0` through its framework-free core.
+The Vite build emits route-specific HTML heads for public pages, the `/docs`
+alias, error pages, and social-image capture templates. Serve these generated
+`<route>/index.html` files before applying an SPA fallback, and use the generated
+`404.html` for unknown routes with an HTTP 404 status. No Next.js runtime
+is installed or needed. Client navigation uses the same metadata resolver and
+updates canonical, Open Graph, and Twitter tags without duplicates.
+
+Capture and not-found pages are marked noindex. Capture pages do not advertise
+social cards. No image URLs are invented: this site has no static social PNG
+and PNG generation remains owned by the external image renderer.
+
 The build generates `sitemap.xml` and `robots.txt` in `apps/site/dist`. The sitemap
 lists the home, examples, packages, OSS credits, and published documentation
 pages using `https://chakra.email`. Draft and hidden docs and social-image

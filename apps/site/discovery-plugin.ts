@@ -7,7 +7,7 @@ import { createSiteLlmsText } from './src/llms';
 import { getSitePathname } from './src/routing';
 import { createSiteRobots, createSiteSitemap } from './src/site-seo';
 
-export async function createDiscoveryFiles(basePath = '/') {
+export async function loadSiteDocsManifest() {
   const sources = Object.fromEntries(
     await Promise.all(
       docPageDefinitions.map(async ({ sourceFile }) => [
@@ -19,7 +19,11 @@ export async function createDiscoveryFiles(basePath = '/') {
       ]),
     ),
   );
-  const manifest = createSiteDocsManifest(createSiteDocPages(sources));
+  return createSiteDocsManifest(createSiteDocPages(sources));
+}
+
+export async function createDiscoveryFiles(basePath = '/') {
+  const manifest = await loadSiteDocsManifest();
   return {
     'llms.txt': createSiteLlmsText(manifest, basePath),
     'llms-full.txt': createSiteLlmsText(manifest, basePath, true),

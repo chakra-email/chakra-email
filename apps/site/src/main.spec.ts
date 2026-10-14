@@ -62,6 +62,34 @@ async function navigate(path: string) {
 }
 
 describe('documentation application', () => {
+  it('keeps static directory routes usable and replaces metadata on client navigation', async () => {
+    await navigate('/docs/getting-started/?private=value#install');
+    expect(document.querySelector('h1')?.textContent).toBe('Getting Started');
+    expect(document.title).toBe('Getting Started - Chakra Email');
+    expect(document.querySelectorAll('link[rel="canonical"]')).toHaveLength(1);
+    expect(
+      document.querySelector('link[rel="canonical"]')?.getAttribute('href'),
+    ).toBe('https://chakra.email/docs/getting-started');
+    await navigate('/packages/');
+    expect(document.querySelector('h1')?.textContent).toBe('Packages');
+    expect(document.title).toBe('Packages - Chakra Email');
+    expect(document.querySelectorAll('meta[property="og:title"]')).toHaveLength(
+      1,
+    );
+    expect(
+      document
+        .querySelector('meta[property="og:url"]')
+        ?.getAttribute('content'),
+    ).toBe('https://chakra.email/packages');
+    await navigate('/og-image');
+    expect(document.querySelector('meta[property="og:title"]')).toBeNull();
+    await navigate('/packages');
+    expect(document.querySelector('meta[name="robots"]')).toBeNull();
+    expect(document.querySelectorAll('meta[property="og:title"]')).toHaveLength(
+      1,
+    );
+  });
+
   it('shares one mobile toolbar across home, docs, examples, and packages', async () => {
     for (const path of [
       '/',

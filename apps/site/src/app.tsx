@@ -37,47 +37,16 @@ import { getSocialImagePageRoute, toSiteHref } from './routing';
 import { OgImageCard } from './components/og-image-card';
 import { getOgImageContent, OG_IMAGE_DEFAULTS } from './og-image';
 import { Analytics, useDocsAnalytics } from './components/analytics';
+import {
+  applySiteMetadata,
+  createSiteMetadata,
+  sitePages,
+} from './site-metadata';
 
 const adapter = createChakraDocsShikiAdapter({
   themes: { light: 'github-dark', dark: 'github-dark' },
 });
-const welcome: DocsPage = {
-  id: 'welcome',
-  title: 'Chakra Email',
-  description:
-    'Theme-aware React components and email-safe rendering. Your brand, your content, your delivery provider.',
-  route: '/',
-  slug: [],
-  path: '',
-  frontmatter: {},
-  headings: [
-    {
-      id: 'explore-the-documentation',
-      title: 'Explore the documentation',
-      level: 2,
-    },
-    { id: 'more-resources', title: 'More resources', level: 2 },
-  ],
-};
-const examples: DocsPage = {
-  id: 'examples',
-  title: 'Template examples',
-  description: 'Runnable reference templates and their source code.',
-  route: '/examples',
-  slug: ['examples'],
-  path: '',
-  frontmatter: {},
-  headings: [{ id: 'template-source', title: 'Template source', level: 2 }],
-};
-const packages: DocsPage = {
-  id: 'packages',
-  title: 'Packages',
-  description: 'Choose the entrypoint that fits your application.',
-  route: '/packages',
-  slug: ['packages'],
-  path: '',
-  frontmatter: {},
-};
+const { welcome, examples, packages } = sitePages;
 const nav = [
   ...docsManifest.nav,
   { id: 'examples', title: 'Template examples', href: '/examples' },
@@ -198,21 +167,11 @@ export function App() {
   const capture =
     captureRoute !== undefined && (page !== undefined || route === '/withoss');
   useEffect(() => {
-    document.title = `${capture ? 'Open Graph image' : pathname === '/withoss' ? 'Made with OSS' : (page?.title ?? 'Page not found')} - Chakra Email`;
-    const description = document.querySelector('meta[name="description"]');
-    description?.setAttribute(
-      'content',
-      page?.description ?? 'Documentation and examples for Chakra Email.',
+    return applySiteMetadata(
+      document,
+      createSiteMetadata(pathname, docsManifest, import.meta.env.BASE_URL),
     );
-    if (capture) {
-      const robots = document.createElement('meta');
-      robots.name = 'robots';
-      robots.content = 'noindex, nofollow';
-      document.head.append(robots);
-      return () => robots.remove();
-    }
-    return undefined;
-  }, [page, pathname, capture]);
+  }, [pathname]);
   if (capture) {
     const defaults =
       route === '/'

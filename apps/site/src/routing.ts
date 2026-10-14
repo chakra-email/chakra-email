@@ -12,6 +12,7 @@ export function getSitePathname(
   pathname: string,
   base = import.meta.env.BASE_URL,
 ): string {
+  pathname = pathname.replace(/\/+$/, '') || '/';
   const prefix = base.replace(/\/$/, '');
   if (!prefix) return pathname;
   if (pathname === prefix) return '/';

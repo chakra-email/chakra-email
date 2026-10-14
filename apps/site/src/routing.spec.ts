@@ -55,5 +55,9 @@ describe('site deployment base', () => {
       '/chakra-email-other',
     );
     expect(getSitePathname('/docs/theming', '/')).toBe('/docs/theming');
+    expect(getSitePathname('/docs/theming/', '/')).toBe('/docs/theming');
+    expect(
+      getSitePathname('/chakra-email/docs/theming/', '/chakra-email/'),
+    ).toBe('/docs/theming');
   });
 });
