@@ -13,6 +13,7 @@ allowBuilds:
   nx: true
 
 overrides:
+  'source-map-js@<1.2.2': 1.2.2
   axios: ^1.18.1
   browserslist: ^4.28.9
   fast-uri: ^3.1.6
