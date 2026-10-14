@@ -22,6 +22,8 @@ import { PostkitProvider } from '@postkit/react';
 import { ThemeProvider } from 'next-themes';
 import { useEffect, type ReactNode } from 'react';
 import { LuCheck, LuCopy } from 'react-icons/lu';
+import { Graph } from 'react-structured';
+import { createSiteStructuredData } from './site-structured-data';
 import { DocsMarkdown } from './components/docs-markdown';
 import { DocsMobileControls } from './components/docs-mobile-controls';
 import { ExamplesPage, PackagesPage } from './components/resource-pages';
@@ -166,6 +168,11 @@ export function App() {
             ];
   const capture =
     captureRoute !== undefined && (page !== undefined || route === '/withoss');
+  const structuredData = createSiteStructuredData(
+    pathname,
+    docsManifest,
+    import.meta.env.BASE_URL,
+  );
   useEffect(() => {
     return applySiteMetadata(
       document,
@@ -220,6 +227,9 @@ export function App() {
               <SiteShell
                 footer={<SiteFooter year={new Date().getFullYear()} />}
               >
+                {structuredData ? (
+                  <Graph id="page-structured-data" data={structuredData} />
+                ) : null}
                 {pathname === '/withoss' ? (
                   <WithOssPage />
                 ) : page ? (

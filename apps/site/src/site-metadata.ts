@@ -174,6 +174,7 @@ const escapeHtml = (value: string) =>
 export function renderSiteMetadataHtml(
   html: string,
   metadata: SiteMetadata,
+  structuredDataHtml = '',
 ): string {
   const marker =
     /<!-- site-metadata:start -->[\s\S]*?<!-- site-metadata:end -->/;
@@ -194,7 +195,7 @@ export function renderSiteMetadataHtml(
   return html.replace(
     marker,
     () =>
-      `<!-- site-metadata:start -->\n${tags.join('\n')}\n<!-- site-metadata:end -->`,
+      `<!-- site-metadata:start -->\n${tags.join('\n')}\n${structuredDataHtml}\n<!-- site-metadata:end -->`,
   );
 }
 

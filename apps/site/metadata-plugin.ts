@@ -1,4 +1,8 @@
 import type { Plugin } from 'vite';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { Graph } from 'react-structured';
+import { createSiteStructuredData } from './src/site-structured-data';
 import { loadSiteDocsManifest } from './discovery-plugin';
 import { getSitePathname } from './src/routing';
 import {
@@ -6,6 +10,19 @@ import {
   getSiteMetadataRoutes,
   renderSiteMetadataHtml,
 } from './src/site-metadata';
+
+function structuredDataHtml(
+  route: string,
+  manifest: Awaited<ReturnType<typeof loadSiteDocsManifest>>,
+  basePath: string,
+) {
+  const data = createSiteStructuredData(route, manifest, basePath);
+  if (!data) return '';
+  // The SPA removes this build-owned script before rendering its current graph.
+  return renderToStaticMarkup(
+    createElement(Graph, { id: 'page-structured-data', data }),
+  ).replace('<script ', '<script data-site-metadata ');
+}
 
 /** Emit page-specific HTML heads while leaving the application client-rendered. */
 export function siteMetadataPlugin(): Plugin {
@@ -25,9 +42,11 @@ export function siteMetadataPlugin(): Plugin {
         ).pathname;
         const pathname = getSitePathname(requested, basePath);
         const route = pathname === '/index.html' ? '/' : pathname;
+        const manifest = await loadSiteDocsManifest();
         return renderSiteMetadataHtml(
           html,
-          createSiteMetadata(route, await loadSiteDocsManifest(), basePath),
+          createSiteMetadata(route, manifest, basePath),
+          structuredDataHtml(route, manifest, basePath),
         );
       },
     },
@@ -46,6 +65,7 @@ export function siteMetadataPlugin(): Plugin {
           const source = renderSiteMetadataHtml(
             template,
             createSiteMetadata(route, manifest, basePath),
+            structuredDataHtml(route, manifest, basePath),
           );
           if (route === '/') index.source = source;
           else

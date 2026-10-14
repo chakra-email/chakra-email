@@ -66,6 +66,18 @@ describe('documentation application', () => {
     await navigate('/docs/getting-started/?private=value#install');
     expect(document.querySelector('h1')?.textContent).toBe('Getting Started');
     expect(document.title).toBe('Getting Started - Chakra Email');
+    expect(
+      document.querySelectorAll('script[type="application/ld+json"]'),
+    ).toHaveLength(1);
+    const graph = () =>
+      JSON.parse(
+        document.querySelector('#page-structured-data')?.textContent ?? '{}',
+      )['@graph'];
+    expect(
+      graph().find(
+        (node: { '@type': string }) => node['@type'] === 'TechArticle',
+      ).headline,
+    ).toBe('Getting Started');
     expect(document.querySelectorAll('link[rel="canonical"]')).toHaveLength(1);
     expect(
       document.querySelector('link[rel="canonical"]')?.getAttribute('href'),
@@ -73,6 +85,11 @@ describe('documentation application', () => {
     await navigate('/packages/');
     expect(document.querySelector('h1')?.textContent).toBe('Packages');
     expect(document.title).toBe('Packages - Chakra Email');
+    expect(
+      graph().find(
+        (node: { '@type': string }) => node['@type'] === 'CollectionPage',
+      ).name,
+    ).toBe('Packages');
     expect(document.querySelectorAll('meta[property="og:title"]')).toHaveLength(
       1,
     );
@@ -82,6 +99,9 @@ describe('documentation application', () => {
         ?.getAttribute('content'),
     ).toBe('https://chakra.email/packages');
     await navigate('/og-image');
+    expect(
+      document.querySelector('script[type="application/ld+json"]'),
+    ).toBeNull();
     expect(document.querySelector('meta[property="og:title"]')).toBeNull();
     await navigate('/packages');
     expect(document.querySelector('meta[name="robots"]')).toBeNull();
