@@ -35,10 +35,13 @@
   static and on-demand link checks.
 - `lintEmail(html, options)` returns findings and the enabled static `rulesRun`;
   `getLintRules()` exposes the effective rule catalog. The existing
-  `lintRenderedEmail(html, plainText?)` API and default findings are unchanged.
+  `lintRenderedEmail(html, plainText?)` signature and existing rule defaults are
+  preserved; the new static checks are additive.
 
 ### Changed
 
+- Findings from multiple attributes at the same HTML location remain separate,
+  so selecting one issue never expands another card.
 - A late variant or watch refresh no longer overwrites props typed while the
   request was in flight.
 - `.eml` exports also work on local HTTP domains without secure-context UUIDs.

@@ -798,6 +798,63 @@ describe('PreviewApplication', () => {
       .scrollIntoView;
   });
 
+  it('selects only one same-rule finding when multiple attributes share a source location', async () => {
+    const harness = createHarness();
+    const original = harness.fetcher.getMockImplementation() as NonNullable<
+      PreviewApplicationOptions['fetch']
+    >;
+    harness.fetcher.mockImplementation(async (url, init) => {
+      const response = await original(url, init);
+      if (url !== '/api/render') return response;
+      const common = {
+        category: 'compatibility',
+        ruleId: 'insecure-url',
+        line: 1,
+        column: 1,
+        selector: 'body > a',
+        element: '<a>',
+        severity: 'warning',
+        suggestion: 'Use HTTPS.',
+      };
+      return jsonResponse({
+        ...(await response.json()),
+        html: '<body><a href="http://example.com" background="http://example.com/bg.png">Link</a></body>',
+        lint: [
+          { ...common, message: 'The href URL uses insecure HTTP.' },
+          { ...common, message: 'The background URL uses insecure HTTP.' },
+        ],
+      });
+    });
+    await harness.application.start();
+    const cards = () => [
+      ...document.querySelectorAll<HTMLButtonElement>(
+        '[data-action="select-finding"]',
+      ),
+    ];
+    expect(cards()).toHaveLength(2);
+    cards()[0]?.click();
+    expect(cards().map((card) => card.getAttribute('aria-expanded'))).toEqual([
+      'true',
+      'false',
+    ]);
+    cards()[1]?.click();
+    expect(cards().map((card) => card.getAttribute('aria-expanded'))).toEqual([
+      'false',
+      'true',
+    ]);
+    harness.eventSource.dispatchEvent(new Event('invalidate'));
+    await vi.waitFor(() => expect(harness.renderRequests).toHaveLength(2));
+    await vi.waitFor(() =>
+      expect(
+        getElement<HTMLButtonElement>('[data-action="copy-variant"]').disabled,
+      ).toBe(false),
+    );
+    expect(cards().map((card) => card.getAttribute('aria-expanded'))).toEqual([
+      'false',
+      'true',
+    ]);
+  });
+
   it('keeps a finding selected by key after a rerender and clears it when removed or changing templates', async () => {
     const harness = createHarness();
     let includeImage = true;

@@ -68,7 +68,15 @@ export type LintFinding = {
 };
 
 export function findingKey(finding: LintFinding): string {
-  return `${finding.ruleId}:${finding.line ?? ''}:${finding.column ?? ''}`;
+  // Multiple attributes on one element can fire the same rule at one location.
+  // Keep their identities distinct without tying selection to severity overrides.
+  return JSON.stringify([
+    finding.ruleId,
+    finding.line ?? null,
+    finding.column ?? null,
+    finding.selector ?? null,
+    finding.message,
+  ]);
 }
 
 type Fetcher = (
