@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- A redesigned local preview workspace with a single top bar, filterable template
+  navigation, inbox preview, Props / Info / Checks tabs, live debounced Fields
+  and JSON editors, Compare view, command palette, and message status bar.
+- Additive preview API metadata for folder groups, the effective lint catalog,
+  rules run, and render duration; passed checks use actual render results.
+- Local multipart `.eml` exports alongside HTML/plain-text exports, with
+  quoted-printable bodies and UTF-8 encoded subjects.
+
+- A shared preview lint-rule catalog with passing-condition titles and default
+  severities, plus `lint.rules` configuration for changing or disabling existing
+  static and on-demand link checks.
+- `lintEmail(html, options)` returns findings and the enabled static `rulesRun`;
+  `getLintRules()` exposes the effective rule catalog. The existing
+  `lintRenderedEmail(html, plainText?)` API and default findings are unchanged.
+
+### Changed
+
+- Desktop / Mobile preview presets use 600px / 375px; the former Fit preset
+  falls back to Desktop. Workspace color follows the OS or the palette's saved
+  preference independently of email color. Test sending moves to the top bar.
+
 ## 0.2.0 (2026-09-15)
 
 ### Added

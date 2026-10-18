@@ -55,6 +55,7 @@ are omitted, discovery defaults to `./emails` below the resolved root.
 | `allowedHosts` | Exact trusted reverse-proxy hostnames; wildcards and ports fail.      |
 | `port`         | Listening port; defaults to `4100`.                                   |
 | `renderer`     | Optional server-side email renderer adapter.                          |
+| `lint.rules`   | Per-rule severity overrides: `off`, `info`, `warning`, or `error`.    |
 | `testSend`     | Optional server-side test-delivery adapter.                           |
 | `theme`        | JSON-safe theme and recipe overrides for the browser workspace.       |
 
@@ -139,6 +140,34 @@ export default ResetPasswordEmail;
 
 This fallback supports the convention used by existing React Email templates.
 When both forms exist, the named `previewProps` export wins.
+
+## Preview workspace
+
+The local workspace uses one top bar with Preview, Compare, HTML, Text, and
+Source views, a filterable template sidebar, and a Props / Info / Checks
+inspector. Desktop and Mobile presets use 600px and 375px; Compare shows
+desktop/light, mobile/light, and mobile/dark together.
+
+Props supports generated fields or JSON. Edits render after 300ms of inactivity;
+invalid JSON leaves the previous render visible. Reset props restores the
+selected fixture and variant. The inbox row shows the subject and hidden
+preheader, with the variant selector above it.
+
+The status bar reports frame dimensions, UTF-8 message size, links, images, and
+findings. Its findings tally opens Checks, which includes passed rules from the
+effective server catalog. Sidebar findings currently reflect templates rendered
+in this session; background lint summaries are still pending.
+
+Use Export for HTML/plain-text copy and downloads or a local multipart `.eml`
+message. The `.eml` sender defaults to `preview@localhost`; exporting does not
+send email. A configured test-send transport enables a top-bar Send test popover.
+
+⌘K / Ctrl K opens the command palette for templates, views, panel toggles, and
+interface theme settings. The interface follows the OS unless overridden;
+email Light/Dark remains a separate preview setting. Outside text fields, use
+`/` to filter, `1`–`5` for views, `d` / `m` for viewports, `l` for email color,
+and `[` / `]` for panels. On narrow screens the panels become overlay sheets.
+Remote images remain blocked by default, including in Compare.
 
 ## CLI
 
@@ -337,7 +366,7 @@ export default defineConfig({
 });
 ```
 
-Configuring `testSend` adds a test-delivery form to the inspector. Leaving it
+Configuring `testSend` adds a test-delivery popover to the top bar. Leaving it
 out removes that UI and the endpoint remains unavailable. The transport also
 receives template metadata, effective props, and the selected variant, so an
 application can add logging or provider-specific metadata without a package
@@ -406,6 +435,47 @@ The programmatic `lintRenderedEmail(html, plainText?)` export returns the same
 structured findings used by the preview UI. Lint results are advisory: they
 catch common compatibility and accessibility problems, but they are not a
 mailbox-client renderer or compatibility certification.
+
+### Rule catalog and severity overrides
+
+Use `lint.rules` in `chakra-email.config.ts` to adjust existing checks:
+
+```ts
+export default defineConfig({
+  lint: {
+    rules: {
+      'document-title': 'warning',
+      'css-background-image': 'off',
+      'link-redirect': 'warning',
+    },
+  },
+});
+```
+
+Unknown rule IDs and invalid severities fail configuration loading. Overrides
+apply to every template and variant, including the explicit **Check links**
+action. They do not enable network access or change rendered email output.
+Rules set to `off` produce no findings.
+
+For programmatic consumers, the shared catalog and evaluated rule IDs are
+available without starting a server:
+
+```ts
+import { getLintRules, lintEmail } from '@chakra-email/preview';
+
+const rules = { 'document-title': 'warning' } as const;
+const catalog = getLintRules(rules);
+const { findings, rulesRun } = lintEmail(renderedHtml, {
+  text: renderedPlainText,
+  rules,
+});
+```
+
+Catalog entries contain `id`, `category`, a passing-condition `title`, and the
+effective `severity`; disabled rules are omitted. `rulesRun` lists enabled
+static checks, including passing checks, but excludes the plain-text check
+when no `text` was supplied. It never includes network link checks. The existing
+`lintRenderedEmail()` convenience function retains its original default behavior.
 
 ## Local Security
 

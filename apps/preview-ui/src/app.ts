@@ -2,11 +2,13 @@ import { createElement } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import { PreviewRoot } from './workspace';
+import { buildPreviewMessage } from './message';
 
 type JsonRecord = Record<string, unknown>;
 
-export type PreviewTab = 'preview' | 'html' | 'text' | 'source';
-export type Viewport = 'desktop' | 'mobile' | 'fluid';
+export type PreviewTab = 'preview' | 'compare' | 'html' | 'text' | 'source';
+export type Viewport = 'desktop' | 'mobile';
+export type InspectorTab = 'props' | 'info' | 'checks';
 export type EmailColorMode = 'light' | 'dark';
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting';
 export type LintSeverity = 'error' | 'warning' | 'info';
@@ -25,12 +27,15 @@ export type CompatibilityReference = {
 };
 
 export type TemplateSummary = {
+  group?: string;
   id: string;
   name: string;
   path?: string;
 };
 
 export type RenderResult = {
+  rulesRun?: string[];
+  renderMs?: number;
   linkCheck?: { checked: number; skipped: number };
   id: string;
   name: string;
@@ -78,6 +83,7 @@ export type PreviewApplicationOptions = {
 };
 
 export type ApplicationState = {
+  lintRules: Array<{ id: string; title: string }>;
   canCheckLinks: boolean;
   checkingLinks: boolean;
   templates: TemplateSummary[];
@@ -104,6 +110,19 @@ export type ApplicationState = {
   sending: boolean;
   sendError: string | null;
   sendMessage: string | null;
+  inspectorTab: InspectorTab;
+  propsMode: 'fields' | 'json';
+  workspaceColorMode: 'system' | 'light' | 'dark';
+  templateFilter: 'all' | 'issues';
+  filterText: string;
+  templatesOpen: boolean;
+  inspectorOpen: boolean;
+  paletteOpen: boolean;
+  lastRenderedAt: number | null;
+  frameWidth: number;
+  frameHeight: number | null;
+  frameRevision: number;
+  templateFindings: Record<string, LintFinding[]>;
 };
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -158,6 +177,7 @@ function initialEmailColorMode(): EmailColorMode {
 }
 
 function parseTemplates(value: unknown): {
+  lintRules: ApplicationState['lintRules'];
   canCheckLinks: boolean;
   canTestSend: boolean;
   templates: TemplateSummary[];
@@ -184,7 +204,17 @@ function parseTemplates(value: unknown): {
     const path =
       typeof candidate['path'] === 'string' ? candidate['path'] : undefined;
 
-    return [{ id: candidate['id'], name: candidate['name'], path }];
+    return [
+      {
+        id: candidate['id'],
+        name: candidate['name'],
+        path,
+        group:
+          typeof candidate['group'] === 'string'
+            ? candidate['group']
+            : undefined,
+      },
+    ];
   });
 
   const capabilities = isRecord(value) ? value['capabilities'] : undefined;
@@ -192,6 +222,16 @@ function parseTemplates(value: unknown): {
     isRecord(capabilities) && capabilities['testSend'] === true;
 
   return {
+    lintRules:
+      isRecord(value) && Array.isArray(value['lintRules'])
+        ? value['lintRules'].flatMap((rule) =>
+            isRecord(rule) &&
+            typeof rule['id'] === 'string' &&
+            typeof rule['title'] === 'string'
+              ? [{ id: rule['id'], title: rule['title'] }]
+              : [],
+          )
+        : [],
     canCheckLinks: isRecord(capabilities) && capabilities['linkCheck'] === true,
     canTestSend,
     templates,
@@ -274,6 +314,15 @@ function parseRenderResult(value: unknown): RenderResult {
   }
 
   return {
+    rulesRun:
+      Array.isArray(value['rulesRun']) &&
+      value['rulesRun'].every((id) => typeof id === 'string')
+        ? value['rulesRun']
+        : undefined,
+    renderMs:
+      Number.isInteger(value['renderMs']) && Number(value['renderMs']) >= 0
+        ? Number(value['renderMs'])
+        : undefined,
     linkCheck: linkCheck as RenderResult['linkCheck'],
     id: value['id'],
     name: value['name'],
@@ -448,15 +497,22 @@ export class PreviewApplication {
   private copyTimer: number | null = null;
   private copySequence = 0;
   private started = false;
+  private propsTimer: number | null = null;
+  private clockTimer: number | null = null;
+  private mediaQuery: MediaQueryList | null = null;
 
   private readonly state: ApplicationState = {
+    lintRules: [],
     canCheckLinks: false,
     checkingLinks: false,
     templates: [],
     selectedId: null,
     result: null,
     activeTab: 'preview',
-    viewport: 'desktop',
+    viewport:
+      readStoredValue('chakra-email.preview.viewport') === 'mobile'
+        ? 'mobile'
+        : 'desktop',
     emailColorMode: initialEmailColorMode(),
     selectedVariant: '',
     propsText: '{}',
@@ -476,6 +532,34 @@ export class PreviewApplication {
     sending: false,
     sendError: null,
     sendMessage: null,
+    inspectorTab: (['props', 'info', 'checks'].includes(
+      readStoredValue('chakra-email.preview.inspector-tab') ?? '',
+    )
+      ? readStoredValue('chakra-email.preview.inspector-tab')
+      : 'props') as InspectorTab,
+    propsMode:
+      readStoredValue('chakra-email.preview.props-mode') === 'json'
+        ? 'json'
+        : 'fields',
+    workspaceColorMode: (['light', 'dark'].includes(
+      readStoredValue('chakra-email.preview.workspace-color-mode') ?? '',
+    )
+      ? readStoredValue('chakra-email.preview.workspace-color-mode')
+      : 'system') as 'system' | 'light' | 'dark',
+    templateFilter:
+      readStoredValue('chakra-email.preview.template-filter') === 'issues'
+        ? 'issues'
+        : 'all',
+    filterText: '',
+    templatesOpen: window.innerWidth >= 760,
+    inspectorOpen: window.innerWidth >= 1100,
+    paletteOpen: false,
+    lastRenderedAt: null,
+    frameWidth:
+      readStoredValue('chakra-email.preview.viewport') === 'mobile' ? 375 : 600,
+    frameHeight: null,
+    frameRevision: 0,
+    templateFindings: {},
   };
 
   public constructor(options: PreviewApplicationOptions) {
@@ -496,6 +580,9 @@ export class PreviewApplication {
     }
 
     this.started = true;
+    this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    this.mediaQuery.addEventListener('change', this.handleSystemTheme);
+    this.clockTimer = window.setInterval(() => this.render(), 10_000);
     this.reactRoot = createRoot(this.root);
     this.render();
     this.connectEvents();
@@ -504,6 +591,9 @@ export class PreviewApplication {
 
   public destroy(): void {
     this.started = false;
+    this.cancelPropsApply();
+    if (this.clockTimer !== null) window.clearInterval(this.clockTimer);
+    this.mediaQuery?.removeEventListener('change', this.handleSystemTheme);
     this.resetCopyFeedback();
     this.renderSequence += 1;
     this.eventSource?.close();
@@ -521,6 +611,10 @@ export class PreviewApplication {
 
   private readonly changeViewport = (viewport: Viewport): void => {
     this.state.viewport = viewport;
+    storeValue('chakra-email.preview.viewport', viewport);
+    this.state.frameWidth = viewport === 'mobile' ? 375 : 600;
+    this.state.frameHeight = null;
+    this.state.frameRevision += 1;
     this.render();
   };
 
@@ -537,6 +631,7 @@ export class PreviewApplication {
   };
 
   private readonly changeVariant = (variant: string): void => {
+    this.cancelPropsApply();
     this.state.selectedVariant = variant;
     this.state.propsDirty = false;
     this.state.propsError = null;
@@ -544,9 +639,38 @@ export class PreviewApplication {
   };
 
   private readonly changePropsText = (value: string): void => {
+    this.cancelPropsApply();
     this.state.propsText = value;
     this.state.propsDirty = true;
     this.state.propsError = null;
+    this.render();
+    this.propsTimer = window.setTimeout(() => {
+      this.propsTimer = null;
+      void this.applyProps();
+    }, 300);
+  };
+
+  private cancelPropsApply(): void {
+    if (this.propsTimer !== null) window.clearTimeout(this.propsTimer);
+    this.propsTimer = null;
+  }
+
+  private readonly handleSystemTheme = (): void => {
+    this.render();
+  };
+
+  private readonly changePreference = (
+    key: 'inspectorTab' | 'propsMode' | 'workspaceColorMode' | 'templateFilter',
+    value: string,
+  ): void => {
+    const storage = {
+      inspectorTab: 'inspector-tab',
+      propsMode: 'props-mode',
+      workspaceColorMode: 'workspace-color-mode',
+      templateFilter: 'template-filter',
+    };
+    Object.assign(this.state, { [key]: value });
+    storeValue(`chakra-email.preview.${storage[key]}`, value);
     this.render();
   };
 
@@ -587,6 +711,8 @@ export class PreviewApplication {
       return;
     }
 
+    this.cancelPropsApply();
+
     this.state.selectedId = templateId;
     this.state.result = null;
     this.state.selectedVariant = '';
@@ -623,6 +749,7 @@ export class PreviewApplication {
       const parsed = parseTemplates(await response.json());
       const { templates } = parsed;
       this.state.canTestSend = parsed.canTestSend;
+      this.state.lintRules = parsed.lintRules;
       this.state.canCheckLinks = parsed.canCheckLinks;
       this.state.templates = templates;
       this.state.loadingTemplates = false;
@@ -732,6 +859,11 @@ export class PreviewApplication {
       }
 
       this.state.result = result;
+      this.state.templateFindings = {
+        ...this.state.templateFindings,
+        [id]: result.lint,
+      };
+      this.state.lastRenderedAt = Date.now();
       this.state.rendering = false;
       this.state.appliedProps = result.props;
       if (!this.state.sendSubjectDirty) {
@@ -765,6 +897,10 @@ export class PreviewApplication {
   }
 
   private async applyProps(): Promise<void> {
+    this.cancelPropsApply();
+    const editorText = this.state.propsText;
+    const templateId = this.state.selectedId;
+    const variant = this.state.selectedVariant;
     let props: unknown;
 
     try {
@@ -782,7 +918,16 @@ export class PreviewApplication {
     }
 
     this.state.propsError = null;
-    await this.renderCurrent({ props, replaceEditor: true });
+    await this.renderCurrent({ props, replaceEditor: false });
+    if (
+      this.state.propsText === editorText &&
+      this.state.selectedId === templateId &&
+      this.state.selectedVariant === variant &&
+      !this.state.error
+    ) {
+      this.state.propsDirty = false;
+      this.render();
+    }
   }
 
   private async sendTestEmail(): Promise<void> {
@@ -790,6 +935,16 @@ export class PreviewApplication {
     const to = this.state.sendTo.trim();
 
     if (!this.state.canTestSend || !result || this.state.sending) {
+      return;
+    }
+    if (
+      this.state.rendering ||
+      this.state.propsDirty ||
+      this.state.propsError
+    ) {
+      this.state.sendError =
+        'Wait for valid props to finish rendering before sending.';
+      this.render();
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(to)) {
@@ -859,7 +1014,9 @@ export class PreviewApplication {
     }
   }
 
-  private async copyCurrentOutput(): Promise<void> {
+  private async copyCurrentOutput(
+    format = this.state.activeTab,
+  ): Promise<void> {
     const result = this.state.result;
 
     if (!result) {
@@ -871,9 +1028,9 @@ export class PreviewApplication {
     this.render();
 
     const value =
-      this.state.activeTab === 'text'
+      format === 'text'
         ? result.text
-        : this.state.activeTab === 'source'
+        : format === 'source'
           ? result.source
           : result.html;
 
@@ -896,20 +1053,20 @@ export class PreviewApplication {
     }
   }
 
-  private downloadCurrentOutput(): void {
+  private downloadCurrentOutput(format = this.state.activeTab): void {
     const result = this.state.result;
     if (!result) {
       return;
     }
 
     const output =
-      this.state.activeTab === 'text'
+      format === 'text'
         ? {
             extension: 'txt',
             mimeType: 'text/plain;charset=utf-8',
             value: result.text,
           }
-        : this.state.activeTab === 'source'
+        : format === 'source'
           ? {
               extension: 'tsx',
               mimeType: 'text/plain;charset=utf-8',
@@ -1035,12 +1192,21 @@ export class PreviewApplication {
     }
 
     const state = { ...this.state };
-    document.documentElement.dataset['theme'] = 'dark';
+    const workspaceMode =
+      state.workspaceColorMode === 'system'
+        ? this.mediaQuery?.matches
+          ? 'dark'
+          : 'light'
+        : state.workspaceColorMode;
+    document.documentElement.dataset['theme'] = workspaceMode;
     // Chakra v3's semantic tokens and condition styles follow these classes,
     // including portalled components rendered outside the workspace root.
-    document.documentElement.classList.add('dark');
-    document.documentElement.classList.remove('light');
-    document.documentElement.style.colorScheme = 'dark';
+    document.documentElement.classList.toggle('dark', workspaceMode === 'dark');
+    document.documentElement.classList.toggle(
+      'light',
+      workspaceMode === 'light',
+    );
+    document.documentElement.style.colorScheme = workspaceMode;
     const securedHtml = state.result
       ? withPreviewContentSecurityPolicy(
           withPreviewColorMode(state.result.html, state.emailColorMode),
@@ -1054,6 +1220,33 @@ export class PreviewApplication {
           state,
           securedHtml,
           theme: this.theme,
+          onPreferenceChange: this.changePreference,
+          onFilterTextChange: (value: string) => {
+            this.state.filterText = value;
+            this.render();
+          },
+          onPanelChange: (
+            panel: 'templatesOpen' | 'inspectorOpen' | 'paletteOpen',
+            open: boolean,
+          ) => {
+            this.state[panel] = open;
+            this.render();
+          },
+          onFrameSizeChange: (width: number, height: number) => {
+            if (
+              width === this.state.frameWidth &&
+              height === this.state.frameHeight
+            )
+              return;
+            this.state.frameWidth = width;
+            this.state.frameHeight = height;
+            this.render();
+          },
+          onResetFrame: () => this.changeViewport(this.state.viewport),
+          onResetProps: () => {
+            this.cancelPropsApply();
+            void this.renderCurrent({ replaceEditor: true });
+          },
           onSelectTemplate: (templateId: string) => {
             this.selectTemplate(templateId);
           },
@@ -1065,14 +1258,28 @@ export class PreviewApplication {
           onPropsTextChange: this.changePropsText,
           onSendToChange: this.changeSendTo,
           onSendSubjectChange: this.changeSendSubject,
-          onApplyProps: () => {
-            void this.applyProps();
+          onCopy: (format?: PreviewTab) => {
+            void this.copyCurrentOutput(format);
           },
-          onCopy: () => {
-            void this.copyCurrentOutput();
-          },
-          onDownload: () => {
-            this.downloadCurrentOutput();
+          onDownload: (format?: PreviewTab | 'eml') => {
+            if (format === 'eml' && this.state.result) {
+              try {
+                this.downloadText(
+                  buildPreviewMessage({
+                    ...this.state.result,
+                    to: this.state.sendTo,
+                  }),
+                  downloadFilename(this.state.result.name, 'eml'),
+                  'message/rfc822',
+                );
+              } catch (error) {
+                this.state.error =
+                  error instanceof Error
+                    ? error.message
+                    : 'Could not export the message.';
+                this.render();
+              }
+            } else if (format !== 'eml') this.downloadCurrentOutput(format);
           },
           onSend: () => {
             void this.sendTestEmail();

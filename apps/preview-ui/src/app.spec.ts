@@ -1,4 +1,5 @@
 import axe from 'axe-core';
+import { flushSync } from 'react-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { previewSlotRecipeKeys } from './theme';
 import {
@@ -18,6 +19,7 @@ type TestSendRequest = RenderRequest & {
   subject?: string;
   to: string;
 };
+const applications: PreviewApplication[] = [];
 
 class FakeEventSource extends EventTarget {
   public closed = false;
@@ -45,6 +47,17 @@ function flush(): Promise<void> {
 function getElement<ElementType extends Element>(
   selector: string,
 ): ElementType {
+  if (
+    (selector === '[data-action="copy"]' ||
+      selector === '[data-action="download"]') &&
+    !document.querySelector(selector)
+  ) {
+    flushSync(() =>
+      document
+        .querySelector<HTMLButtonElement>('[data-action="export"]')
+        ?.click(),
+    );
+  }
   const element = document.querySelector<ElementType>(selector);
 
   if (!element) {
@@ -52,6 +65,18 @@ function getElement<ElementType extends Element>(
   }
 
   return element;
+}
+
+async function clickExport(action: 'copy' | 'download') {
+  if (!document.querySelector('[data-action="' + action + '"]')) {
+    getElement<HTMLButtonElement>('[data-action="export"]').click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-action="' + action + '"]'),
+      ).not.toBeNull(),
+    );
+  }
+  getElement<HTMLButtonElement>('[data-action="' + action + '"]').click();
 }
 
 // JSDOM does not resolve cascade layers/media queries in getComputedStyle.
@@ -108,6 +133,11 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
       if (input === '/api/templates') {
         return jsonResponse({
           capabilities: { testSend: true, linkCheck: true },
+          lintRules: [
+            { id: 'valid-html', title: 'Valid HTML' },
+            { id: 'image-alt', title: 'Images have alternative text' },
+            { id: 'viewport-meta', title: 'Viewport metadata is present' },
+          ],
           templates,
         });
       }
@@ -126,6 +156,8 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
             ? { linkCheck: { checked: 2, skipped: 1 } }
             : {}),
           id: request.id,
+          rulesRun: ['valid-html', 'image-alt', 'viewport-meta'],
+          renderMs: 4,
           name: request.id === 'welcome' ? 'Welcome email' : 'Order receipt',
           html: '<!doctype html><html><head><style data-chakra-email-color-mode="system">@media (prefers-color-scheme: dark){.ce-mode-0{color:#fff!important}}</style><style>@media (prefers-color-scheme: dark) { body { background: #111; } } @media (prefers-color-scheme: light) { body { background: #fff; } }</style></head><body><h1>Hello</h1><img src="https://images.example.test/hero.png"></body></html>',
           lint: [
@@ -199,6 +231,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
     downloadText,
     ...overrides,
   });
+  applications.push(application);
 
   return {
     application,
@@ -234,6 +267,10 @@ describe('PreviewApplication', () => {
     );
   });
   beforeEach(() => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1440,
+    });
     const storedValues = new Map<string, string>();
     Object.defineProperty(window, 'localStorage', {
       configurable: true,
@@ -247,10 +284,11 @@ describe('PreviewApplication', () => {
       },
     });
     window.localStorage.clear();
+    window.localStorage.setItem('chakra-email.preview.props-mode', 'json');
     vi.stubGlobal(
       'matchMedia',
       vi.fn(() => ({
-        matches: false,
+        matches: true,
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
       })),
@@ -264,6 +302,8 @@ describe('PreviewApplication', () => {
   });
 
   afterEach(() => {
+    for (const application of applications.splice(0)) application.destroy();
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -330,14 +370,14 @@ describe('PreviewApplication', () => {
       id: 'welcome',
       props: { name: 'Ada' },
     });
-    getElement<HTMLButtonElement>('[data-action="apply-props"]').click();
+    getElement<HTMLButtonElement>('[data-action="reset-props"]').click();
     await vi.waitFor(() =>
       expect(
         document.querySelector('[data-lint-rule="link-broken"]'),
       ).toBeNull(),
     );
     expect(document.body.textContent).toContain(
-      'Network links have not been checked for this render.',
+      'Links have not been checked for this render.',
     );
     harness.application.destroy();
   });
@@ -355,9 +395,7 @@ describe('PreviewApplication', () => {
     });
     await harness.application.start();
     expect(document.querySelector('[data-action="check-links"]')).toBeNull();
-    expect(document.body.textContent).toContain(
-      'Configure linkCheck.allowedHosts',
-    );
+    expect(document.body.textContent).toContain('Add linkCheck.allowedHosts');
     harness.application.destroy();
   });
 
@@ -422,59 +460,78 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
-  it('collapses panels without losing draft props and returns focus on Escape', async () => {
+  it('collapses panels from the palette without losing draft props and restores focus', async () => {
     const harness = createHarness();
     await harness.application.start();
     const editor = getElement<HTMLTextAreaElement>('#preview-props');
-    editor.value = '{"name":"Unapplied draft"}';
+    editor.value = '{"name":';
     editor.dispatchEvent(new Event('input', { bubbles: true }));
-    const toggle = getElement<HTMLButtonElement>(
-      '[data-action="toggle-inspector"]',
+    const command = async (label: string) => {
+      getElement<HTMLButtonElement>('[data-action="palette"]').click();
+      await vi.waitFor(() =>
+        expect(
+          [...document.querySelectorAll('[role="option"]')].some(
+            (b) => b.textContent === label,
+          ),
+        ).toBe(true),
+      );
+      [...document.querySelectorAll<HTMLButtonElement>('[role="option"]')]
+        .find((b) => b.textContent === label)
+        ?.click();
+    };
+    await command('Toggle inspector');
+    expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(true);
+    await command('Toggle inspector');
+    expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(false);
+    expect(getElement<HTMLTextAreaElement>('#preview-props').value).toBe(
+      '{"name":',
     );
-    toggle.click();
-    await vi.waitFor(() =>
-      expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(true),
-    );
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    toggle.click();
-    await vi.waitFor(() =>
-      expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(false),
-    );
-    expect(getElement<HTMLTextAreaElement>('#preview-props').value).toContain(
-      'Unapplied draft',
-    );
-    getElement<HTMLTextAreaElement>('#preview-props').dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
-    );
-    await vi.waitFor(() =>
-      expect(toggle.getAttribute('aria-expanded')).toBe('false'),
-    );
-    expect(document.activeElement).toBe(toggle);
+    await command('Toggle sidebar');
+    expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(true);
     expect(harness.renderRequests).toHaveLength(1);
-
-    getElement<HTMLButtonElement>('[data-template-id="welcome"]').focus();
-    await flush();
-    getElement<HTMLButtonElement>('[data-template-id="welcome"]').dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
-    );
-    await vi.waitFor(() =>
-      expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(true),
-    );
-    expect(document.activeElement).toBe(
-      getElement('[data-action="toggle-templates"]'),
-    );
+    expect(
+      document.querySelector('[data-action="toggle-inspector"]'),
+    ).toBeNull();
+    expect(
+      document.querySelector('[data-action="toggle-templates"]'),
+    ).toBeNull();
     harness.application.destroy();
   });
 
   it('restores a resized frame without changing email output or safety', async () => {
+    let notify: () => void = () => undefined;
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          notify = callback;
+        }
+        observe() {
+          return undefined;
+        }
+        disconnect() {
+          return undefined;
+        }
+        unobserve() {
+          return undefined;
+        }
+      },
+    );
     const harness = createHarness();
     await harness.application.start();
+    expect(document.querySelector('[data-action="reset-frame"]')).toBeNull();
     const frame = getElement<HTMLElement>('.email-frame-shell');
     frame.style.width = '480px';
-    getElement<HTMLButtonElement>('[data-action="reset-frame"]').click();
-    await vi.waitFor(() =>
-      expect(getElement('.email-frame-shell')).not.toBe(frame),
+    vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({
+      width: 480,
+      height: 842,
+    } as DOMRect);
+    notify();
+    expect(document.querySelector('.preview-statusbar')?.textContent).toContain(
+      '480 × 842',
     );
+    getElement<HTMLButtonElement>('[data-action="reset-frame"]').click();
+    expect(getElement('.email-frame-shell')).not.toBe(frame);
     expect(getElement<HTMLElement>('.email-frame-shell').style.width).not.toBe(
       '480px',
     );
@@ -483,40 +540,47 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
-  it('starts with an unobstructed canvas on small screens and closes templates after selection', async () => {
-    const originalWidth = window.innerWidth;
+  it('starts with an unobstructed canvas on small screens and opens accessible overlay panels', async () => {
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       value: 375,
     });
     const harness = createHarness();
-    try {
-      await harness.application.start();
-      expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(true);
-      expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(true);
-      getElement<HTMLButtonElement>('[data-action="toggle-templates"]').click();
-      await vi.waitFor(() =>
-        expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(
-          false,
-        ),
-      );
-      getElement<HTMLButtonElement>('[data-template-id="receipt"]').click();
-      await vi.waitFor(() =>
-        expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(true),
-      );
-      getElement<HTMLButtonElement>('[data-action="toggle-inspector"]').click();
-      await vi.waitFor(() =>
-        expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(
-          false,
-        ),
-      );
-    } finally {
-      harness.application.destroy();
-      Object.defineProperty(window, 'innerWidth', {
-        configurable: true,
-        value: originalWidth,
-      });
-    }
+    await harness.application.start();
+    expect(
+      document.querySelector('[role="dialog"][data-state="open"]'),
+    ).toBeNull();
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', { key: '[', bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[role="dialog"][data-state="open"]')
+          ?.textContent,
+      ).toContain('Email templates'),
+    );
+    getElement<HTMLButtonElement>('[data-template-id="receipt"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('h1')?.textContent).toContain(
+        'Order receipt',
+      ),
+    );
+    expect(
+      document.querySelector('[role="dialog"][data-state="open"]'),
+    ).toBeNull();
+    getElement<HTMLButtonElement>('[data-action="open-checks"]').click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[role="dialog"][data-state="open"]')
+          ?.textContent,
+      ).toContain('Preview settings'),
+    );
+    expect(
+      document
+        .querySelector('[data-inspector-tab="checks"]')
+        ?.getAttribute('aria-selected'),
+    ).toBe('true');
+    harness.application.destroy();
   });
 
   it('loads templates with authentication and renders the first email safely', async () => {
@@ -535,7 +599,7 @@ describe('PreviewApplication', () => {
     expect(document.querySelector('h1')?.textContent).toContain(
       'Welcome email',
     );
-    expect(document.querySelector('.preview-subject')?.textContent).toContain(
+    expect(document.querySelector('.preview-surface')?.textContent).toContain(
       'Welcome Ada',
     );
     expect(harness.fetcher).toHaveBeenNthCalledWith(1, '/api/templates', {
@@ -572,75 +636,66 @@ describe('PreviewApplication', () => {
     expect(harness.eventSource.closed).toBe(true);
   });
 
-  it('selects variants and validates editable JSON props before rendering', async () => {
+  it('selects variants and validates debounced JSON props without discarding the last good render', async () => {
     const harness = createHarness();
     await harness.application.start();
-
     const variant = getElement<HTMLSelectElement>('#variant');
     variant.value = 'reminder';
     variant.dispatchEvent(new Event('change', { bubbles: true }));
-
-    await vi.waitFor(() => {
-      expect(harness.renderRequests.at(-1)).toEqual({
-        id: 'welcome',
-        variant: 'reminder',
-      });
-      expect(
-        document.querySelector<HTMLTextAreaElement>('#preview-props')?.value,
-      ).toContain('Grace');
-      expect(
-        document.querySelector<HTMLInputElement>('#test-send-subject')?.value,
-      ).toBe('Welcome Grace');
+    await vi.waitFor(() =>
+      expect(getElement<HTMLTextAreaElement>('#preview-props').value).toContain(
+        'Grace',
+      ),
+    );
+    expect(harness.renderRequests.at(-1)).toEqual({
+      id: 'welcome',
+      variant: 'reminder',
     });
-
-    let editor = getElement<HTMLTextAreaElement>('#preview-props');
-    editor.value = '["not", "an", "object"]';
-    editor.dispatchEvent(new Event('input', { bubbles: true }));
-    document
-      .querySelector<HTMLButtonElement>('[data-action="apply-props"]')
-      ?.click();
-
+    const iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
+    const lastGood = iframe.srcdoc;
+    vi.useFakeTimers();
+    const edit = (value: string) => {
+      const editor = getElement<HTMLTextAreaElement>('#preview-props');
+      editor.value = value;
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    edit('["not", "an", "object"]');
+    await vi.advanceTimersByTimeAsync(300);
     expect(document.querySelector('#props-error')?.textContent).toContain(
       'must be a JSON object',
     );
     expect(harness.renderRequests).toHaveLength(2);
-
-    editor = getElement<HTMLTextAreaElement>('#preview-props');
-    editor.value = '{"name":';
-    editor.dispatchEvent(new Event('input', { bubbles: true }));
-    document
-      .querySelector<HTMLButtonElement>('[data-action="apply-props"]')
-      ?.click();
+    expect(iframe.srcdoc).toBe(lastGood);
+    edit('{"name":');
+    await vi.advanceTimersByTimeAsync(300);
     expect(document.querySelector('#props-error')?.textContent).toContain(
       'Enter valid JSON',
     );
-
-    editor = getElement<HTMLTextAreaElement>('#preview-props');
-    editor.value = '{"name":"Lin","plan":"Pro"}';
-    editor.dispatchEvent(new Event('input', { bubbles: true }));
-    document
-      .querySelector<HTMLButtonElement>('[data-action="apply-props"]')
-      ?.click();
-
-    await vi.waitFor(() => {
-      expect(harness.renderRequests.at(-1)).toEqual({
-        id: 'welcome',
-        variant: 'reminder',
-        props: { name: 'Lin', plan: 'Pro' },
-      });
-      expect(document.querySelector('.unsaved')).toBeNull();
+    expect(iframe.srcdoc).toBe(lastGood);
+    edit('{"name":"Li"}');
+    await vi.advanceTimersByTimeAsync(200);
+    edit('{"name":"Lin","plan":"Pro"}');
+    await vi.advanceTimersByTimeAsync(299);
+    expect(harness.renderRequests).toHaveLength(2);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(harness.renderRequests.at(-1)).toEqual({
+      id: 'welcome',
+      variant: 'reminder',
+      props: { name: 'Lin', plan: 'Pro' },
     });
-
+    expect(document.querySelector('.unsaved')).toBeNull();
+    expect(document.querySelector('[data-action="apply-props"]')).toBeNull();
+    vi.useRealTimers();
     harness.application.destroy();
-  }, 15_000);
+  });
 
   it('surfaces rendered-email lint findings with severity and guidance', async () => {
     const harness = createHarness();
     await harness.application.start();
 
-    expect(document.querySelector('.lint-summary')?.textContent).toContain(
-      '2 issues',
-    );
+    expect(
+      document.querySelector('.lint-summary')?.getAttribute('aria-label'),
+    ).toContain('1 error, 1 warning');
     expect(
       document
         .querySelector('[data-lint-rule="image-alt"]')
@@ -699,9 +754,7 @@ describe('PreviewApplication', () => {
     const harness = createHarness();
     await harness.application.start();
 
-    document
-      .querySelector<HTMLButtonElement>('[data-action="download"]')
-      ?.click();
+    await clickExport('download');
     expect(harness.downloadText).toHaveBeenCalledWith(
       expect.stringContaining('<h1>Hello</h1>'),
       'welcome-email.html',
@@ -720,9 +773,9 @@ describe('PreviewApplication', () => {
       document.querySelector('[role="tablist"]')?.id,
     );
     expect(document.querySelector('.code-heading')?.textContent).toContain(
-      'Rendered HTML',
+      '.html',
     );
-    document.querySelector<HTMLButtonElement>('[data-action="copy"]')?.click();
+    await clickExport('copy');
 
     await vi.waitFor(() => {
       expect(harness.copyText).toHaveBeenCalledWith(
@@ -753,19 +806,17 @@ describe('PreviewApplication', () => {
     ).toBe('true');
     expect(document.activeElement?.getAttribute('data-tab')).toBe('text');
     expect(document.querySelector('.code-heading')?.textContent).toContain(
-      'Plain text',
+      'text/plain',
     );
 
-    document
-      .querySelector<HTMLButtonElement>('[data-action="download"]')
-      ?.click();
+    await clickExport('download');
     expect(harness.downloadText).toHaveBeenCalledWith(
       'Hello from the plain-text email.',
       'welcome-email.txt',
       'text/plain;charset=utf-8',
     );
 
-    document.querySelector<HTMLButtonElement>('[data-action="copy"]')?.click();
+    await clickExport('copy');
     await vi.waitFor(() => {
       expect(harness.copyText).toHaveBeenLastCalledWith(
         'Hello from the plain-text email.',
@@ -773,6 +824,7 @@ describe('PreviewApplication', () => {
     });
 
     const textTab = getElement<HTMLButtonElement>('[data-tab="text"]');
+    textTab.focus();
     textTab.dispatchEvent(
       new KeyboardEvent('keydown', { bubbles: true, key: 'End' }),
     );
@@ -784,9 +836,7 @@ describe('PreviewApplication', () => {
     });
     expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
 
-    document
-      .querySelector<HTMLButtonElement>('[data-action="download"]')
-      ?.click();
+    await clickExport('download');
     expect(harness.downloadText).toHaveBeenLastCalledWith(
       'export default function WelcomeEmail() { return <Html />; }',
       'welcome-email.tsx',
@@ -794,6 +844,7 @@ describe('PreviewApplication', () => {
     );
 
     const sourceTab = getElement<HTMLButtonElement>('[data-tab="source"]');
+    sourceTab.focus();
     sourceTab.dispatchEvent(
       new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }),
     );
@@ -817,7 +868,7 @@ describe('PreviewApplication', () => {
     });
     expect(document.activeElement?.getAttribute('data-tab')).toBe('source');
 
-    document.querySelector<HTMLButtonElement>('[data-action="copy"]')?.click();
+    await clickExport('copy');
     await vi.waitFor(() => {
       expect(harness.copyText).toHaveBeenLastCalledWith(
         expect.stringContaining('function WelcomeEmail'),
@@ -835,9 +886,7 @@ describe('PreviewApplication', () => {
     });
     await harness.application.start();
 
-    document
-      .querySelector<HTMLButtonElement>('[data-action="download"]')
-      ?.click();
+    await clickExport('download');
 
     expect(document.querySelector('.error-banner')?.textContent).toContain(
       'Downloads are blocked.',
@@ -850,7 +899,7 @@ describe('PreviewApplication', () => {
   it('clears copied announcements when the output context changes', async () => {
     const harness = createHarness();
     await harness.application.start();
-    getElement<HTMLButtonElement>('[data-action="copy"]').click();
+    await clickExport('copy');
     await vi.waitFor(() =>
       expect(getElement('[data-copy-status]').textContent).toContain(
         'Copied HTML',
@@ -860,16 +909,13 @@ describe('PreviewApplication', () => {
     await vi.waitFor(() =>
       expect(getElement('[data-copy-status]').textContent).toBe(''),
     );
-    expect(getElement('[data-action="copy"]').getAttribute('aria-label')).toBe(
-      'Copy text',
-    );
-    getElement<HTMLButtonElement>('[data-action="copy"]').click();
+    await clickExport('copy');
     await vi.waitFor(() =>
       expect(getElement('[data-copy-status]').textContent).toContain(
         'Copied text',
       ),
     );
-    getElement<HTMLButtonElement>('[data-action="apply-props"]').click();
+    getElement<HTMLButtonElement>('[data-action="reset-props"]').click();
     expect(getElement('[data-copy-status]').textContent).toBe('');
     await flush();
     harness.application.destroy();
@@ -888,7 +934,7 @@ describe('PreviewApplication', () => {
           }),
       });
       await harness.application.start();
-      getElement<HTMLButtonElement>('[data-action="copy"]').click();
+      await clickExport('copy');
       getElement<HTMLButtonElement>('[data-tab="text"]').click();
       await vi.waitFor(() =>
         expect(
@@ -928,48 +974,40 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
-  it('keeps the shell dark and persists only the header email toggle', async () => {
-    document.documentElement.classList.add('host-class', 'light');
+  it('persists independent workspace and email modes and keeps host classes intact', async () => {
+    document.documentElement.classList.add('host-class');
     window.localStorage.setItem(
       'chakra-email.preview.workspace-color-mode',
       'light',
     );
     const harness = createHarness();
     await harness.application.start();
-    const toggle = getElement<HTMLButtonElement>(
-      '[data-action="toggle-email-color-mode"]',
-    );
-    const iframe = getElement<HTMLIFrameElement>('#email-preview-frame');
     const requests = harness.renderRequests.length;
-    expect(iframe.style.colorScheme).toBe('only light');
-    expect(toggle.getAttribute('aria-label')).toBe(
-      'Preview email in dark mode',
-    );
     expect(
       document.querySelector('[data-action="toggle-workspace-color-mode"]'),
     ).toBeNull();
     expect(
-      document.querySelector('[aria-label="Email preview color mode"]'),
-    ).toBeNull();
-    expect(document.querySelector('button[data-email-color-mode]')).toBeNull();
-    toggle.focus();
+      document.querySelectorAll('button[data-email-color-mode]'),
+    ).toHaveLength(2);
     for (const mode of ['dark', 'light', 'dark']) {
-      toggle.click();
-      expect(document.activeElement).toBe(toggle);
-      expect(iframe.style.colorScheme).toBe(`only ${mode}`);
+      const button = getElement<HTMLButtonElement>(
+        'button[data-email-color-mode="' + mode + '"]',
+      );
+      button.focus();
+      button.click();
+      expect(document.activeElement).toBe(button);
+      expect(
+        getElement<HTMLIFrameElement>('#email-preview-frame').style.colorScheme,
+      ).toBe('only ' + mode);
       expect(
         window.localStorage.getItem('chakra-email.preview.email-color-mode'),
       ).toBe(mode);
-      expect(document.documentElement.dataset['theme']).toBe('dark');
-      expect(document.documentElement.style.colorScheme).toBe('dark');
-      expect(document.documentElement.classList.contains('dark')).toBe(true);
-      expect(document.documentElement.classList.contains('light')).toBe(false);
+      expect(document.documentElement.dataset['theme']).toBe('light');
       expect(document.documentElement.classList.contains('host-class')).toBe(
         true,
       );
       expect(harness.renderRequests).toHaveLength(requests);
     }
-    // The obsolete shell preference is ignored, not repurposed for the email.
     expect(
       window.localStorage.getItem('chakra-email.preview.workspace-color-mode'),
     ).toBe('light');
@@ -1000,7 +1038,7 @@ describe('PreviewApplication', () => {
       expect(descriptionId).toBeTruthy();
       expect(
         document.getElementById(descriptionId ?? '')?.textContent,
-      ).toContain('Allow the rendered email to load images from remote URLs');
+      ).toContain('Scripts and forms are disabled. Remote images stay blocked');
     });
     expect(input.checked).toBe(false);
     input.dispatchEvent(
@@ -1022,83 +1060,56 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
-  it('composes icon output tabs with tooltips without losing tab ownership or panel labels', async () => {
+  it('provides five labeled output tabs with keyboard navigation and associated panels', async () => {
     const harness = createHarness();
     await harness.application.start();
-    const list = getElement('[role="tablist"]');
-    expect(list.getAttribute('aria-label')).toBe('Email output format');
-    expect(list.querySelectorAll('button')).toHaveLength(4);
+    const list = getElement(
+      '[role="tablist"][aria-label="Email output format"]',
+    );
+    expect(list.querySelectorAll('button')).toHaveLength(5);
     for (const [id, label] of [
       ['preview', 'Preview'],
+      ['compare', 'Compare'],
       ['html', 'HTML'],
       ['text', 'Text'],
       ['source', 'Source'],
     ]) {
-      const tab = getElement<HTMLButtonElement>(`[data-tab="${id}"]`);
+      const tab = getElement<HTMLButtonElement>('[data-tab="' + id + '"]');
       tab.click();
       await vi.waitFor(() =>
         expect(tab.getAttribute('aria-selected')).toBe('true'),
       );
       expect(tab.getAttribute('role')).toBe('tab');
-      expect(tab.getAttribute('aria-label')).toBe(label);
+      expect(tab.textContent).toBe(label);
       expect(tab.getAttribute('data-ownedby')).toBe(list.id);
-      expect(tab.textContent).toBe('');
-      expect(tab.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
-        'true',
-      );
       expect(list.querySelectorAll('[tabindex="0"]')).toHaveLength(1);
       const panel = document.getElementById(
         tab.getAttribute('aria-controls') ?? '',
       );
       expect(panel?.getAttribute('aria-labelledby')).toBe(tab.id);
-      tab.focus();
-      await vi.waitFor(() =>
-        expect(
-          document.getElementById(tab.getAttribute('aria-describedby') ?? '')
-            ?.textContent,
-        ).toBe(label),
-      );
-      expect(tab.getAttribute('data-ownedby')).toBe(list.id);
-      tab.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
-      );
-      await vi.waitFor(() =>
-        expect(tab.hasAttribute('aria-describedby')).toBe(false),
-      );
     }
     const source = getElement<HTMLButtonElement>('[data-tab="source"]');
-    source.blur();
     source.focus();
-    await vi.waitFor(() =>
-      expect(source.hasAttribute('aria-describedby')).toBe(true),
-    );
     source.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
     );
-    await vi.waitFor(() => {
-      expect(document.activeElement?.getAttribute('data-tab')).toBe('preview');
-      expect(document.activeElement?.getAttribute('aria-selected')).toBe(
-        'true',
-      );
-    });
+    await vi.waitFor(() =>
+      expect(document.activeElement?.getAttribute('data-tab')).toBe('preview'),
+    );
     harness.application.destroy();
   });
 
-  it('gives compact icon actions accessible names, state, and focus tooltips', async () => {
+  it('gives the new toolbar icon actions accessible names, selection state, and focus tooltips', async () => {
     const harness = createHarness();
     await harness.application.start();
-    const controls = [
-      ['[data-action="copy"]', 'Copy HTML'],
-      ['[data-action="download"]', 'Download HTML'],
-      ['[data-action="reset-frame"]', 'Reset preview size'],
+    for (const [selector, name] of [
+      ['[data-action="export"]', 'Export email'],
+      ['[data-action="palette"]', 'Open command palette'],
       ['button[data-viewport="desktop"]', 'Desktop preview'],
       ['button[data-viewport="mobile"]', 'Mobile preview'],
-      ['button[data-viewport="fluid"]', 'Fit preview'],
-    ];
-    for (const [selector, name] of controls) {
+    ]) {
       const button = getElement<HTMLButtonElement>(selector);
       expect(button.getAttribute('aria-label')).toBe(name);
-      expect(button.textContent).toBe('');
       expect(button.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
         'true',
       );
@@ -1106,12 +1117,9 @@ describe('PreviewApplication', () => {
         'false',
       );
       button.focus();
-      await vi.waitFor(() => {
-        const tooltipId = button.getAttribute('aria-describedby');
-        expect(
-          document.getElementById(tooltipId ?? '')?.textContent,
-        ).toBeTruthy();
-      });
+      await vi.waitFor(() =>
+        expect(button.getAttribute('aria-describedby')).toBeTruthy(),
+      );
       button.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
       );
@@ -1119,11 +1127,6 @@ describe('PreviewApplication', () => {
         expect(button.getAttribute('aria-describedby')).toBeNull(),
       );
     }
-    expect(
-      document
-        .querySelector('[aria-label="Preview viewport"]')
-        ?.getAttribute('role'),
-    ).toBe('group');
     getElement<HTMLButtonElement>('button[data-viewport="mobile"]').click();
     expect(
       getElement('button[data-viewport="mobile"]').getAttribute('aria-pressed'),
@@ -1133,80 +1136,54 @@ describe('PreviewApplication', () => {
         'aria-pressed',
       ),
     ).toBe('false');
-
-    for (const [tab, label] of [
-      ['html', 'HTML'],
-      ['text', 'text'],
-      ['source', 'source'],
-    ]) {
-      getElement<HTMLButtonElement>(`[data-tab="${tab}"]`).click();
-      await vi.waitFor(() =>
-        expect(
-          getElement('[data-action="copy"]').getAttribute('aria-label'),
-        ).toBe(`Copy ${label}`),
-      );
-      expect(
-        getElement('[data-action="download"]').getAttribute('aria-label'),
-      ).toBe(`Download ${label}`);
-      expect(
-        getElement<HTMLButtonElement>('button[data-viewport="mobile"]')
-          .disabled,
-      ).toBe(true);
-    }
+    expect(document.querySelector('button[data-viewport="fluid"]')).toBeNull();
+    const mobile = getElement<HTMLButtonElement>(
+      'button[data-viewport="mobile"]',
+    );
+    mobile.focus();
+    mobile.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }),
+    );
+    expect(
+      getElement('button[data-viewport="desktop"]').getAttribute(
+        'aria-pressed',
+      ),
+    ).toBe('true');
+    expect(harness.renderRequests).toHaveLength(1);
     harness.application.destroy();
   });
 
-  it('explains ambiguous controls with accessible tooltips', async () => {
+  it('explains the email color controls and desktop preset with focus tooltips', async () => {
     const harness = createHarness();
     await harness.application.start();
-
-    const themeToggle = getElement<HTMLButtonElement>(
+    const color = getElement<HTMLButtonElement>(
       '[data-action="toggle-email-color-mode"]',
     );
-    themeToggle.focus();
-
-    await vi.waitFor(
-      () => {
-        expect(
-          document.querySelector('[data-scope="tooltip"][data-part="content"]')
-            ?.textContent,
-        ).toContain('Preview the email in dark mode. The workspace stays dark');
-      },
-      { timeout: 2_000 },
+    color.focus();
+    await vi.waitFor(() =>
+      expect(
+        document.getElementById(color.getAttribute('aria-describedby') ?? '')
+          ?.textContent,
+      ).toContain('Dark client (l)'),
     );
-
-    themeToggle.blur();
+    color.blur();
     await new Promise((resolve) => window.setTimeout(resolve, 150));
-
-    const fitViewport = getElement<HTMLButtonElement>(
-      '[data-viewport="fluid"]',
+    const desktop = getElement<HTMLButtonElement>(
+      'button[data-viewport="desktop"]',
     );
-    fitViewport.focus();
-
-    await vi.waitFor(
-      () => {
-        expect(
-          [...document.querySelectorAll('[data-scope="tooltip"]')].some(
-            (element) =>
-              element.textContent?.includes(
-                'Fit the email preview to the available workspace',
-              ),
-          ),
-        ).toBe(true);
-      },
-      { timeout: 2_000 },
+    desktop.focus();
+    await vi.waitFor(() =>
+      expect(
+        document.getElementById(desktop.getAttribute('aria-describedby') ?? '')
+          ?.textContent,
+      ).toContain('600 px'),
     );
-
-    expect(themeToggle.getAttribute('title')).toBeNull();
-    expect(themeToggle.getAttribute('aria-label')).toBe(
-      'Preview email in dark mode',
-    );
-
+    expect(color.getAttribute('aria-label')).toBe('Preview email in dark mode');
     harness.application.destroy();
   });
 
   it.each([false, true])(
-    'ignores the OS preference and legacy System selection (OS dark: %s)',
+    'follows the OS for the workspace while legacy System email preferences default to light (OS dark: %s)',
     async (initialDark) => {
       let dark = initialDark;
       const query = new EventTarget() as MediaQueryList;
@@ -1226,7 +1203,9 @@ describe('PreviewApplication', () => {
       dark = !dark;
       query.dispatchEvent(new Event('change'));
       expect(iframe.style.colorScheme).toBe('only light');
-      expect(document.documentElement.dataset['theme']).toBe('dark');
+      expect(document.documentElement.dataset['theme']).toBe(
+        dark ? 'dark' : 'light',
+      );
       harness.application.destroy();
     },
   );
@@ -1260,8 +1239,8 @@ describe('PreviewApplication', () => {
       'data-chakra-email-preview-color-mode="dark"',
     );
     expect(iframe.srcdoc).toContain('@media all{.ce-mode-0');
-    getElement<HTMLButtonElement>('[data-action="download"]').click();
-    getElement<HTMLButtonElement>('[data-action="copy"]').click();
+    await clickExport('download');
+    await clickExport('copy');
     await vi.waitFor(() => expect(harness.copyText).toHaveBeenCalled());
     for (const output of [
       harness.copyText.mock.calls[0]?.[0],
@@ -1429,9 +1408,9 @@ describe('PreviewApplication', () => {
     expect(harness.renderRequests).toHaveLength(1);
 
     harness.eventSource.dispatchEvent(new Event('open'));
-    expect(document.querySelector('.connection')?.textContent).toContain(
-      'Live',
-    );
+    expect(
+      document.querySelector('.sidebar [role="status"]')?.textContent,
+    ).toContain('Watching · rebuilt');
 
     harness.eventSource.dispatchEvent(
       new MessageEvent('message', {
@@ -1469,9 +1448,9 @@ describe('PreviewApplication', () => {
     ).toBe('page');
 
     harness.eventSource.dispatchEvent(new Event('error'));
-    expect(document.querySelector('.connection')?.textContent).toContain(
-      'Reconnecting',
-    );
+    expect(
+      document.querySelector('.sidebar [role="status"]')?.textContent,
+    ).toContain('Reconnecting');
 
     harness.application.destroy();
   });
@@ -1494,6 +1473,236 @@ describe('PreviewApplication', () => {
       document.querySelector<HTMLButtonElement>('[data-action="retry"]'),
     ).not.toBeNull();
 
+    harness.application.destroy();
+  });
+
+  it('defaults to Fields, applies edits after 300ms, and keeps JSON and preferences in sync', async () => {
+    window.localStorage.removeItem('chakra-email.preview.props-mode');
+    window.localStorage.setItem('chakra-email.preview.viewport', 'fluid');
+    const harness = createHarness();
+    await harness.application.start();
+    expect(
+      getElement('[data-props-mode="fields"]').getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(
+      getElement('button[data-viewport="desktop"]').getAttribute(
+        'aria-pressed',
+      ),
+    ).toBe('true');
+    vi.useFakeTimers();
+    const field = getElement<HTMLInputElement>('#prop-name');
+    field.value = 'Grace';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(299);
+    expect(harness.renderRequests).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(harness.renderRequests.at(-1)?.props).toEqual({ name: 'Grace' });
+    getElement<HTMLButtonElement>('[data-props-mode="json"]').click();
+    expect(getElement<HTMLTextAreaElement>('#preview-props').value).toContain(
+      'Grace',
+    );
+    expect(window.localStorage.getItem('chakra-email.preview.props-mode')).toBe(
+      'json',
+    );
+    vi.useRealTimers();
+    harness.application.destroy();
+  });
+
+  it('renders three protected compare frames and opens the selected viewport and email mode', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-tab="compare"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('.compare-frames iframe')).toHaveLength(
+        3,
+      ),
+    );
+    const frames = [
+      ...document.querySelectorAll<HTMLIFrameElement>('.compare-frames iframe'),
+    ];
+    for (const frame of frames) {
+      expect(frame.getAttribute('sandbox')).toBe('');
+      expect(frame.srcdoc).toContain("script-src 'none'");
+      expect(frame.srcdoc).not.toContain('img-src https:');
+    }
+    expect(frames.map((frame) => frame.style.colorScheme)).toEqual([
+      'only light',
+      'only light',
+      'only dark',
+    ]);
+    getElement<HTMLButtonElement>(
+      '[aria-label="Open mobile dark preview"]',
+    ).click();
+    await vi.waitFor(() =>
+      expect(
+        getElement<HTMLIFrameElement>('#email-preview-frame').style.colorScheme,
+      ).toBe('only dark'),
+    );
+    expect(
+      getElement('button[data-viewport="mobile"]').getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(window.localStorage.getItem('chakra-email.preview.viewport')).toBe(
+      'mobile',
+    );
+    harness.application.destroy();
+  });
+
+  it('filters templates by name and path and excludes info-only summaries from With issues', async () => {
+    const harness = createHarness();
+    const implementation =
+      harness.fetcher.getMockImplementation() as PreviewApplicationOptions['fetch'];
+    if (!implementation) throw new Error('Missing mock fetch implementation');
+    harness.fetcher.mockImplementation(async (input, init) => {
+      const response = await implementation(input, init);
+      if (
+        input === '/api/render' &&
+        JSON.parse(String(init?.body)).id === 'receipt'
+      ) {
+        const payload = await response.json();
+        return jsonResponse({
+          ...payload,
+          lint: [{ ...payload.lint[0], severity: 'info' }],
+        });
+      }
+      return response;
+    });
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-template-id="receipt"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('h1')?.textContent).toContain(
+        'Order receipt',
+      ),
+    );
+    await vi.waitFor(() =>
+      expect(
+        document
+          .querySelector('[data-template-id="receipt"]')
+          ?.getAttribute('aria-label'),
+      ).toContain('1 info'),
+    );
+    const filter = getElement<HTMLInputElement>('#template-filter');
+    filter.value = 'SRC/RECEIPT';
+    filter.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(document.querySelectorAll('[data-template-id]')).toHaveLength(1);
+    expect(
+      document.querySelector('[data-template-id="receipt"]'),
+    ).not.toBeNull();
+    filter.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
+    expect(filter.value).toBe('');
+    expect(document.querySelectorAll('[data-template-id]')).toHaveLength(2);
+    const issues = [
+      ...document.querySelectorAll<HTMLButtonElement>(
+        '[aria-label="Template filter"] button',
+      ),
+    ].find((b) => b.textContent?.includes('With issues'));
+    issues?.click();
+    expect(document.querySelectorAll('[data-template-id]')).toHaveLength(1);
+    expect(
+      document
+        .querySelector('[data-template-id="welcome"]')
+        ?.getAttribute('aria-label'),
+    ).toContain('1 error, 1 warning');
+    expect(
+      window.localStorage.getItem('chakra-email.preview.template-filter'),
+    ).toBe('issues');
+    harness.application.destroy();
+  });
+
+  it('persists inspector tabs and derives passed checks from the returned catalog and rulesRun', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-inspector-tab="info"]').click();
+    await vi.waitFor(() =>
+      expect(
+        window.localStorage.getItem('chakra-email.preview.inspector-tab'),
+      ).toBe('info'),
+    );
+    getElement<HTMLButtonElement>('[data-action="open-checks"]').click();
+    expect(
+      getElement('[data-inspector-tab="checks"]').getAttribute('aria-selected'),
+    ).toBe('true');
+    const disclosure = [...document.querySelectorAll('summary')].find((s) =>
+      s.textContent?.includes('Passed'),
+    );
+    expect(disclosure?.textContent).toContain('1');
+    expect(disclosure?.parentElement?.textContent).toContain('Valid HTML');
+    expect(disclosure?.parentElement?.textContent).not.toContain(
+      'Images have alternative text',
+    );
+    expect(
+      document.querySelector('.lint-summary')?.getAttribute('data-lint-count'),
+    ).toBe('2');
+    harness.application.destroy();
+  });
+
+  it('uses keyboard shortcuts and a searchable palette without intercepting typing', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    expect(document.querySelectorAll('.topbar')).toHaveLength(1);
+    expect(document.querySelector('.workspace-heading')).toBeNull();
+    const editor = getElement<HTMLTextAreaElement>('#preview-props');
+    editor.dispatchEvent(
+      new KeyboardEvent('keydown', { key: '2', bubbles: true }),
+    );
+    expect(document.querySelector('.compare-frames')).toBeNull();
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', { key: '2', bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('.compare-frames iframe')).toHaveLength(
+        3,
+      ),
+    );
+    // Focus trapping needs layout visibility, which JSDOM does not calculate.
+    vi.spyOn(HTMLElement.prototype, 'getClientRects').mockReturnValue([
+      { width: 1, height: 1 },
+    ] as unknown as DOMRectList);
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[aria-label="Find a command"]'),
+      ).not.toBeNull(),
+    );
+    const query = getElement<HTMLInputElement>('[aria-label="Find a command"]');
+    await vi.waitFor(() => expect(document.activeElement).toBe(query));
+    query.value = 'Interface theme: light';
+    query.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('[role="option"]')).toHaveLength(1),
+    );
+    query.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+    );
+    expect(document.documentElement.dataset['theme']).toBe('light');
+    expect(
+      window.localStorage.getItem('chakra-email.preview.workspace-color-mode'),
+    ).toBe('light');
+    expect(
+      window.localStorage.getItem('chakra-email.preview.email-color-mode'),
+    ).toBeNull();
+    harness.application.destroy();
+  });
+
+  it('exports a local MIME message without sending mail', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-action="export"]').click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-value="download-eml"]'),
+      ).not.toBeNull(),
+    );
+    getElement<HTMLButtonElement>('[data-value="download-eml"]').click();
+    expect(harness.downloadText).toHaveBeenCalledWith(
+      expect.stringContaining('multipart/alternative'),
+      'welcome-email.eml',
+      'message/rfc822',
+    );
+    expect(harness.sendRequests).toHaveLength(0);
     harness.application.destroy();
   });
 

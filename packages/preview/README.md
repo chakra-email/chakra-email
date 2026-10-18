@@ -102,7 +102,7 @@ file. `templates` and `assets` are resolved relative to `root`; `include` and
 - `renderer` accepts an `EmailRenderer` implementation and remains on the
   preview server; functions are never serialized into the browser UI.
 - `testSend` accepts a server-only delivery adapter. When configured, the
-  inspector exposes recipient and subject fields for sending the active render.
+  top-bar popover exposes recipient and subject fields for sending the active render.
 
 The theme is serialized by the local preview server and merged over the
 preview UI defaults in the browser. Keep it data-only: functions and a
@@ -126,53 +126,50 @@ for files that are not present return `404`.
 
 ## Preview workspace
 
-The workspace uses a compact header and format toolbar, a flat template list,
-and a centered email canvas. The workspace and email frame fill the available
-viewport height; long emails scroll inside the frame rather than stretching the
-page. The inspector scrolls independently.
+The workspace has one top bar, a template sidebar, a scrollable email canvas,
+and a tabbed **Props · Info · Checks** inspector. It fills the dynamic viewport.
 
-- Header panel buttons show or hide templates and preview settings. Hiding
-  settings preserves unapplied JSON edits, variants, and test-send fields.
-  Escape from either panel closes it and returns focus to its toggle.
-- Small screens start with both panels closed. Opening a panel uses the
-  available workspace; selecting a template returns to the email canvas.
-- Desktop (680px), Mobile (390px), and Fit presets change the preview width.
-  Drag the frame's bottom-right corner to resize it. **Reset size** restores
-  the selected preset and default height. The footer describes the preset,
-  not the dimensions of a manually resized frame.
-- Copy, Download, viewport presets, and Reset size use icon buttons with
-  accessible names and tooltips on hover or keyboard focus. Copy and Download
-  describe the active output format; copying shows a checkmark and announces
-  success. Remote images and form actions retain visible labels. The header's
-  sun/moon icon button toggles the email preview between Light and Dark, with
-  an accessible name and tooltip describing the next mode.
-- Preview, HTML, Text, and Source form a compact icon tab group with tooltips
-  and accessible names. They retain tab/panel associations, a single tab stop,
-  and arrow-key / Home / End navigation. The viewer `tabs` and `tab` slots
-  customize the group and selected styles; shared icon sizing applies here too.
-- The `feedback.iconButton` slot controls the compact actions' shared geometry.
-  Set `--preview-icon-button-size` to customize the hit area (default: 44px on
-  small screens, 32px from `md` upwards). Existing action recipes still control
-  colors, borders, and interaction styling.
-- The workspace and canvas always use dark mode, including built-in components,
-  portalled tooltips, and custom semantic tokens. The header's email color-mode
-  toggle affects only the email frame. Customize the canvas background in the
-  viewer recipe's `surface` slot (default: `preview.soft`); recipe and theme
-  overrides remain supported.
-  **Light** and **Dark** force Chakra Email's generated color rules in the
-  preview frame. Explicit email choices persist locally; a new session without
-  a saved choice defaults to Light. The former footer System/Light/Dark selector
-  is removed, saved System choices fall back to Light, and old workspace-mode
-  preferences are ignored. OS color-mode changes do not change either surface.
-  Arbitrary
-  authored media queries are not rewritten, and client-specific automatic color
-  inversion is not simulated. Fixed template colors remain fixed. Scripts and
-  forms stay disabled, and remote images still require explicit opt-in.
+- The top bar offers Preview, Compare, HTML, Text, and Source views. Desktop
+  (600px) and Mobile (375px) replace the former Fit preset. The email color
+  controls remain independent of the interface theme.
+- Compare shows desktop/light, mobile/light, and mobile/dark sandboxed frames.
+  Click a frame to open its settings in Preview. HTML includes line numbers.
+- Filter templates by name or path. Folder groups come from the configured
+  templates directory. Issue indicators currently reflect templates rendered
+  during this session; background summaries for all templates are not yet
+  implemented. **With issues** excludes info-only results.
+- Props opens in Fields mode for small objects; JSON supports arrays and larger
+  objects. Edits render after 300ms of inactivity. Invalid JSON keeps the last
+  good render, and **Reset props** restores the selected fixture/variant.
+- Info shows the current envelope, message sizes, link/image counts, and source.
+  Checks shows severity totals, on-demand link checks, and passed rules from
+  the server's effective catalog and `rulesRun`. Network requests remain opt-in.
+- The status bar shows measured frame dimensions, UTF-8 HTML size against the
+  102KB Gmail clipping threshold, link/image counts, and a tally that opens
+  Checks. Drag the frame's bottom-right corner to resize it; the reset action
+  appears when its width differs from the selected preset. Remote images
+  remain blocked until explicitly enabled.
+- **Send test** is a top-bar popover, shown only when `testSend` is configured.
+  **Export** offers HTML/plain-text copy and download, plus a local
+  multipart `.eml` export for opening in a mail client. The export uses
+  `preview@localhost` as sender until sender metadata is supported.
+- ⌘K / Ctrl K opens the command palette, including panel toggles and interface
+  theme choices. The interface follows the OS by default; explicit Light or
+  Dark choices persist. The sidebar becomes an overlay below 760px; the
+  inspector becomes an overlay below 1100px.
+- Outside text fields, `/` focuses the template filter; `1`–`5` select views;
+  `d` / `m` select viewport presets; `l` toggles email color; and `[` / `]`
+  toggle the sidebar / inspector. Escape dismisses overlays and popovers.
 
-These controls affect only the preview, not generated HTML, plaintext, or
-template source. Full template paths remain available through Chakra tooltips
-on the template rows, including on keyboard focus. Controls use Chakra UI v3
-primitives, including Tabs, Switch, Field, NativeSelect, and portalled Tooltip.
+These controls affect only the preview, never authored files or exported HTML.
+The preview iframe retains its empty sandbox and restrictive CSP. Arbitrary
+authored media queries are not rewritten, and client-specific automatic color
+inversion is not simulated.
+
+Theme and slot-recipe overrides remain supported, including the new success,
+info, and highlight semantic tokens. The viewer `surface` slot defaults to
+`preview.canvas`. The `feedback.iconButton` slot controls shared hit areas
+(default: 44px on small screens, 32px from `md` upwards).
 
 Tooltips inherit Chakra's default surface, arrow, focus, and dismissal behavior.
 To customize both the surface and arrow together, set `--tooltip-bg` in the
@@ -515,6 +512,27 @@ import { lintRenderedEmail } from '@chakra-email/preview';
 const findings = lintRenderedEmail(renderedHtml, renderedPlainText);
 ```
 
+Customize existing rule severities in `chakra-email.config.ts`:
+
+```ts
+export default defineConfig({
+  lint: {
+    rules: { 'document-title': 'warning', 'css-background-image': 'off' },
+  },
+});
+```
+
+Supported levels are `off`, `info`, `warning`, and `error`. Unknown rule IDs or
+invalid levels fail config loading. The same overrides apply to explicit link
+checks; they never enable network requests or alter the email output.
+
+`getLintRules(overrides?)` returns the shared catalog of enabled rules with
+passing-condition titles and effective severities. `lintEmail(html, { text,
+rules })` returns `{ findings, rulesRun }`, including passing static checks but
+excluding disabled rules and network checks. When `text` is omitted, the
+plain-text-content check is not included. `lintRenderedEmail()` remains
+backwards-compatible and uses the original defaults.
+
 These checks surface common risks; they do not replace delivery-provider tests
 or validation in the mailbox clients your application supports.
 
@@ -537,7 +555,7 @@ export default defineConfig({
 });
 ```
 
-Click **Check links** in the props/inspector panel to re-render the active
+Click **Check links** in the Checks inspector tab to re-render the active
 template with its applied props and check its anchor URLs. Unsaved editor
 changes are not applied. Findings include rendered-HTML line numbers:
 
