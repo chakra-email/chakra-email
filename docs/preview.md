@@ -553,6 +553,16 @@ static checks, including passing checks, but excludes the plain-text check
 when no `text` was supplied. It never includes network link checks. The existing
 `lintRenderedEmail()` convenience function retains its original default behavior.
 
+### Known client breakages
+
+Mapped compatibility findings include `clients` IDs from a deliberately short
+list reviewed against Can I Email in October 2026. Each rule links to its source;
+partial or conditional support is not treated as a blanket failure. Windows
+means classic Outlook, not the new web-based Outlook client. The exported
+`previewClients`, `knownBreakages`, and `clientSupportReviewed` describe this
+curation. An unlisted client is not guaranteed to support a feature. This is
+advisory metadata, not an actual mailbox rendering test.
+
 ## Local Security
 
 The loopback default is deliberate. Template modules are executable code and

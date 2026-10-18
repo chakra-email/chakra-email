@@ -559,6 +559,12 @@ backwards-compatible and uses the original defaults.
 These checks surface common risks; they do not replace delivery-provider tests
 or validation in the mailbox clients your application supports.
 
+Some compatibility findings include curated `clients` IDs, with Can I Email
+source links and an October 2026 review date. The exported `previewClients`,
+`knownBreakages`, and `clientSupportReviewed` describe known breakages only:
+unlisted clients are not guaranteed supported, and partial/conditional results
+are not treated as blanket failures. Windows means classic Outlook.
+
 ## Optional Network Link Checks
 
 Static linting never fetches email URLs. Enable the separate **Check links**

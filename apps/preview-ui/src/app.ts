@@ -50,6 +50,7 @@ export type RenderResult = {
 };
 
 export type LintFinding = {
+  clients?: string[];
   category: LintCategory;
   column?: number;
   compatibility?: CompatibilityReference;
@@ -285,6 +286,9 @@ function parseRenderResult(value: unknown): RenderResult {
         typeof candidate['element'] !== 'string') ||
       (candidate['selector'] !== undefined &&
         typeof candidate['selector'] !== 'string') ||
+      (candidate['clients'] !== undefined &&
+        (!Array.isArray(candidate['clients']) ||
+          !candidate['clients'].every((id) => typeof id === 'string'))) ||
       compatibility === null
     ) {
       return [];
@@ -293,6 +297,7 @@ function parseRenderResult(value: unknown): RenderResult {
     return [
       {
         category: candidate['category'] as LintCategory,
+        clients: candidate['clients'] as string[] | undefined,
         column: candidate['column'] as number | undefined,
         compatibility,
         element: candidate['element'] as string | undefined,

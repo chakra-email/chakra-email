@@ -4,6 +4,8 @@
 
 ### Added
 
+- Curated known-client breakage metadata on compatibility findings, reviewed
+  against Can I Email in October 2026 and excluding partial/conditional results.
 - `chakra-email-preview check` and `checkTemplates()` for CI reports across
   templates and variants, with strict mode, JSON output, severity overrides,
   recoverable render failures, and opt-in network link checks.

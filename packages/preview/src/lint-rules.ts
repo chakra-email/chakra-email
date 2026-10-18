@@ -1,3 +1,4 @@
+import { knownBreakages } from './client-support.js';
 import type {
   PreviewLintFinding,
   PreviewLintRule,
@@ -278,7 +279,13 @@ export function resolveLintFinding(
     throw new Error(`Unregistered lint rule: ${finding.ruleId}`);
   const rule = getLintRule(finding.ruleId);
   const severity = overrides[rule.id] ?? rule.severity;
+  const clients = knownBreakages[rule.id];
   return severity === 'off'
     ? undefined
-    : { ...finding, category: rule.category, severity };
+    : {
+        ...finding,
+        category: rule.category,
+        severity,
+        ...(clients ? { clients: [...clients] } : {}),
+      };
 }

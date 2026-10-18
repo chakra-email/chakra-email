@@ -12,6 +12,11 @@ export interface PreviewCompatibilityReference {
 export const previewCompatibilityReferences: Readonly<
   Record<string, PreviewCompatibilityReference>
 > = {
+  'external-stylesheet': {
+    feature: 'HTML link element',
+    source: 'Can I Email',
+    url: 'https://www.caniemail.com/features/html-link/',
+  },
   'css-border-radius': {
     feature: 'CSS border-radius',
     source: 'Can I Email',

@@ -1,5 +1,6 @@
 import type { JsonObject } from './config.js';
 import type { PreviewCompatibilityReference } from './compatibility.js';
+import type { PreviewClientId } from './client-support.js';
 
 export interface PreviewTemplate {
   group?: string;
@@ -52,6 +53,7 @@ export interface PreviewLintRule {
 }
 
 export interface PreviewLintFinding {
+  clients?: PreviewClientId[];
   category: PreviewLintCategory;
   column?: number;
   compatibility?: PreviewCompatibilityReference;
