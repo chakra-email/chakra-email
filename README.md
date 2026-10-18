@@ -347,6 +347,11 @@ pnpm run check
 pnpm nx run chakra-email-monorepo:yalc-publish
 ```
 
+Springbar provides the docs site at `chakra-email.test` and the local email
+preview at `preview.chakra-email.test`. The preview service builds the local
+preview package and serves the templates in `examples/preview/emails`, using
+Springbar's assigned port while remaining bound to `127.0.0.1`.
+
 `pnpm run check` is the canonical release gate. It audits dependencies, lints,
 runs coverage tests, performs a clean build and typecheck, compiles the examples,
 inspects package contents, and installs the resulting tarballs in a clean React

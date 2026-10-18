@@ -24,3 +24,20 @@ test('development and release tooling pin Node 24 and pnpm', () => {
   assert.match(read('pnpm-workspace.yaml'), /'packages\/\*'/);
   assert.match(read('pnpm-workspace.yaml'), /'apps\/\*'/);
 });
+
+test('Springbar runs the local email preview with a trusted hostname and assigned port', () => {
+  const preview = read('springbar.toml')
+    .split('[[unit]]')
+    .find((unit) => unit.includes('name = "email-preview"'));
+  assert.ok(preview, 'Springbar must include the email-preview unit');
+  assert.match(preview, /working_dir = "\."/);
+  assert.match(preview, /pnpm nx run chakra-email-monorepo:email-preview/);
+  assert.ok(preview.includes('--host 127.0.0.1 --port "$PORT"'));
+  assert.match(preview, /hostnames = \["preview\.chakra-email\.test"\]/);
+  assert.match(preview, /mode = "lazy"/);
+  assert.doesNotMatch(preview, /^port = /m);
+  assert.match(
+    read('examples/preview/chakra-email.config.ts'),
+    /allowedHosts: \['preview\.chakra-email\.test'\]/,
+  );
+});
