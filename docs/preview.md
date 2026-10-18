@@ -445,6 +445,14 @@ mailbox-client renderer or compatibility certification.
 
 ### Rule catalog and severity overrides
 
+The catalog also checks for unfinished placeholder text, rounded links without
+an Outlook VML fallback, missing color-scheme metadata, subjects over 60
+characters, preheaders outside 40–150 characters, and empty or ambiguous link
+text. Subject length runs only when a subject is supplied. Element findings
+include a unique CSS `selector` for the rendered HTML, not a TSX source location.
+The exported `extractPreviewText(document)` accepts a parse5 document and removes
+hidden-preheader padding before returning normalized text.
+
 Use `lint.rules` in `chakra-email.config.ts` to adjust existing checks:
 
 ```ts

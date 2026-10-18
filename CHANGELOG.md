@@ -4,6 +4,9 @@
 
 ### Added
 
+- Six preview checks for placeholders, rounded-button fallbacks, color-scheme
+  metadata, subject/preheader lengths, and accessible link text. Element findings
+  now include unique selectors for the rendered HTML.
 - **Copy as variant** copies a named `previewVariants` entry containing only
   props that differ from the template's base fixture, without changing files.
 - A redesigned local preview workspace with a single top bar, filterable template

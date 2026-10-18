@@ -25,7 +25,11 @@ export type {
   ExportTemplatesOptions,
   ExportTemplatesResult,
 } from './export-templates.js';
-export { lintEmail, lintRenderedEmail } from './lint-email.js';
+export {
+  extractPreviewText,
+  lintEmail,
+  lintRenderedEmail,
+} from './lint-email.js';
 export type { LintEmailOptions, LintEmailResult } from './lint-email.js';
 export { getLintRules, previewLintRules } from './lint-rules.js';
 export type {

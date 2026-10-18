@@ -514,7 +514,12 @@ import { lintRenderedEmail } from '@chakra-email/preview';
 const findings = lintRenderedEmail(renderedHtml, renderedPlainText);
 ```
 
-Customize existing rule severities in `chakra-email.config.ts`:
+The catalog includes placeholder text, rounded-button VML fallbacks, color-scheme
+metadata, subject/preheader lengths, and accessible link text. Element findings
+carry a unique rendered-HTML selector. Subject length is evaluated only when a
+subject is provided to `lintEmail`; it is not run by `lintRenderedEmail`.
+
+Customize rule severities in `chakra-email.config.ts`:
 
 ```ts
 export default defineConfig({

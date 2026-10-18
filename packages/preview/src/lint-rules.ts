@@ -53,6 +53,36 @@ const definitions = {
     title: 'Hidden preview text included',
     severity: 'info',
   },
+  'placeholder-text': {
+    category: 'content',
+    title: 'No placeholder text',
+    severity: 'warning',
+  },
+  'css-border-radius': {
+    category: 'compatibility',
+    title: 'Rounded buttons include an Outlook fallback',
+    severity: 'warning',
+  },
+  'color-scheme-meta': {
+    category: 'compatibility',
+    title: 'Color scheme declared',
+    severity: 'info',
+  },
+  'subject-length': {
+    category: 'deliverability',
+    title: 'Subject fits common inbox previews',
+    severity: 'info',
+  },
+  'preview-text-length': {
+    category: 'deliverability',
+    title: 'Preview text is 40–150 characters',
+    severity: 'info',
+  },
+  'link-text': {
+    category: 'accessibility',
+    title: 'Descriptive accessible link text',
+    severity: 'info',
+  },
   'image-alt': {
     category: 'accessibility',
     title: 'Alternative text on every image',

@@ -57,6 +57,7 @@ export type LintFinding = {
   line?: number;
   message: string;
   ruleId: string;
+  selector?: string;
   severity: LintSeverity;
   suggestion: string;
 };
@@ -282,6 +283,8 @@ function parseRenderResult(value: unknown): RenderResult {
         typeof candidate['column'] !== 'number') ||
       (candidate['element'] !== undefined &&
         typeof candidate['element'] !== 'string') ||
+      (candidate['selector'] !== undefined &&
+        typeof candidate['selector'] !== 'string') ||
       compatibility === null
     ) {
       return [];
@@ -296,6 +299,7 @@ function parseRenderResult(value: unknown): RenderResult {
         line: candidate['line'] as number | undefined,
         message: candidate['message'],
         ruleId: candidate['ruleId'],
+        selector: candidate['selector'] as string | undefined,
         severity: candidate['severity'] as LintSeverity,
         suggestion: candidate['suggestion'],
       },

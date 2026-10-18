@@ -59,6 +59,8 @@ export interface PreviewLintFinding {
   line?: number;
   message: string;
   ruleId: string;
+  /** Selector matching the affected element in the rendered HTML. */
+  selector?: string;
   severity: PreviewLintSeverity;
   suggestion: string;
 }

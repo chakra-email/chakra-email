@@ -10,7 +10,7 @@ import {
 describe('shared lint rule registry', () => {
   it('registers every existing rule once, with categories, passing titles and defaults', () => {
     const ids = previewLintRules.map((rule) => rule.id);
-    expect(ids).toHaveLength(32);
+    expect(ids).toHaveLength(38);
     expect(new Set(ids).size).toBe(ids.length);
     for (const rule of previewLintRules) {
       expect(rule.title.trim()).not.toBe('');
