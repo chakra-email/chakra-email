@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import { PreviewRoot } from './workspace';
 import { buildPreviewMessage } from './message';
+import { buildVariantSnippet } from './variant';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -97,6 +98,10 @@ export type ApplicationState = {
   appliedProps: JsonRecord | null;
   propsDirty: boolean;
   propsError: string | null;
+  variantCopyOpen: boolean;
+  variantCopyName: string;
+  variantCopyStatus: 'idle' | 'copying' | 'copied';
+  variantCopyError: string | null;
   remoteImages: boolean;
   loadingTemplates: boolean;
   rendering: boolean;
@@ -496,6 +501,8 @@ export class PreviewApplication {
   private refreshScheduled = false;
   private copyTimer: number | null = null;
   private copySequence = 0;
+  private variantCopySequence = 0;
+  private variantCopyTimer: number | null = null;
   private started = false;
   private propsTimer: number | null = null;
   private clockTimer: number | null = null;
@@ -519,6 +526,10 @@ export class PreviewApplication {
     appliedProps: null,
     propsDirty: false,
     propsError: null,
+    variantCopyOpen: false,
+    variantCopyName: '',
+    variantCopyStatus: 'idle',
+    variantCopyError: null,
     remoteImages: false,
     loadingTemplates: true,
     rendering: false,
@@ -591,6 +602,7 @@ export class PreviewApplication {
 
   public destroy(): void {
     this.started = false;
+    this.resetVariantCopy(true);
     this.cancelPropsApply();
     if (this.clockTimer !== null) window.clearInterval(this.clockTimer);
     this.mediaQuery?.removeEventListener('change', this.handleSystemTheme);
@@ -631,6 +643,7 @@ export class PreviewApplication {
   };
 
   private readonly changeVariant = (variant: string): void => {
+    this.resetVariantCopy(true);
     this.cancelPropsApply();
     this.state.selectedVariant = variant;
     this.state.propsDirty = false;
@@ -639,6 +652,7 @@ export class PreviewApplication {
   };
 
   private readonly changePropsText = (value: string): void => {
+    this.resetVariantCopy();
     this.cancelPropsApply();
     this.state.propsText = value;
     this.state.propsDirty = true;
@@ -714,6 +728,7 @@ export class PreviewApplication {
     this.cancelPropsApply();
 
     this.state.selectedId = templateId;
+    this.resetVariantCopy(true);
     this.state.result = null;
     this.state.selectedVariant = '';
     this.state.propsText = '{}';
@@ -803,6 +818,7 @@ export class PreviewApplication {
     props?: JsonRecord;
     replaceEditor: boolean;
   }): Promise<void> {
+    this.resetVariantCopy();
     this.resetCopyFeedback();
     const id = this.state.selectedId;
 
@@ -1012,6 +1028,88 @@ export class PreviewApplication {
       window.clearTimeout(this.copyTimer);
       this.copyTimer = null;
     }
+  }
+
+  private async copyAsVariant(name: string): Promise<void> {
+    const id = this.state.selectedId;
+    const result = this.state.result;
+    const propsText = this.state.propsText;
+    const variant = this.state.selectedVariant;
+    if (
+      !id ||
+      !result ||
+      this.state.rendering ||
+      this.state.propsDirty ||
+      this.state.propsError
+    ) {
+      throw new Error(
+        'Wait for valid props to finish rendering before copying a variant.',
+      );
+    }
+    // Fetch the fixture rather than the active variant, without replacing the visible render.
+    // This also keeps the diff correct if previewProps changed during a watch session.
+    const response = await this.request('/api/render', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'x-chakra-email-preview-token': this.token,
+      },
+      body: JSON.stringify({ id }),
+    });
+    if (!response.ok) throw await responseError(response);
+    const baseline = parseRenderResult(await response.json());
+    if (
+      !this.started ||
+      this.state.selectedId !== id ||
+      this.state.result !== result ||
+      this.state.propsText !== propsText ||
+      this.state.selectedVariant !== variant ||
+      baseline.id !== id
+    ) {
+      throw new Error('The preview changed. Copy the variant again.');
+    }
+    await this.copyText(
+      buildVariantSnippet(name, baseline.props, result.props),
+    );
+  }
+
+  private resetVariantCopy(close = false): void {
+    this.variantCopySequence += 1;
+    if (this.variantCopyTimer !== null)
+      window.clearTimeout(this.variantCopyTimer);
+    this.variantCopyTimer = null;
+    this.state.variantCopyStatus = 'idle';
+    this.state.variantCopyError = null;
+    if (close) this.state.variantCopyOpen = false;
+  }
+
+  private async copyVariant(): Promise<void> {
+    if (!this.state.variantCopyName.trim()) {
+      this.state.variantCopyError = 'Enter a name for the variant.';
+      this.render();
+      return;
+    }
+    this.resetVariantCopy();
+    const sequence = this.variantCopySequence;
+    this.state.variantCopyStatus = 'copying';
+    this.render();
+    try {
+      await this.copyAsVariant(this.state.variantCopyName);
+      if (!this.started || sequence !== this.variantCopySequence) return;
+      this.state.variantCopyStatus = 'copied';
+      this.variantCopyTimer = window.setTimeout(() => {
+        this.variantCopyTimer = null;
+        this.state.variantCopyStatus = 'idle';
+        this.render();
+      }, 2_000);
+    } catch (error) {
+      if (!this.started || sequence !== this.variantCopySequence) return;
+      this.state.variantCopyStatus = 'idle';
+      this.state.variantCopyError =
+        error instanceof Error ? error.message : 'Could not copy the variant.';
+    }
+    this.render();
   }
 
   private async copyCurrentOutput(
@@ -1256,6 +1354,22 @@ export class PreviewApplication {
           onRemoteImagesChange: this.changeRemoteImages,
           onVariantChange: this.changeVariant,
           onPropsTextChange: this.changePropsText,
+          onCopyVariant: () => {
+            void this.copyVariant();
+          },
+          onVariantCopyOpenChange: (open: boolean) => {
+            this.resetVariantCopy();
+            if (open)
+              this.state.variantCopyName =
+                'Variant ' + ((this.state.result?.variants.length ?? 0) + 1);
+            this.state.variantCopyOpen = open;
+            this.render();
+          },
+          onVariantCopyNameChange: (name: string) => {
+            this.resetVariantCopy();
+            this.state.variantCopyName = name;
+            this.render();
+          },
           onSendToChange: this.changeSendTo,
           onSendSubjectChange: this.changeSendSubject,
           onCopy: (format?: PreviewTab) => {

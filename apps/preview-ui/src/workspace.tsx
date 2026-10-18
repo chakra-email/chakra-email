@@ -109,6 +109,9 @@ export type PreviewWorkspaceProps = {
   onFrameSizeChange(width: number, height: number): void;
   onResetFrame(): void;
   onResetProps(): void;
+  onCopyVariant(): void;
+  onVariantCopyOpenChange(open: boolean): void;
+  onVariantCopyNameChange(name: string): void;
 };
 
 export function PreviewRoot(props: PreviewWorkspaceProps) {
@@ -1405,6 +1408,7 @@ function Inspector(props: PreviewWorkspaceProps) {
               Updates the preview as you type. Your template files aren't
               changed.
             </Text>
+            <CopyVariant key={state.selectedId} {...props} />
           </Stack>
         </Tabs.Content>
         <Tabs.Content value="info" p="4">
@@ -1658,6 +1662,72 @@ function Inspector(props: PreviewWorkspaceProps) {
         </Tabs.Content>
       </Stack>
     </Tabs.Root>
+  );
+}
+
+function CopyVariant(props: PreviewWorkspaceProps) {
+  const { state } = props;
+  const disabled =
+    !state.result ||
+    state.rendering ||
+    state.propsDirty ||
+    Boolean(state.propsError);
+  return (
+    <Stack gap="2">
+      {state.variantCopyOpen ? (
+        <Field.Root invalid={Boolean(state.variantCopyError)}>
+          <Field.Label htmlFor="preview-variant-name">Variant name</Field.Label>
+          <Input
+            id="preview-variant-name"
+            value={state.variantCopyName}
+            autoFocus
+            disabled={state.variantCopyStatus === 'copying'}
+            onInput={(event) =>
+              props.onVariantCopyNameChange(event.currentTarget.value)
+            }
+            onKeyDown={(event) => {
+              if (
+                event.key === 'Enter' &&
+                !disabled &&
+                state.variantCopyStatus !== 'copying'
+              ) {
+                event.preventDefault();
+                props.onCopyVariant();
+              }
+              if (event.key === 'Escape') {
+                event.stopPropagation();
+                props.onVariantCopyOpenChange(false);
+              }
+            }}
+          />
+        </Field.Root>
+      ) : null}
+      <Button
+        variant="outline"
+        data-action="copy-variant"
+        disabled={disabled || state.variantCopyStatus === 'copying'}
+        onClick={() => {
+          if (!state.variantCopyOpen) props.onVariantCopyOpenChange(true);
+          else props.onCopyVariant();
+        }}
+      >
+        {state.variantCopyStatus === 'copied'
+          ? 'Copied'
+          : state.variantCopyStatus === 'copying'
+            ? 'Copying…'
+            : 'Copy as variant'}
+      </Button>
+      <Text
+        role="status"
+        fontSize="xs"
+        color={state.variantCopyError ? 'preview.danger' : 'preview.textMuted'}
+      >
+        {state.variantCopyError ??
+          (state.variantCopyStatus === 'copied'
+            ? 'Variant copied. Paste it into previewVariants.'
+            : '')}
+      </Text>
+    </Stack>
   );
 }
 

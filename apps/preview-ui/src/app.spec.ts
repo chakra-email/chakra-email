@@ -1508,6 +1508,121 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
+  it('copies a named variant against the base fixture without changing the selected preview', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const select = getElement<HTMLSelectElement>('#variant');
+    select.value = 'reminder';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(harness.renderRequests.at(-1)?.variant).toBe('reminder'),
+    );
+    await vi.waitFor(() =>
+      expect(
+        getElement<HTMLButtonElement>('[data-action="copy-variant"]').disabled,
+      ).toBe(false),
+    );
+    getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('#preview-variant-name')).not.toBeNull(),
+    );
+    const name = getElement<HTMLInputElement>('#preview-variant-name');
+    expect(name.value).toBe('Variant 3');
+    name.value = 'Reminder';
+    name.dispatchEvent(new Event('input', { bubbles: true }));
+    vi.useFakeTimers();
+    getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(harness.copyText).toHaveBeenCalledWith(
+      "'Reminder': {\n  days: 3,\n  name: 'Grace',\n},\n",
+    );
+    expect(harness.renderRequests.at(-1)).toEqual({ id: 'welcome' });
+    expect(select.value).toBe('reminder');
+    expect(getElement<HTMLTextAreaElement>('#preview-props').value).toContain(
+      'Grace',
+    );
+    expect(getElement('[data-action="copy-variant"]').textContent).toBe(
+      'Copied',
+    );
+    await vi.advanceTimersByTimeAsync(1_999);
+    expect(getElement('[data-action="copy-variant"]').textContent).toBe(
+      'Copied',
+    );
+    await vi.advanceTimersByTimeAsync(1);
+    expect(getElement('[data-action="copy-variant"]').textContent).toBe(
+      'Copy as variant',
+    );
+  });
+
+  it('blocks copying invalid props and reports empty names and clipboard failures inline', async () => {
+    const harness = createHarness({
+      copyText: vi.fn(async () => {
+        throw new Error('Clipboard is unavailable.');
+      }),
+    });
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('#preview-variant-name')).not.toBeNull(),
+    );
+    const name = getElement<HTMLInputElement>('#preview-variant-name');
+    name.value = '  ';
+    name.dispatchEvent(new Event('input', { bubbles: true }));
+    getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain(
+        'Enter a name for the variant.',
+      ),
+    );
+    expect(harness.renderRequests).toHaveLength(1);
+    name.value = 'Variant 3';
+    name.dispatchEvent(new Event('input', { bubbles: true }));
+    getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain('Clipboard is unavailable.'),
+    );
+    const editor = getElement<HTMLTextAreaElement>('#preview-props');
+    editor.value = '{invalid';
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(
+      getElement<HTMLButtonElement>('[data-action="copy-variant"]').disabled,
+    ).toBe(true);
+  });
+
+  it('does not copy a stale baseline after the user switches templates', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('#preview-variant-name')).not.toBeNull(),
+    );
+    const original = harness.fetcher.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    let finish!: (response: Response) => void;
+    harness.fetcher.mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+    getElement<HTMLButtonElement>('[data-template-id="receipt"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('h1')?.textContent).toContain(
+        'Order receipt',
+      ),
+    );
+    finish(
+      await original('/api/render', {
+        body: JSON.stringify({ id: 'welcome' }),
+      }),
+    );
+    await flush();
+    expect(harness.copyText).not.toHaveBeenCalled();
+  });
+
   it('renders three protected compare frames and opens the selected viewport and email mode', async () => {
     const harness = createHarness();
     await harness.application.start();

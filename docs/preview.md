@@ -153,6 +153,13 @@ invalid JSON leaves the previous render visible. Reset props restores the
 selected fixture and variant. The inbox row shows the subject and hidden
 preheader, with the variant selector above it.
 
+**Copy as variant** opens an inline name field (defaulting to the next variant
+number), then copies a single-quoted entry for `previewVariants`. Only keys that
+differ from the template's base `previewProps` are included, with a deep diff for
+objects and whole values for changed arrays. Wait for props to finish rendering
+before copying. The action reads the current base fixture without switching the
+visible preview, and never writes to your template files.
+
 The status bar reports frame dimensions, UTF-8 message size, links, images, and
 findings. Its findings tally opens Checks, which includes passed rules from the
 effective server catalog. Sidebar findings currently reflect templates rendered

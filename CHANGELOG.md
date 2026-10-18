@@ -4,6 +4,8 @@
 
 ### Added
 
+- **Copy as variant** copies a named `previewVariants` entry containing only
+  props that differ from the template's base fixture, without changing files.
 - A redesigned local preview workspace with a single top bar, filterable template
   navigation, inbox preview, Props / Info / Checks tabs, live debounced Fields
   and JSON editors, Compare view, command palette, and message status bar.

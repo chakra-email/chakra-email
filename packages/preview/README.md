@@ -141,6 +141,8 @@ and a tabbed **Props · Info · Checks** inspector. It fills the dynamic viewpor
 - Props opens in Fields mode for small objects; JSON supports arrays and larger
   objects. Edits render after 300ms of inactivity. Invalid JSON keeps the last
   good render, and **Reset props** restores the selected fixture/variant.
+- **Copy as variant** copies a named entry to paste into `previewVariants`, with
+  only keys that differ from the base fixture. It never writes source files.
 - Info shows the current envelope, message sizes, link/image counts, and source.
   Checks shows severity totals, on-demand link checks, and passed rules from
   the server's effective catalog and `rulesRun`. Network requests remain opt-in.
