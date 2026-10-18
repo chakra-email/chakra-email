@@ -4,6 +4,9 @@
 
 ### Added
 
+- `chakra-email-preview check` and `checkTemplates()` for CI reports across
+  templates and variants, with strict mode, JSON output, severity overrides,
+  recoverable render failures, and opt-in network link checks.
 - Six preview checks for placeholders, rounded-button fallbacks, color-scheme
   metadata, subject/preheader lengths, and accessible link text. Element findings
   now include unique selectors for the rendered HTML.

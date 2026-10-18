@@ -8,7 +8,9 @@ import {
   type ResolvedPreviewConfig,
 } from './config.js';
 import { discoverTemplates } from './discovery.js';
-import { renderTemplate } from './render-template.js';
+import type { RegisteredTemplate } from './discovery.js';
+import type { PreviewRenderResponse } from './protocol.js';
+import { normalizeJsonObject, renderTemplate } from './render-template.js';
 import { createTemplateModuleLoader } from './vite-loader.js';
 
 export type ExportFormat = 'both' | 'html' | 'text';
@@ -59,8 +61,8 @@ export interface ExportManifest {
   version: 1;
 }
 
-async function resolveExportConfig(
-  options: ExportTemplatesOptions,
+export async function resolveTemplateConfig(
+  options: Pick<ExportTemplatesOptions, 'config' | 'configFile' | 'cwd'>,
 ): Promise<ResolvedPreviewConfig> {
   if (options.config && options.configFile) {
     throw new Error('Provide either config or configFile, not both.');
@@ -69,6 +71,97 @@ async function resolveExportConfig(
   return options.config
     ? normalizeConfig(options.config, undefined, options.cwd)
     : loadPreviewConfig({ configFile: options.configFile, cwd: options.cwd });
+}
+
+export interface RenderAllTemplatesOptions {
+  includeVariants?: boolean;
+  pretty?: boolean;
+  /** Report individual failures and continue instead of failing the export. */
+  continueOnError?: boolean;
+}
+
+export type RenderedTemplate = {
+  template: RegisteredTemplate;
+  variant?: string;
+} & (
+  | { output: PreviewRenderResponse; error?: never }
+  | { output?: never; error: Error }
+);
+
+/** Shares discovery, module loading, variant iteration, and cleanup across CLI commands. */
+export async function* renderAllTemplates(
+  config: ResolvedPreviewConfig,
+  options: RenderAllTemplatesOptions = {},
+): AsyncGenerator<RenderedTemplate> {
+  const registry = await discoverTemplates(config);
+  const loader = await createTemplateModuleLoader(config, () => undefined);
+  try {
+    for (const summary of registry.templates) {
+      const template = registry.byId.get(summary.id);
+      if (!template)
+        throw new Error(`Template registry is missing ${summary.id}.`);
+      let variants: string[] = [];
+      let module: Awaited<ReturnType<typeof loader.load>>;
+      try {
+        module = await loader.load(template.absolutePath);
+        const definedVariants = normalizeJsonObject(
+          module.previewVariants,
+          'previewVariants',
+        );
+        variants =
+          options.includeVariants === false
+            ? []
+            : Object.keys(definedVariants).sort((left, right) =>
+                left.localeCompare(right),
+              );
+      } catch (error) {
+        if (!options.continueOnError) throw error;
+        yield {
+          error: error instanceof Error ? error : new Error(String(error)),
+          template,
+        };
+        continue;
+      }
+      try {
+        const output = await renderTemplate({
+          lintRules: config.lint?.rules,
+          module,
+          pretty: options.pretty ?? true,
+          renderer: config.renderer,
+          template,
+        });
+        yield { output, template };
+      } catch (error) {
+        if (!options.continueOnError) throw error;
+        yield {
+          error: error instanceof Error ? error : new Error(String(error)),
+          template,
+        };
+      }
+      for (const variant of variants) {
+        try {
+          const output = await renderTemplate({
+            lintRules: config.lint?.rules,
+            module,
+            pretty: options.pretty ?? true,
+            renderer: config.renderer,
+            template,
+            variant,
+          });
+          yield { output, template, variant };
+        } catch (error) {
+          if (!options.continueOnError) throw error;
+          yield {
+            error: error instanceof Error ? error : new Error(String(error)),
+            template,
+            variant,
+          };
+        }
+      }
+    }
+  } finally {
+    await loader.close();
+  }
 }
 
 function templateStem(path: string): string {
@@ -109,81 +202,55 @@ export async function exportTemplates(
     throw new Error('Export format must be "html", "text", or "both".');
   }
 
-  const config = await resolveExportConfig(options);
-  const registry = await discoverTemplates(config);
+  const config = await resolveTemplateConfig(options);
   const outDir = resolve(config.root, options.outDir ?? 'dist/emails');
 
-  const loader = await createTemplateModuleLoader(config, () => undefined);
   const files: ExportedTemplateFile[] = [];
   const manifestEntries: ExportManifestEntry[] = [];
+  const templateIds = new Set<string>();
 
-  try {
-    for (const templateSummary of registry.templates) {
-      const template = registry.byId.get(templateSummary.id);
-      if (!template) {
-        throw new Error(`Template registry is missing ${templateSummary.id}.`);
-      }
+  for await (const rendered of renderAllTemplates(config, {
+    includeVariants,
+    pretty,
+  })) {
+    if (rendered.error) throw rendered.error;
+    const { output, template, variant } = rendered;
+    templateIds.add(template.id);
+    const stem = `${templateStem(template.path)}${variant ? variantSuffix(variant) : ''}`;
+    const manifestFiles: ExportManifestEntry['files'] = {};
 
-      const module = await loader.load(template.absolutePath);
-      const defaultOutput = await renderTemplate({
-        lintRules: config.lint?.rules,
-        module,
-        pretty,
-        renderer: config.renderer,
-        template,
+    if (format === 'both' || format === 'html') {
+      const path = resolve(outDir, `${stem}.html`);
+      await writeOutput(path, output.html);
+      files.push({
+        format: 'html',
+        path,
+        templateId: template.id,
+        variant,
       });
-      const variants = includeVariants ? defaultOutput.variants : [];
-
-      for (const variant of [undefined, ...variants]) {
-        const output = variant
-          ? await renderTemplate({
-              lintRules: config.lint?.rules,
-              module,
-              pretty,
-              renderer: config.renderer,
-              template,
-              variant,
-            })
-          : defaultOutput;
-        const stem = `${templateStem(template.path)}${variant ? variantSuffix(variant) : ''}`;
-        const manifestFiles: ExportManifestEntry['files'] = {};
-
-        if (format === 'both' || format === 'html') {
-          const path = resolve(outDir, `${stem}.html`);
-          await writeOutput(path, output.html);
-          files.push({
-            format: 'html',
-            path,
-            templateId: template.id,
-            variant,
-          });
-          manifestFiles.html = relativePosix(outDir, path);
-        }
-
-        if (format === 'both' || format === 'text') {
-          const path = resolve(outDir, `${stem}.txt`);
-          await writeOutput(path, output.text);
-          files.push({
-            format: 'text',
-            path,
-            templateId: template.id,
-            variant,
-          });
-          manifestFiles.text = relativePosix(outDir, path);
-        }
-
-        manifestEntries.push({
-          files: manifestFiles,
-          name: output.name,
-          sourcePath: template.path,
-          subject: output.subject,
-          templateId: template.id,
-          variant,
-        });
-      }
+      manifestFiles.html = relativePosix(outDir, path);
     }
-  } finally {
-    await loader.close();
+
+    if (format === 'both' || format === 'text') {
+      const path = resolve(outDir, `${stem}.txt`);
+      await writeOutput(path, output.text);
+      files.push({
+        format: 'text',
+        path,
+        templateId: template.id,
+        variant,
+      });
+      manifestFiles.text = relativePosix(outDir, path);
+    }
+
+    manifestEntries.push({
+      files: manifestFiles,
+      name: output.name,
+      sourcePath: template.path,
+      subject: output.subject,
+      templateId: template.id,
+      variant,
+    });
   }
 
   let manifestPath: string | undefined;
@@ -197,6 +264,6 @@ export async function exportTemplates(
     files,
     manifestPath,
     outDir,
-    templateCount: registry.templates.length,
+    templateCount: templateIds.size,
   };
 }

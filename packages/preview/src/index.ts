@@ -17,6 +17,11 @@ export type {
 } from './config.js';
 export { createPreviewServer } from './server.js';
 export { exportTemplates } from './export-templates.js';
+export { checkTemplates } from './check-templates.js';
+export type {
+  CheckTemplatesOptions,
+  CheckTemplatesResult,
+} from './check-templates.js';
 export type {
   ExportedTemplateFile,
   ExportFormat,

@@ -1,7 +1,8 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
-import { exportTemplates } from './export-templates.js';
+import { exportTemplates, renderAllTemplates } from './export-templates.js';
+import { normalizeConfig } from './config.js';
 
 describe('exportTemplates', () => {
   it('exports default and named variants as deterministic HTML/text files', async () => {
@@ -108,4 +109,33 @@ describe('exportTemplates', () => {
       }),
     ).rejects.toThrow('Export format');
   });
+
+  it('writes HTML and text byte-identically to the shared render iterator', async () => {
+    const outDir = await mkdtemp(join(tmpdir(), 'chakra-email-export-bytes-'));
+    const config = {
+      root: resolve(process.cwd(), '../../examples/preview'),
+      templates: 'emails',
+    };
+    try {
+      const result = await exportTemplates({ config, outDir });
+      for await (const rendered of renderAllTemplates(
+        normalizeConfig(config),
+      )) {
+        if (rendered.error) throw rendered.error;
+        for (const file of result.files.filter(
+          (entry) =>
+            entry.templateId === rendered.template.id &&
+            entry.variant === rendered.variant,
+        )) {
+          expect(await readFile(file.path, 'utf8')).toBe(
+            file.format === 'html'
+              ? rendered.output.html
+              : rendered.output.text,
+          );
+        }
+      }
+    } finally {
+      await rm(outDir, { force: true, recursive: true });
+    }
+  }, 30_000);
 });

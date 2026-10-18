@@ -236,6 +236,67 @@ export default defineConfig({
 This is an exact DNS-rebinding exception, not a wildcard or an authentication
 mechanism.
 
+## Checks in CI
+
+Run the same checks without starting the preview server or sending mail:
+
+```bash
+chakra-email-preview check --config chakra-email.config.ts
+chakra-email-preview check --strict --default-only
+chakra-email-preview check --format json --rule document-title=warning
+```
+
+By default, checks render every template and named variant. Errors fail with exit
+code `1`; warnings fail only with `--strict`. A template that cannot render is
+reported as a `render-failed` error, and the other templates and known variants
+are still checked. Configuration, discovery, or fatal run failures exit `2`.
+Successful checks exit `0`. `--default-only` skips variants.
+
+Repeat `--rule id=level` to override severities (`off`, `info`, `warning`, `error`):
+rule defaults are overridden by `lint.rules`, then by CLI flags. Network checks
+are off unless `--check-links` is passed, which also requires configured
+`linkCheck` hosts. No check sends email.
+
+Add a package script and a GitHub Actions step after installing dependencies:
+
+```json
+{
+  "scripts": {
+    "email:check": "chakra-email-preview check --strict"
+  }
+}
+```
+
+```yaml
+- name: Check email templates
+  run: pnpm run email:check
+```
+
+For an Nx library in `packages/emails`, add an explicit target:
+
+```json
+{
+  "email-check": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "inputs": ["{projectRoot}/**/*"],
+    "options": {
+      "cwd": "packages/emails",
+      "command": "chakra-email-preview check"
+    }
+  }
+}
+```
+
+Include any shared template/config dependencies in that target's inputs. Do not
+cache a target that enables network checks: remote results can change without
+local file changes. The package does not infer an `email-check` target.
+
+`--format json` prints a versioned report with `summary` counts and `results`
+sorted by path, variant, and HTML location. Programmatic consumers can call
+`checkTemplates({ configFile, includeVariants, checkLinks, rules })` to receive
+that same report; the caller decides whether warnings should fail its process.
+
 ## npm Script
 
 Add a script to the project that owns the templates:

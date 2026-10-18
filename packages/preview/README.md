@@ -124,6 +124,22 @@ configuration resilient to future package changes.
 A missing `assets` directory does not prevent the server from starting; requests
 for files that are not present return `404`.
 
+## Check templates in CI
+
+```bash
+chakra-email-preview check --strict
+chakra-email-preview check --format json --rule document-title=warning
+```
+
+Checks render defaults and named variants without starting a server or sending
+mail. Errors exit `1`; warnings do so only with `--strict`. Configuration or
+fatal run failures exit `2`. A broken template is reported and checking
+continues. Use `--default-only` to skip variants. Network checks require both
+`--check-links` and configured `linkCheck` hosts. Repeat `--rule id=level` to
+override config severities. `checkTemplates()` returns the versioned report for
+programmatic consumers. See [Checks in CI](../../docs/preview.md#checks-in-ci)
+for package scripts, GitHub Actions, and an explicit cacheable Nx target.
+
 ## Preview workspace
 
 The workspace has one top bar, a template sidebar, a scrollable email canvas,
