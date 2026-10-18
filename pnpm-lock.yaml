@@ -18,6 +18,9 @@ overrides:
 importers:
   .:
     devDependencies:
+      '@chakra-email/core':
+        specifier: workspace:*
+        version: link:packages/core
       '@chakra-ui/react':
         specifier: 3.36.0
         version: 3.36.0(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
