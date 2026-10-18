@@ -2,12 +2,14 @@ import type { JsonObject } from './config.js';
 import type { PreviewCompatibilityReference } from './compatibility.js';
 
 export interface PreviewTemplate {
+  group?: string;
   id: string;
   name: string;
   path: string;
 }
 
 export interface PreviewTemplatesResponse {
+  lintRules?: PreviewLintRule[];
   capabilities: {
     linkCheck?: boolean;
     testSend: boolean;
@@ -41,6 +43,14 @@ export type PreviewLintCategory =
   | 'deliverability'
   | 'markup';
 
+export interface PreviewLintRule {
+  id: string;
+  category: PreviewLintCategory;
+  /** Passing condition displayed in the checks catalog. */
+  title: string;
+  severity: PreviewLintSeverity;
+}
+
 export interface PreviewLintFinding {
   category: PreviewLintCategory;
   column?: number;
@@ -54,6 +64,8 @@ export interface PreviewLintFinding {
 }
 
 export interface PreviewRenderResponse {
+  rulesRun?: string[];
+  renderMs?: number;
   linkCheck?: { checked: number; skipped: number };
   html: string;
   id: string;

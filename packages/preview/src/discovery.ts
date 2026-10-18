@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { realpath } from 'node:fs/promises';
-import { isAbsolute, relative, sep } from 'node:path';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { glob } from 'tinyglobby';
 import type { ResolvedPreviewConfig } from './config.js';
 import type { PreviewTemplate } from './protocol.js';
@@ -78,7 +78,21 @@ export async function discoverTemplates(
       );
     }
     const displayPath = toPosix(relative(canonicalRoot, canonicalPath));
+    const templateRoot = config.templateRoots
+      .map((root) => resolve(canonicalRoot, relative(config.root, root)))
+      .sort((a, b) => b.length - a.length)
+      .find((root) => isContained(root, canonicalPath));
+    const templatePath = toPosix(
+      relative(templateRoot ?? canonicalRoot, canonicalPath),
+    );
+    const folder = templatePath.includes('/')
+      ? templatePath.split('/')[0]
+      : undefined;
+    const group = folder
+      ?.replace(/[-_]+/gu, ' ')
+      .replace(/\b\w/gu, (character) => character.toUpperCase());
     registered.push({
+      ...(group ? { group } : {}),
       absolutePath: canonicalPath,
       id: createTemplateId(displayPath),
       name: createTemplateName(displayPath),
@@ -98,6 +112,7 @@ export async function discoverTemplates(
   return {
     byId,
     templates: registered.map((template) => ({
+      ...(template.group ? { group: template.group } : {}),
       id: template.id,
       name: template.name,
       path: template.path,

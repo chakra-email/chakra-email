@@ -7,6 +7,7 @@ import type { ResolvedPreviewConfig } from './config.js';
 import type { TemplateRegistry } from './discovery.js';
 import type { EventHub } from './event-hub.js';
 import { createEmailLinkChecker } from './check-links.js';
+import { getLintRules } from './lint-rules.js';
 import type {
   PreviewErrorResponse,
   PreviewRenderRequest,
@@ -320,7 +321,10 @@ export function createPreviewHttpHandler(
   dependencies: PreviewHttpDependencies,
 ): (request: IncomingMessage, response: ServerResponse) => Promise<void> {
   const checkLinks = dependencies.config.linkCheck
-    ? createEmailLinkChecker(dependencies.config.linkCheck)
+    ? createEmailLinkChecker(
+        dependencies.config.linkCheck,
+        dependencies.config.lint?.rules,
+      )
     : undefined;
   let checkingLinks = false;
   return async (request, response) => {
@@ -376,6 +380,7 @@ export function createPreviewHttpHandler(
             return;
           }
           const body: PreviewTemplatesResponse = {
+            lintRules: getLintRules(dependencies.config.lint?.rules),
             capabilities: {
               testSend: Boolean(dependencies.send),
               ...(checkLinks ? { linkCheck: true } : {}),

@@ -1,10 +1,26 @@
 import { parse, type DefaultTreeAdapterTypes, type ParserError } from 'parse5';
-import type {
-  PreviewLintCategory,
-  PreviewLintFinding,
-  PreviewLintSeverity,
-} from './protocol.js';
+import type { PreviewLintFinding, PreviewLintSeverity } from './protocol.js';
 import { compatibilityReferenceForRule } from './compatibility.js';
+import {
+  lintFindingDefaults,
+  getLintRules,
+  normalizeLintRules,
+  resolveLintFinding,
+  type PreviewLintOverrides,
+  type PreviewLintRuleId,
+} from './lint-rules.js';
+
+export interface LintEmailOptions {
+  text?: string;
+  subject?: string;
+  rules?: PreviewLintOverrides;
+}
+
+export interface LintEmailResult {
+  findings: PreviewLintFinding[];
+  /** Enabled static rules evaluated for this render, never network link rules. */
+  rulesRun: string[];
+}
 
 type Document = DefaultTreeAdapterTypes.Document;
 type Element = DefaultTreeAdapterTypes.Element;
@@ -25,7 +41,7 @@ const unsupportedElements = new Map<
   string,
   {
     message: string;
-    severity: PreviewLintSeverity;
+    ruleId: PreviewLintRuleId;
     suggestion: string;
   }
 >([
@@ -33,7 +49,7 @@ const unsupportedElements = new Map<
     'script',
     {
       message: 'Scripts are removed or blocked by email clients.',
-      severity: 'error',
+      ruleId: 'unsupported-script',
       suggestion: 'Remove the script and express the content as static HTML.',
     },
   ],
@@ -41,7 +57,7 @@ const unsupportedElements = new Map<
     'form',
     {
       message: 'Forms are not dependable across email clients.',
-      severity: 'error',
+      ruleId: 'unsupported-form',
       suggestion:
         'Link to a hosted form instead of embedding one in the email.',
     },
@@ -50,7 +66,7 @@ const unsupportedElements = new Map<
     'iframe',
     {
       message: 'Embedded frames are blocked by most email clients.',
-      severity: 'error',
+      ruleId: 'unsupported-iframe',
       suggestion:
         'Replace the frame with an image and a link to hosted content.',
     },
@@ -59,7 +75,7 @@ const unsupportedElements = new Map<
     'object',
     {
       message: 'Embedded objects are blocked by most email clients.',
-      severity: 'error',
+      ruleId: 'unsupported-object',
       suggestion: 'Replace the object with static content.',
     },
   ],
@@ -67,7 +83,7 @@ const unsupportedElements = new Map<
     'embed',
     {
       message: 'Embedded content is blocked by most email clients.',
-      severity: 'error',
+      ruleId: 'unsupported-embed',
       suggestion: 'Replace the embed with static content.',
     },
   ],
@@ -75,7 +91,7 @@ const unsupportedElements = new Map<
     'svg',
     {
       message: 'Inline SVG has inconsistent support in email clients.',
-      severity: 'warning',
+      ruleId: 'unsupported-svg',
       suggestion: 'Use a hosted PNG or JPEG with descriptive alternative text.',
     },
   ],
@@ -83,7 +99,7 @@ const unsupportedElements = new Map<
     'video',
     {
       message: 'Embedded video is not consistently supported in email clients.',
-      severity: 'warning',
+      ruleId: 'unsupported-video',
       suggestion: 'Use a linked poster image with a clear play affordance.',
     },
   ],
@@ -91,7 +107,7 @@ const unsupportedElements = new Map<
     'audio',
     {
       message: 'Embedded audio is not consistently supported in email clients.',
-      severity: 'warning',
+      ruleId: 'unsupported-audio',
       suggestion: 'Link to a hosted audio player.',
     },
   ],
@@ -99,7 +115,7 @@ const unsupportedElements = new Map<
     'button',
     {
       message: 'Native button elements are unreliable in email clients.',
-      severity: 'warning',
+      ruleId: 'unsupported-button',
       suggestion: 'Use a styled anchor or the Chakra Email Button component.',
     },
   ],
@@ -145,35 +161,29 @@ function textContent(node: Node): string {
 
 function finding(
   element: Element | undefined,
-  ruleId: string,
-  category: PreviewLintCategory,
-  severity: PreviewLintSeverity,
+  ruleId: PreviewLintRuleId,
   message: string,
   suggestion: string,
 ): PreviewLintFinding {
   const location = element?.sourceCodeLocation;
 
   return {
-    category,
+    ...lintFindingDefaults(ruleId),
     column: location?.startCol,
     compatibility: compatibilityReferenceForRule(ruleId),
     element: element ? `<${element.tagName}>` : undefined,
     line: location?.startLine,
     message,
-    ruleId,
-    severity,
     suggestion,
   };
 }
 
 function parserFinding(error: ParserError): PreviewLintFinding {
   return {
-    category: 'markup',
+    ...lintFindingDefaults('valid-html'),
     column: error.startCol,
     line: error.startLine,
     message: `The rendered HTML contains malformed markup (${error.code}).`,
-    ruleId: 'valid-html',
-    severity: 'error',
     suggestion:
       'Inspect the rendered HTML near this location and fix the tag structure.',
   };
@@ -217,8 +227,6 @@ function lintDocumentMetadata(
       finding(
         undefined,
         'document-doctype',
-        'compatibility',
-        'warning',
         'The email has no document type declaration.',
         'Render a complete email document with the Chakra Email Html component.',
       ),
@@ -230,8 +238,6 @@ function lintDocumentMetadata(
       finding(
         body,
         'document-body',
-        'markup',
-        'warning',
         'The rendered output is an HTML fragment rather than a complete email document.',
         'Wrap the template in the Chakra Email Html and Body components.',
       ),
@@ -243,8 +249,6 @@ function lintDocumentMetadata(
       finding(
         html,
         'document-language',
-        'accessibility',
-        'warning',
         'The email does not declare a document language.',
         'Set the lang prop on the Chakra Email Html component.',
       ),
@@ -256,8 +260,6 @@ function lintDocumentMetadata(
       finding(
         title,
         'document-title',
-        'accessibility',
-        'info',
         'The email has no descriptive title.',
         'Add a title element inside Head for assistive technology and browser views.',
       ),
@@ -269,8 +271,6 @@ function lintDocumentMetadata(
       finding(
         undefined,
         'viewport-meta',
-        'compatibility',
-        'warning',
         'The email is missing a viewport meta tag.',
         'Include the Chakra Email Head component for mobile viewport metadata.',
       ),
@@ -282,8 +282,6 @@ function lintDocumentMetadata(
       finding(
         undefined,
         'content-type-meta',
-        'compatibility',
-        'warning',
         'The email does not declare its character encoding.',
         'Include the Chakra Email Head component for UTF-8 metadata.',
       ),
@@ -295,8 +293,6 @@ function lintDocumentMetadata(
       finding(
         undefined,
         'preview-text',
-        'content',
-        'info',
         'No hidden preview text was detected.',
         'Add the Chakra Email Preview component near the start of the email.',
       ),
@@ -314,9 +310,7 @@ function lintElement(element: Element): PreviewLintFinding[] {
     findings.push(
       finding(
         element,
-        `unsupported-${element.tagName}`,
-        'compatibility',
-        unsupported.severity,
+        unsupported.ruleId,
         unsupported.message,
         unsupported.suggestion,
       ),
@@ -331,8 +325,6 @@ function lintElement(element: Element): PreviewLintFinding[] {
       finding(
         element,
         'css-font-face',
-        'compatibility',
-        'info',
         'Web fonts are unavailable in many email clients.',
         'Declare a dependable fallback font stack and verify the result without the remote font.',
       ),
@@ -345,8 +337,6 @@ function lintElement(element: Element): PreviewLintFinding[] {
         finding(
           element,
           'image-alt',
-          'accessibility',
-          'error',
           'This image has no alt attribute.',
           'Add descriptive alternative text, or alt="" for a decorative image.',
         ),
@@ -361,8 +351,6 @@ function lintElement(element: Element): PreviewLintFinding[] {
         finding(
           element,
           'image-dimensions',
-          'compatibility',
-          'info',
           'This image does not have both width and height HTML attributes.',
           'Set pixel width and height values to reduce layout shifts and improve legacy client rendering.',
         ),
@@ -378,8 +366,6 @@ function lintElement(element: Element): PreviewLintFinding[] {
       finding(
         element,
         'external-stylesheet',
-        'compatibility',
-        'warning',
         'External stylesheets are frequently removed by email clients.',
         'Inline critical styles on each element.',
       ),
@@ -393,8 +379,6 @@ function lintElement(element: Element): PreviewLintFinding[] {
         finding(
           element,
           'insecure-url',
-          'deliverability',
-          'warning',
           `The ${name} URL uses insecure HTTP.`,
           'Use an HTTPS URL to avoid blocked content and mixed-content warnings.',
         ),
@@ -410,9 +394,7 @@ function lintElement(element: Element): PreviewLintFinding[] {
       findings.push(
         finding(
           element,
-          `css-display-${layoutKind}`,
-          'compatibility',
-          'warning',
+          layoutKind === 'grid' ? 'css-display-grid' : 'css-display-flex',
           'Flexbox or grid layout can fail in legacy email clients.',
           'Use table-based layout components for critical email structure.',
         ),
@@ -424,8 +406,6 @@ function lintElement(element: Element): PreviewLintFinding[] {
         finding(
           element,
           'css-position',
-          'compatibility',
-          'warning',
           'Fixed or sticky positioning is not dependable in email clients.',
           'Use normal document flow and table-based layout.',
         ),
@@ -437,8 +417,6 @@ function lintElement(element: Element): PreviewLintFinding[] {
         finding(
           element,
           'css-background-image',
-          'compatibility',
-          'info',
           'CSS background images need fallbacks in some desktop clients.',
           'Provide a background color and verify whether an Outlook-specific fallback is needed.',
         ),
@@ -449,10 +427,12 @@ function lintElement(element: Element): PreviewLintFinding[] {
   return findings;
 }
 
-export function lintRenderedEmail(
+export function lintEmail(
   html: string,
-  plainText?: string,
-): PreviewLintFinding[] {
+  options: LintEmailOptions = {},
+): LintEmailResult {
+  const overrides = normalizeLintRules(options.rules);
+  const plainText = options.text;
   const parserErrors: ParserError[] = [];
   const document = parse(html, {
     onParseError: (error) => {
@@ -471,10 +451,8 @@ export function lintRenderedEmail(
 
   if (plainText !== undefined && !plainText.trim()) {
     findings.push({
-      category: 'content',
+      ...lintFindingDefaults('plain-text-content'),
       message: 'The generated plain-text version is empty.',
-      ruleId: 'plain-text-content',
-      severity: 'warning',
       suggestion:
         'Include meaningful text content for clients that cannot render HTML.',
     });
@@ -482,20 +460,40 @@ export function lintRenderedEmail(
 
   if (Buffer.byteLength(html, 'utf8') > 102 * 1024) {
     findings.push({
-      category: 'deliverability',
+      ...lintFindingDefaults('message-size'),
       message: 'The rendered HTML is larger than 102 KB and may be clipped.',
-      ruleId: 'message-size',
-      severity: 'warning',
       suggestion:
         'Reduce repeated markup and inline styles, or simplify the email content.',
     });
   }
 
-  return findings.sort(
+  const resolved = findings.flatMap((entry) => {
+    const finding = resolveLintFinding(entry, overrides);
+    return finding ? [finding] : [];
+  });
+  resolved.sort(
     (left, right) =>
       severityOrder[left.severity] - severityOrder[right.severity] ||
       (left.line ?? Number.MAX_SAFE_INTEGER) -
         (right.line ?? Number.MAX_SAFE_INTEGER) ||
       left.ruleId.localeCompare(right.ruleId),
   );
+  return {
+    findings: resolved,
+    rulesRun: getLintRules(overrides)
+      .filter(
+        (rule) =>
+          rule.category !== 'links' &&
+          (rule.id !== 'plain-text-content' || plainText !== undefined),
+      )
+      .map((rule) => rule.id),
+  };
+}
+
+/** Backwards-compatible convenience API with the original defaults and return type. */
+export function lintRenderedEmail(
+  html: string,
+  plainText?: string,
+): PreviewLintFinding[] {
+  return lintEmail(html, { text: plainText }).findings;
 }

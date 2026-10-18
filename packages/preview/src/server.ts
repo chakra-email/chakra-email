@@ -189,6 +189,7 @@ export async function createPreviewServer(
       throw new Error('Template was not found.');
     }
     return renderTemplate({
+      lintRules: config.lint?.rules,
       module: await moduleLoader.load(template.absolutePath),
       props: request.props,
       renderer: config.renderer,

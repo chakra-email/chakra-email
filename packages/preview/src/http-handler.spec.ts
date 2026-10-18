@@ -134,6 +134,12 @@ describe('preview HTTP handler', () => {
       headers: { 'x-chakra-email-preview-token': token },
     });
     await expect(templates.json()).resolves.toEqual({
+      lintRules: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'document-title',
+          title: expect.any(String),
+        }),
+      ]),
       capabilities: { testSend: true, linkCheck: true },
       templates: [
         { id: 'template-id', name: 'Welcome', path: 'emails/welcome.tsx' },

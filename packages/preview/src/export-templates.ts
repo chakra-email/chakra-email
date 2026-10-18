@@ -126,6 +126,7 @@ export async function exportTemplates(
 
       const module = await loader.load(template.absolutePath);
       const defaultOutput = await renderTemplate({
+        lintRules: config.lint?.rules,
         module,
         pretty,
         renderer: config.renderer,
@@ -136,6 +137,7 @@ export async function exportTemplates(
       for (const variant of [undefined, ...variants]) {
         const output = variant
           ? await renderTemplate({
+              lintRules: config.lint?.rules,
               module,
               pretty,
               renderer: config.renderer,

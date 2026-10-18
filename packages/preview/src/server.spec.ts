@@ -79,6 +79,43 @@ describe('createPreviewServer', () => {
     ).rejects.toThrow('allowRemote');
   });
 
+  it('applies config lint overrides to real template renders served to the browser', async () => {
+    const uiRoot = await mkdtemp(join(tmpdir(), 'chakra-email-lint-ui-'));
+    const preview = await createPreviewServer({
+      config: {
+        root: resolve(process.cwd(), '../../examples/preview'),
+        templates: 'emails',
+        lint: { rules: { 'document-title': 'off' } },
+      },
+      port: 0,
+      uiRoot,
+    });
+    try {
+      const address = await preview.listen();
+      const headers = { 'x-chakra-email-preview-token': address.token };
+      const templates = (await (
+        await fetch(`${address.url}/api/templates`, { headers })
+      ).json()) as { templates: Array<{ id: string }> };
+      const response = await fetch(`${address.url}/api/render`, {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify({ id: templates.templates[0]?.id }),
+      });
+      expect(response.status).toBe(200);
+      const result = (await response.json()) as {
+        html: string;
+        lint: Array<{ ruleId: string }>;
+      };
+      expect(result.html).toContain('<!DOCTYPE html');
+      expect(
+        result.lint.some((finding) => finding.ruleId === 'document-title'),
+      ).toBe(false);
+    } finally {
+      await preview.close();
+      await rm(uiRoot, { force: true, recursive: true });
+    }
+  }, 30_000);
+
   it('renders and delegates test sends through the configured transport', async () => {
     const uiRoot = await mkdtemp(join(tmpdir(), 'chakra-email-send-ui-'));
     await writeFile(

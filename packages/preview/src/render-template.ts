@@ -13,7 +13,8 @@ import {
 import type { JsonObject, JsonValue } from './config.js';
 import type { PreviewRenderResponse } from './protocol.js';
 import type { RegisteredTemplate } from './discovery.js';
-import { lintRenderedEmail } from './lint-email.js';
+import { lintEmail } from './lint-email.js';
+import type { PreviewLintOverrides } from './lint-rules.js';
 
 export type TemplateModule = Record<string, unknown> & { default?: unknown };
 export type PreviewSubject<Props = JsonObject> =
@@ -21,6 +22,7 @@ export type PreviewSubject<Props = JsonObject> =
   | ((props: Props) => string | Promise<string>);
 
 export interface RenderTemplateOptions {
+  lintRules?: PreviewLintOverrides;
   module: TemplateModule;
   pretty?: boolean;
   props?: unknown;
@@ -156,6 +158,7 @@ async function resolvePreviewSubject(
 export async function renderTemplate(
   options: RenderTemplateOptions,
 ): Promise<PreviewRenderResponse> {
+  const start = performance.now();
   const component = options.module.default;
   if (!component) {
     throw new Error('Template must have a default export.');
@@ -196,11 +199,14 @@ export async function renderTemplate(
     ),
   ]);
   const { html, text } = output;
+  const lint = lintEmail(html, { text, subject, rules: options.lintRules });
 
   return {
     html,
     id: options.template.id,
-    lint: lintRenderedEmail(html, text),
+    lint: lint.findings,
+    rulesRun: lint.rulesRun,
+    renderMs: Math.round(performance.now() - start),
     name: options.template.name,
     props,
     source,

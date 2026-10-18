@@ -59,6 +59,10 @@ describe('renderTemplate', () => {
     expect(result.source).toContain('function Welcome');
     expect(result.subject).toBe('Welcome');
     expect(result.variants).toEqual(['friendly']);
+    expect(Number.isInteger(result.renderMs)).toBe(true);
+    expect(result.renderMs).toBeGreaterThanOrEqual(0);
+    expect(result.rulesRun).toContain('plain-text-content');
+    expect(result.rulesRun).not.toContain('link-broken');
   });
 
   it('derives a subject from the fully merged preview props', async () => {
@@ -75,6 +79,31 @@ describe('renderTemplate', () => {
     });
 
     expect(result.subject).toBe('Welcome Grace');
+  });
+
+  it('uses configured lint rules without changing rendered HTML or text', async () => {
+    const module = {
+      default: () =>
+        createElement('img', { src: 'http://example.org/image.png' }),
+    };
+    const defaults = await renderTemplate({ module, template });
+    const customized = await renderTemplate({
+      module,
+      template,
+      lintRules: { 'image-alt': 'info', 'insecure-url': 'off' },
+    });
+    expect(customized.html).toBe(defaults.html);
+    expect(customized.text).toBe(defaults.text);
+    expect(
+      defaults.lint.find((finding) => finding.ruleId === 'image-alt')?.severity,
+    ).toBe('error');
+    expect(
+      customized.lint.find((finding) => finding.ruleId === 'image-alt')
+        ?.severity,
+    ).toBe('info');
+    expect(
+      customized.lint.some((finding) => finding.ruleId === 'insecure-url'),
+    ).toBe(false);
   });
 
   it.each([

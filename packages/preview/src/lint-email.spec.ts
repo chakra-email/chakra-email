@@ -1,6 +1,78 @@
-import { lintRenderedEmail } from './lint-email.js';
+import { lintEmail, lintRenderedEmail } from './lint-email.js';
+import { getLintRules } from './lint-rules.js';
 
 describe('lintRenderedEmail', () => {
+  it('preserves the convenience API while exposing the rules actually evaluated', () => {
+    const html = '<p>Hello</p>';
+    const result = lintEmail(html, { text: 'Hello', subject: 'Welcome' });
+    expect(result.findings).toEqual(lintRenderedEmail(html, 'Hello'));
+    expect(result.rulesRun).toEqual(
+      getLintRules()
+        .filter((rule) => rule.category !== 'links')
+        .map((rule) => rule.id),
+    );
+    expect(new Set(result.rulesRun).size).toBe(result.rulesRun.length);
+    expect(result.rulesRun).toContain('plain-text-content');
+    expect(lintEmail(html).rulesRun).not.toContain('plain-text-content');
+    expect(result.rulesRun.some((id) => id.startsWith('link-'))).toBe(false);
+    for (const finding of result.findings)
+      expect(result.rulesRun).toContain(finding.ruleId);
+  });
+
+  it('applies overrides to element, parser, metadata and message findings before sorting', () => {
+    const html = `<div id="a" id="b"><img src="http://example.org/image.png">${'x'.repeat(103 * 1024)}</div>`;
+    const result = lintEmail(html, {
+      text: '',
+      rules: {
+        'image-alt': 'info',
+        'insecure-url': 'error',
+        'valid-html': 'off',
+        'document-title': 'off',
+        'plain-text-content': 'off',
+        'message-size': 'error',
+      },
+    });
+    expect(
+      result.findings.find((finding) => finding.ruleId === 'image-alt')
+        ?.severity,
+    ).toBe('info');
+    expect(
+      result.findings.find((finding) => finding.ruleId === 'insecure-url')
+        ?.severity,
+    ).toBe('error');
+    expect(
+      result.findings.find((finding) => finding.ruleId === 'message-size')
+        ?.severity,
+    ).toBe('error');
+    expect(result.findings[0]?.severity).toBe('error');
+    for (const id of ['valid-html', 'document-title', 'plain-text-content']) {
+      expect(result.rulesRun).not.toContain(id);
+      expect(result.findings.some((finding) => finding.ruleId === id)).toBe(
+        false,
+      );
+    }
+    expect(
+      lintRenderedEmail(html, '').find(
+        (finding) => finding.ruleId === 'image-alt',
+      )?.severity,
+    ).toBe('error');
+  });
+
+  it('reports passing static checks even when there are no findings', () => {
+    const rules = Object.fromEntries(
+      getLintRules().map((rule) => [rule.id, 'off' as const]),
+    );
+    const result = lintEmail('<p>Hello</p>', {
+      rules: { ...rules, 'message-size': 'warning' },
+    });
+    expect(result).toEqual({ findings: [], rulesRun: ['message-size'] });
+  });
+
+  it('rejects invalid overrides in the programmatic API', () => {
+    expect(() =>
+      lintEmail('<p>Hello</p>', { rules: { missing: 'off' } }),
+    ).toThrow("Unknown lint rule 'missing'");
+  });
   it('accepts a complete, email-safe document', () => {
     const findings = lintRenderedEmail(
       `<!doctype html>

@@ -10,6 +10,37 @@ describe('explicit email link checks', () => {
     head.mockReset();
   });
 
+  it('applies shared severity overrides to fresh and cached findings, and suppresses disabled rules', async () => {
+    head.mockResolvedValue({ status: 404 });
+    const checker = createEmailLinkChecker(options, {
+      'link-broken': 'warning',
+      'link-skipped': 'off',
+    });
+    const html =
+      '<a href="https://example.org/missing">Missing</a><a href="mailto:hi@example.org">Mail</a>';
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = await checker(html);
+      expect(result).toMatchObject({
+        checked: 1,
+        skipped: 1,
+        findings: [
+          { ruleId: 'link-broken', category: 'links', severity: 'warning' },
+        ],
+      });
+      expect(result.findings).toHaveLength(1);
+    }
+    expect(head).toHaveBeenCalledTimes(1);
+    expect(
+      (await createEmailLinkChecker(options, { 'link-broken': 'off' })(html))
+        .findings,
+    ).toEqual([
+      expect.objectContaining({ ruleId: 'link-skipped', severity: 'info' }),
+    ]);
+    expect(() => createEmailLinkChecker(options, { missing: 'off' })).toThrow(
+      'Unknown lint rule',
+    );
+  });
+
   it('reports broken links and redirects with HTML locations, without following redirects', async () => {
     head.mockImplementation(async (url) =>
       url.pathname === '/missing'

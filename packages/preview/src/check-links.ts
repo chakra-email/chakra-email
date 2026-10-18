@@ -1,6 +1,12 @@
 import { parse, type DefaultTreeAdapterTypes } from 'parse5';
 import { requestLinkHead } from './link-network.js';
 import type { PreviewLintFinding } from './protocol.js';
+import {
+  normalizeLintRules,
+  resolveLintFinding,
+  type PreviewLintOverrides,
+  type PreviewLintRuleId,
+} from './lint-rules.js';
 
 export interface PreviewLinkCheckConfig {
   /** Exact HTTP(S) hostnames that may receive explicit link-check requests. */
@@ -121,12 +127,13 @@ function skipReason(
 /** Creates a bounded, server-only checker with an instance-local cache. */
 export function createEmailLinkChecker(
   options: PreviewLinkCheckConfig,
+  lintRules?: PreviewLintOverrides,
 ): (html: string) => Promise<PreviewLinkCheckResult> {
   const config = normalizeLinkCheck(options);
-  type Outcome = Pick<
-    PreviewLintFinding,
-    'message' | 'ruleId' | 'severity' | 'suggestion'
-  >;
+  const overrides = normalizeLintRules(lintRules);
+  type Outcome = Pick<PreviewLintFinding, 'message' | 'suggestion'> & {
+    ruleId: PreviewLintRuleId;
+  };
   const cache = new Map<string, { expires: number; outcome: Outcome | null }>();
   let running = false;
   return async (html) => {
@@ -167,7 +174,6 @@ export function createEmailLinkChecker(
           result.skipped++;
           return {
             ruleId: 'link-skipped',
-            severity: 'info',
             message: 'Link not checked.',
             suggestion: reason ?? 'Per-check URL limit reached.',
           };
@@ -196,7 +202,6 @@ export function createEmailLinkChecker(
             }
             outcome = {
               ruleId: 'link-redirect',
-              severity: 'info',
               message: `HTTP ${status}: link redirects.`,
               suggestion: `${destination} Redirect was not followed; verify before changing the URL.`,
             };
@@ -204,7 +209,6 @@ export function createEmailLinkChecker(
             const broken = status === 404 || status === 410;
             outcome = {
               ruleId: broken ? 'link-broken' : 'link-unverified',
-              severity: broken ? 'error' : 'warning',
               message: `HTTP ${status}: ${broken ? 'link appears broken' : 'link could not be verified'}.`,
               suggestion:
                 'Verify in a browser with test data. Some servers handle HEAD differently from GET.',
@@ -213,7 +217,6 @@ export function createEmailLinkChecker(
         } catch {
           outcome = {
             ruleId: 'link-unverified',
-            severity: 'warning',
             message: 'Link could not be verified.',
             suggestion:
               'DNS, TLS, timeout, or public-network restrictions prevented checking. Verify manually.',
@@ -234,13 +237,17 @@ export function createEmailLinkChecker(
             const [raw, occurrences] = entry;
             const outcome = await check(raw);
             if (outcome)
-              for (const location of occurrences)
-                result.findings.push({
-                  ...outcome,
-                  ...location,
-                  category: 'links',
-                  element: `a[href="${raw.split(/[?#]/u)[0].slice(0, 500)}"]`,
-                });
+              for (const location of occurrences) {
+                const finding = resolveLintFinding(
+                  {
+                    ...outcome,
+                    ...location,
+                    element: `a[href="${raw.split(/[?#]/u)[0].slice(0, 500)}"]`,
+                  },
+                  overrides,
+                );
+                if (finding) result.findings.push(finding);
+              }
           }
         }),
       );

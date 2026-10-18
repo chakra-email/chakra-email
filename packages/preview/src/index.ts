@@ -25,7 +25,16 @@ export type {
   ExportTemplatesOptions,
   ExportTemplatesResult,
 } from './export-templates.js';
-export { lintRenderedEmail } from './lint-email.js';
+export { lintEmail, lintRenderedEmail } from './lint-email.js';
+export type { LintEmailOptions, LintEmailResult } from './lint-email.js';
+export { getLintRules, previewLintRules } from './lint-rules.js';
+export type {
+  LintRuleDefinition,
+  PreviewLintConfig,
+  PreviewLintLevel,
+  PreviewLintOverrides,
+  PreviewLintRuleId,
+} from './lint-rules.js';
 export { createEmailLinkChecker } from './check-links.js';
 export type {
   PreviewLinkCheckConfig,
@@ -46,6 +55,7 @@ export type {
 export type {
   PreviewLintCategory,
   PreviewLintFinding,
+  PreviewLintRule,
   PreviewLintSeverity,
   PreviewRenderRequest,
   PreviewRenderResponse,
