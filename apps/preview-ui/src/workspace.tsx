@@ -252,10 +252,11 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
               {filter === 'all' ? 'All' : 'With issues'}{' '}
               {filter === 'all'
                 ? state.templates.length
-                : state.templates.filter((t) =>
-                    (state.templateFindings[t.id] ?? []).some(
-                      (f) => f.severity !== 'info',
-                    ),
+                : state.templates.filter(
+                    (t) =>
+                      (state.templateSummaries[t.id]?.error ?? 0) +
+                        (state.templateSummaries[t.id]?.warning ?? 0) >
+                      0,
                   ).length}
             </Button>
           ))}
@@ -1086,9 +1087,9 @@ function TemplateList(props: PreviewWorkspaceProps) {
         .toLowerCase()
         .includes(state.filterText.toLowerCase()) &&
       (state.templateFilter === 'all' ||
-        (state.templateFindings[t.id] ?? []).some(
-          (f) => f.severity !== 'info',
-        )),
+        (state.templateSummaries[t.id]?.error ?? 0) +
+          (state.templateSummaries[t.id]?.warning ?? 0) >
+          0),
   );
   const groupName = (t: ApplicationState['templates'][number]) => t.group ?? '';
   const groups = [...new Set(state.templates.map(groupName))].sort();
@@ -1121,8 +1122,12 @@ function TemplateList(props: PreviewWorkspaceProps) {
               </Flex>
             ) : null}
             {templates.map((template) => {
-              const findings = state.templateFindings[template.id] ?? [];
-              const counts = findingCounts(findings);
+              const counts = state.templateSummaries[template.id] ?? {
+                error: 0,
+                warning: 0,
+                info: 0,
+              };
+              const total = counts.error + counts.warning + counts.info;
               const severity = counts.error
                 ? 'error'
                 : counts.warning
@@ -1141,7 +1146,7 @@ function TemplateList(props: PreviewWorkspaceProps) {
                     }
                     aria-label={
                       shortTemplateName(template.name) +
-                      (findings.length ? ', ' + tallyLabel(counts) : '')
+                      (total ? ', ' + tallyLabel(counts) : '')
                     }
                     css={
                       recipe({ selected: template.id === state.selectedId })
@@ -1151,7 +1156,7 @@ function TemplateList(props: PreviewWorkspaceProps) {
                     onClick={() => props.onSelectTemplate(template.id)}
                   >
                     <Text truncate>{shortTemplateName(template.name)}</Text>
-                    {findings.length ? (
+                    {total ? (
                       <Flex
                         align="center"
                         gap="1.5"
@@ -1164,7 +1169,7 @@ function TemplateList(props: PreviewWorkspaceProps) {
                           borderRadius="full"
                           bg={lintSeverityColor(severity)}
                         />
-                        {findings.length}
+                        {total}
                       </Flex>
                     ) : null}
                   </Button>

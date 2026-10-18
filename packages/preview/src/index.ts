@@ -70,6 +70,8 @@ export type {
 export type {
   PreviewLintCategory,
   PreviewLintFinding,
+  PreviewLintSummary,
+  PreviewLintSummaryEntry,
   PreviewLintRule,
   PreviewLintSeverity,
   PreviewRenderRequest,

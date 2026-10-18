@@ -4,6 +4,9 @@
 
 ### Added
 
+- Background default-template lint summaries update every sidebar row over SSE,
+  including unvisited templates, with debounced, bounded work, stale-generation
+  cancellation, late-client replay, and priority for explicit renders.
 - Config and template `previewFrom` metadata powers the inbox, Info, and `.eml`
   sender headers. Authenticated **Open in editor** opens discovered templates
   only on loopback hosts and can be disabled with `openInEditor: false`.
@@ -36,6 +39,8 @@
 
 ### Changed
 
+- A late variant or watch refresh no longer overwrites props typed while the
+  request was in flight.
 - `.eml` exports also work on local HTTP domains without secure-context UUIDs.
 - Desktop / Mobile preview presets use 600px / 375px; the former Fit preset
   falls back to Desktop. Workspace color follows the OS or the palette's saved

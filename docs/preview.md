@@ -168,6 +168,8 @@ Props supports generated fields or JSON. Edits render after 300ms of inactivity;
 invalid JSON leaves the previous render visible. Reset props restores the
 selected fixture and variant. The inbox row shows the sender, subject, and
 server-normalized hidden preheader, with the variant selector above it.
+Late variant or watch responses preserve props edited while a request was in
+flight; the debounced edit then renders against the current selection.
 
 **Copy as variant** opens an inline name field (defaulting to the next variant
 number), then copies a single-quoted entry for `previewVariants`. Only keys that
@@ -178,8 +180,16 @@ visible preview, and never writes to your template files.
 
 The status bar reports frame dimensions, UTF-8 message size, links, images, and
 findings. Its findings tally opens Checks, which includes passed rules from the
-effective server catalog. Sidebar findings currently reflect templates rendered
-in this session; background lint summaries are still pending.
+effective server catalog. Sidebar counts come from background renders of each
+template's default fixture, including templates you have not opened. They do
+not change when you select a variant or edit props; the active Checks tab and
+status bar still describe the current preview.
+
+Summaries start after discovery and refresh after changes, with a 500ms debounce
+and at most two background templates in flight. Explicit renders take priority.
+Cancelled generations cannot publish stale results, render failures count as
+one error, and newly connected SSE clients receive the latest complete summary.
+Rows show no indicator until the first summary arrives.
 
 Checks cards open one at a time. Select a finding to outline its affected
 element in Preview and all Compare frames; **HTML line N** opens and scrolls to

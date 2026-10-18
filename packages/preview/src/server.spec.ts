@@ -79,6 +79,67 @@ describe('createPreviewServer', () => {
     ).rejects.toThrow('allowRemote');
   });
 
+  it('streams initial default lint summaries and replays them to late subscribers', async () => {
+    const uiRoot = await mkdtemp(join(tmpdir(), 'chakra-email-summary-ui-'));
+    const preview = await createPreviewServer({
+      config: {
+        root: resolve(process.cwd(), '../../examples/preview'),
+        templates: 'emails',
+      },
+      port: 0,
+      uiRoot,
+    });
+    const readers: Array<ReadableStreamDefaultReader<Uint8Array>> = [];
+    try {
+      const address = await preview.listen();
+      const readSummary = async (timeout: number) => {
+        const response = await fetch(`${address.url}/api/events`, {
+          headers: { 'x-chakra-email-preview-token': address.token },
+          signal: AbortSignal.timeout(timeout),
+        });
+        expect(response.status).toBe(200);
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('Missing event stream.');
+        readers.push(reader);
+        const decoder = new TextDecoder();
+        let data = '';
+        while (!/event: lint-summary\ndata: ([^\n]+)\n\n/u.test(data)) {
+          const chunk = await reader.read();
+          if (chunk.done)
+            throw new Error('Event stream ended without a summary.');
+          data += decoder.decode(chunk.value, { stream: true });
+        }
+        return JSON.parse(
+          /event: lint-summary\ndata: ([^\n]+)\n\n/u.exec(data)?.[1] ?? '{}',
+        ) as {
+          generation: number;
+          templates: Array<{
+            id: string;
+            error: number;
+            warning: number;
+            info: number;
+          }>;
+        };
+      };
+      const first = await readSummary(10_000);
+      expect(first.generation).toBeGreaterThan(0);
+      expect(first.templates).toHaveLength(1);
+      expect(first.templates[0]).toMatchObject({
+        error: expect.any(Number),
+        warning: expect.any(Number),
+        info: expect.any(Number),
+      });
+      // No new render or watcher change is needed for a late connection.
+      await expect(readSummary(2_000)).resolves.toEqual(first);
+    } finally {
+      await Promise.all(
+        readers.map((reader) => reader.cancel().catch(() => undefined)),
+      );
+      await preview.close();
+      await rm(uiRoot, { force: true, recursive: true });
+    }
+  }, 30_000);
+
   it('applies config lint overrides to real template renders served to the browser', async () => {
     const uiRoot = await mkdtemp(join(tmpdir(), 'chakra-email-lint-ui-'));
     const preview = await createPreviewServer({

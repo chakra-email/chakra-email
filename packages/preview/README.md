@@ -157,9 +157,9 @@ and a tabbed **Props · Info · Checks** inspector. It fills the dynamic viewpor
 - Compare shows desktop/light, mobile/light, and mobile/dark sandboxed frames.
   Click a frame to open its settings in Preview. HTML includes line numbers.
 - Filter templates by name or path. Folder groups come from the configured
-  templates directory. Issue indicators currently reflect templates rendered
-  during this session; background summaries for all templates are not yet
-  implemented. **With issues** excludes info-only results.
+  templates directory. Background summaries update all rows, including unvisited
+  templates, after discovery and changes. Counts describe default fixtures, not
+  the active variant or edited props. **With issues** excludes info-only results.
 - Props opens in Fields mode for small objects; JSON supports arrays and larger
   objects. Edits render after 300ms of inactivity. Invalid JSON keeps the last
   good render, and **Reset props** restores the selected fixture/variant.

@@ -2096,6 +2096,17 @@ describe('PreviewApplication', () => {
       return response;
     });
     await harness.application.start();
+    harness.eventSource.dispatchEvent(
+      new MessageEvent('lint-summary', {
+        data: JSON.stringify({
+          generation: 1,
+          templates: [
+            { id: 'welcome', error: 1, warning: 1, info: 0 },
+            { id: 'receipt', error: 0, warning: 0, info: 1 },
+          ],
+        }),
+      }),
+    );
     getElement<HTMLButtonElement>('[data-template-id="receipt"]').click();
     await vi.waitFor(() =>
       expect(document.querySelector('h1')?.textContent).toContain(
@@ -2137,6 +2148,103 @@ describe('PreviewApplication', () => {
       window.localStorage.getItem('chakra-email.preview.template-filter'),
     ).toBe('issues');
     harness.application.destroy();
+  });
+
+  it('receives default summaries before discovery finishes and shows issues on unvisited templates', async () => {
+    const harness = createHarness();
+    const started = harness.application.start();
+    harness.eventSource.dispatchEvent(
+      new MessageEvent('lint-summary', {
+        data: JSON.stringify({
+          generation: 1,
+          templates: [
+            { id: 'welcome', error: 0, warning: 0, info: 0 },
+            { id: 'receipt', error: 0, warning: 4, info: 1 },
+          ],
+        }),
+      }),
+    );
+    await started;
+    expect(harness.renderRequests).toHaveLength(1);
+    expect(
+      getElement('[data-template-id="receipt"]').getAttribute('aria-label'),
+    ).toContain('4 warnings, 1 info');
+    expect(
+      getElement('[data-template-id="welcome"]').getAttribute('aria-label'),
+    ).toBe('Welcome email');
+    // The active render still reports its own findings, not the sidebar's default snapshot.
+    expect(getElement('.lint-summary').getAttribute('aria-label')).toContain(
+      '1 error, 1 warning',
+    );
+    const issues = [
+      ...document.querySelectorAll<HTMLButtonElement>(
+        '[aria-label="Template filter"] button',
+      ),
+    ].find((button) => button.textContent?.includes('With issues'));
+    issues?.click();
+    expect(
+      document.querySelector('[data-template-id="receipt"]'),
+    ).not.toBeNull();
+    expect(document.querySelector('[data-template-id="welcome"]')).toBeNull();
+  });
+
+  it('ignores stale or malformed summaries but accepts a restarted server after reconnect', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const emit = (generation: number, warning: number) =>
+      harness.eventSource.dispatchEvent(
+        new MessageEvent('lint-summary', {
+          data: JSON.stringify({
+            generation,
+            templates: [{ id: 'welcome', error: 0, warning, info: 0 }],
+          }),
+        }),
+      );
+    expect(
+      getElement('[data-template-id="welcome"]').getAttribute('aria-label'),
+    ).toBe('Welcome email');
+    emit(4, 4);
+    emit(3, 3);
+    emit(5, -1);
+    harness.eventSource.dispatchEvent(
+      new MessageEvent('lint-summary', { data: '{invalid' }),
+    );
+    expect(
+      getElement('[data-template-id="welcome"]').getAttribute('aria-label'),
+    ).toContain('4 warnings');
+    harness.eventSource.dispatchEvent(new Event('open'));
+    emit(1, 1);
+    expect(
+      getElement('[data-template-id="welcome"]').getAttribute('aria-label'),
+    ).toContain('1 warning');
+  });
+
+  it('does not replace default sidebar counts when variants or edited props render', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    harness.eventSource.dispatchEvent(
+      new MessageEvent('lint-summary', {
+        data: JSON.stringify({
+          generation: 1,
+          templates: [{ id: 'welcome', error: 0, warning: 5, info: 0 }],
+        }),
+      }),
+    );
+    const variant = getElement<HTMLSelectElement>('#variant');
+    variant.value = 'reminder';
+    variant.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(harness.renderRequests.at(-1)?.variant).toBe('reminder'),
+    );
+    vi.useFakeTimers();
+    const editor = getElement<HTMLTextAreaElement>('#preview-props');
+    editor.value = '{"name":"Lin"}';
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(300);
+    expect(harness.renderRequests.at(-1)?.props).toEqual({ name: 'Lin' });
+    expect(
+      getElement('[data-template-id="welcome"]').getAttribute('aria-label'),
+    ).toContain('5 warnings');
   });
 
   it('persists inspector tabs and derives passed checks from the returned catalog and rulesRun', async () => {

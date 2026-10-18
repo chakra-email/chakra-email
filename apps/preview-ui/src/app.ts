@@ -5,6 +5,7 @@ import { PreviewRoot } from './workspace';
 import { buildPreviewMessage } from './message';
 import { buildVariantSnippet } from './variant';
 import { previewClients } from './client-support';
+import { parseLintSummary, type TemplateLintCounts } from './lint-summary';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -141,7 +142,7 @@ export type ApplicationState = {
   frameWidth: number;
   frameHeight: number | null;
   frameRevision: number;
-  templateFindings: Record<string, LintFinding[]>;
+  templateSummaries: Record<string, TemplateLintCounts>;
 };
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -608,6 +609,7 @@ export class PreviewApplication {
   private eventSource: EventSourceLike | null = null;
   private renderSequence = 0;
   private refreshScheduled = false;
+  private summaryGeneration = 0;
   private copyTimer: number | null = null;
   private copySequence = 0;
   private editorSequence = 0;
@@ -685,7 +687,10 @@ export class PreviewApplication {
       readStoredValue('chakra-email.preview.viewport') === 'mobile' ? 375 : 600,
     frameHeight: null,
     frameRevision: 0,
-    templateFindings: {},
+    templateSummaries: Object.create(null) as Record<
+      string,
+      TemplateLintCounts
+    >,
   };
 
   public constructor(options: PreviewApplicationOptions) {
@@ -952,6 +957,7 @@ export class PreviewApplication {
     }
 
     const sequence = ++this.renderSequence;
+    const editorAtStart = this.state.propsText;
     const body: {
       id: string;
       variant?: string;
@@ -1015,10 +1021,6 @@ export class PreviewApplication {
       ) {
         this.state.selectedFindingKey = null;
       }
-      this.state.templateFindings = {
-        ...this.state.templateFindings,
-        [id]: result.lint,
-      };
       this.state.lastRenderedAt = Date.now();
       this.state.rendering = false;
       this.state.appliedProps = result.props;
@@ -1033,7 +1035,7 @@ export class PreviewApplication {
         this.state.selectedVariant = '';
       }
 
-      if (options.replaceEditor) {
+      if (options.replaceEditor && this.state.propsText === editorAtStart) {
         this.state.propsText = formatJson(result.props);
         this.state.propsDirty = false;
         this.state.propsError = null;
@@ -1374,6 +1376,9 @@ export class PreviewApplication {
       this.eventSource = eventSource;
 
       eventSource.addEventListener('open', () => {
+        // A restarted server begins its generations at one again. Replay after
+        // reconnect establishes the ordering for this connection, not the old process.
+        this.summaryGeneration = 0;
         this.state.connection = 'connected';
         this.render();
       });
@@ -1383,6 +1388,31 @@ export class PreviewApplication {
       });
       eventSource.addEventListener('templates', () => {
         this.scheduleRefresh('templates');
+      });
+      eventSource.addEventListener('lint-summary', (event) => {
+        if (
+          !this.started ||
+          !(event instanceof MessageEvent) ||
+          typeof event.data !== 'string'
+        )
+          return;
+        let payload: unknown;
+        try {
+          payload = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+        const summary = parseLintSummary(payload);
+        if (!summary || summary.generation <= this.summaryGeneration) return;
+        this.summaryGeneration = summary.generation;
+        const counts = Object.create(null) as Record<
+          string,
+          TemplateLintCounts
+        >;
+        for (const { id, error, warning, info } of summary.templates)
+          counts[id] = { error, warning, info };
+        this.state.templateSummaries = counts;
+        this.render();
       });
       eventSource.addEventListener('invalidate', (event) => {
         this.handleServerEvent(event, 'render');
