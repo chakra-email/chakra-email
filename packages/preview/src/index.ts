@@ -79,4 +79,10 @@ export type {
   PreviewTestSendRequest,
   PreviewTestSendResponse,
 } from './protocol.js';
-export type { PreviewSubject, TemplateModule } from './render-template.js';
+export type {
+  PreviewFrom,
+  PreviewSubject,
+  TemplateModule,
+} from './render-template.js';
+export { parsePreviewFrom } from './preview-from.js';
+export type { PreviewSender } from './preview-from.js';

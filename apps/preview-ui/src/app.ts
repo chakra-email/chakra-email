@@ -36,6 +36,8 @@ export type TemplateSummary = {
 };
 
 export type RenderResult = {
+  from?: { address: string; name?: string };
+  previewText?: string;
   rulesRun?: string[];
   renderMs?: number;
   linkCheck?: { checked: number; skipped: number };
@@ -91,6 +93,9 @@ export type PreviewApplicationOptions = {
 };
 
 export type ApplicationState = {
+  canOpenInEditor: boolean;
+  openingEditor: boolean;
+  editorError: string | null;
   selectedClient: string | null;
   selectedFindingKey: string | null;
   lintRules: Array<{ id: string; title: string }>;
@@ -191,6 +196,7 @@ function initialEmailColorMode(): EmailColorMode {
 }
 
 function parseTemplates(value: unknown): {
+  canOpenInEditor: boolean;
   lintRules: ApplicationState['lintRules'];
   canCheckLinks: boolean;
   canTestSend: boolean;
@@ -247,6 +253,8 @@ function parseTemplates(value: unknown): {
           )
         : [],
     canCheckLinks: isRecord(capabilities) && capabilities['linkCheck'] === true,
+    canOpenInEditor:
+      isRecord(capabilities) && capabilities['openInEditor'] === true,
     canTestSend,
     templates,
   };
@@ -318,6 +326,23 @@ function parseRenderResult(value: unknown): RenderResult {
     ];
   });
 
+  const from = value['from'];
+  if (
+    (from !== undefined &&
+      (!isRecord(from) ||
+        typeof from['address'] !== 'string' ||
+        !/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+$/u.test(
+          from['address'],
+        ) ||
+        (from['name'] !== undefined &&
+          (typeof from['name'] !== 'string' ||
+            /[\r\n]/u.test(from['name']))))) ||
+    (value['previewText'] !== undefined &&
+      typeof value['previewText'] !== 'string')
+  ) {
+    throw new Error('The preview server returned invalid envelope metadata.');
+  }
+
   if (lint.length !== value['lint'].length) {
     throw new Error('The preview server returned invalid lint results.');
   }
@@ -335,6 +360,14 @@ function parseRenderResult(value: unknown): RenderResult {
   }
 
   return {
+    from:
+      from === undefined
+        ? undefined
+        : {
+            address: (from as JsonRecord)['address'] as string,
+            name: (from as JsonRecord)['name'] as string | undefined,
+          },
+    previewText: value['previewText'] as string | undefined,
     rulesRun:
       Array.isArray(value['rulesRun']) &&
       value['rulesRun'].every((id) => typeof id === 'string')
@@ -577,6 +610,7 @@ export class PreviewApplication {
   private refreshScheduled = false;
   private copyTimer: number | null = null;
   private copySequence = 0;
+  private editorSequence = 0;
   private variantCopySequence = 0;
   private variantCopyTimer: number | null = null;
   private started = false;
@@ -585,6 +619,9 @@ export class PreviewApplication {
   private mediaQuery: MediaQueryList | null = null;
 
   private readonly state: ApplicationState = {
+    canOpenInEditor: false,
+    openingEditor: false,
+    editorError: null,
     selectedClient: null,
     selectedFindingKey: null,
     lintRules: [],
@@ -680,6 +717,7 @@ export class PreviewApplication {
 
   public destroy(): void {
     this.started = false;
+    this.resetEditorRequest();
     this.resetVariantCopy(true);
     this.cancelPropsApply();
     if (this.clockTimer !== null) window.clearInterval(this.clockTimer);
@@ -804,6 +842,7 @@ export class PreviewApplication {
     }
 
     this.cancelPropsApply();
+    this.resetEditorRequest();
 
     this.state.selectedId = templateId;
     this.state.selectedClient = null;
@@ -844,6 +883,7 @@ export class PreviewApplication {
       const parsed = parseTemplates(await response.json());
       const { templates } = parsed;
       this.state.canTestSend = parsed.canTestSend;
+      this.state.canOpenInEditor = parsed.canOpenInEditor;
       this.state.lintRules = parsed.lintRules;
       this.state.canCheckLinks = parsed.canCheckLinks;
       this.state.templates = templates;
@@ -851,6 +891,7 @@ export class PreviewApplication {
       this.state.loadingTemplates = false;
 
       if (templates.length === 0) {
+        this.resetEditorRequest();
         this.state.selectedFindingKey = null;
         this.state.selectedId = null;
         this.state.result = null;
@@ -869,6 +910,7 @@ export class PreviewApplication {
       const selectionChanged = this.state.selectedId !== previousId;
 
       if (selectionChanged) {
+        this.resetEditorRequest();
         this.state.selectedFindingKey = null;
         this.state.result = null;
         this.state.selectedVariant = '';
@@ -1125,6 +1167,41 @@ export class PreviewApplication {
     if (this.copyTimer !== null) {
       window.clearTimeout(this.copyTimer);
       this.copyTimer = null;
+    }
+  }
+
+  private resetEditorRequest(): void {
+    this.editorSequence += 1;
+    this.state.openingEditor = false;
+    this.state.editorError = null;
+  }
+
+  private async openInEditor(): Promise<void> {
+    const id = this.state.selectedId;
+    if (!id || !this.state.canOpenInEditor || this.state.openingEditor) return;
+    this.resetEditorRequest();
+    const sequence = this.editorSequence;
+    this.state.openingEditor = true;
+    this.render();
+    try {
+      const response = await this.request('/api/open', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-chakra-email-preview-token': this.token,
+        },
+        body: JSON.stringify({ id }),
+      });
+      if (!response.ok) throw await responseError(response);
+    } catch (error) {
+      if (!this.started || sequence !== this.editorSequence) return;
+      this.state.editorError =
+        error instanceof Error ? error.message : 'Could not open the editor.';
+    } finally {
+      if (this.started && sequence === this.editorSequence) {
+        this.state.openingEditor = false;
+        this.render();
+      }
     }
   }
 
@@ -1506,6 +1583,9 @@ export class PreviewApplication {
             this.render();
           },
           onSendToChange: this.changeSendTo,
+          onOpenInEditor: () => {
+            void this.openInEditor();
+          },
           onSendSubjectChange: this.changeSendSubject,
           onCopy: (format?: PreviewTab) => {
             void this.copyCurrentOutput(format);

@@ -4,6 +4,9 @@
 
 ### Added
 
+- Config and template `previewFrom` metadata powers the inbox, Info, and `.eml`
+  sender headers. Authenticated **Open in editor** opens discovered templates
+  only on loopback hosts and can be disabled with `openInEditor: false`.
 - Selectable Checks cards outline affected elements in Preview and Compare,
   link to highlighted HTML lines, and filter by curated client breakages.
 - Curated known-client breakage metadata on compatibility findings, reviewed
@@ -33,6 +36,7 @@
 
 ### Changed
 
+- `.eml` exports also work on local HTTP domains without secure-context UUIDs.
 - Desktop / Mobile preview presets use 600px / 375px; the former Fit preset
   falls back to Desktop. Workspace color follows the OS or the palette's saved
   preference independently of email color. Test sending moves to the top bar.

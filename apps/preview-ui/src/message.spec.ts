@@ -1,6 +1,21 @@
 import { buildPreviewMessage } from './message';
 
 describe('preview message export', () => {
+  it('generates a safe MIME boundary without requiring secure-context randomUUID', () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues: (bytes: Uint8Array) => bytes.fill(10),
+    });
+    try {
+      const output = buildPreviewMessage({
+        html: '',
+        text: '',
+        subject: 'Hello',
+      });
+      expect(output).toContain(`boundary="chakra-email-${'0a'.repeat(16)}"`);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
   it('includes both unmodified output parts, envelope headers, and CRLF line endings', () => {
     const message = buildPreviewMessage(
       {
@@ -58,5 +73,51 @@ describe('preview message export', () => {
         to: 'a@example.com\nBcc: b@example.com',
       }),
     ).toThrow('line breaks');
+  });
+
+  it('exports bare and named senders, safely quoting display names', () => {
+    const message = { html: '<p>Hello</p>', text: 'Hello', subject: 'Hello' };
+    expect(
+      buildPreviewMessage({
+        ...message,
+        from: { address: 'hello@forward.domains' },
+      }),
+    ).toContain('From: hello@forward.domains\r\n');
+    expect(
+      buildPreviewMessage({
+        ...message,
+        from: { address: 'hello@forward.domains', name: 'Forward "Support"' },
+      }),
+    ).toContain(
+      'From: "Forward \\"Support\\""\r\n <hello@forward.domains>\r\n',
+    );
+  });
+
+  it('encodes a non-ASCII sender name without changing its mailbox', () => {
+    const output = buildPreviewMessage({
+      html: '',
+      text: '',
+      subject: 'Hello',
+      from: { name: 'Communauté 👋', address: 'hello@example.com' },
+    });
+    const from = output.match(/From: ([\s\S]*?)\r\nTo:/u)?.[1] ?? '';
+    const encoded = from.match(/=\?UTF-8\?B\?([^?]+)\?=/u)?.[1] ?? '';
+    expect(
+      new TextDecoder().decode(
+        Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0)),
+      ),
+    ).toBe('Communauté 👋');
+    expect(from).toContain('<hello@example.com>');
+  });
+
+  it.each([
+    { address: 'hello@example.com\r\nBcc: victim@example.com' },
+    { address: 'hello@example.com', name: 'Forward\nBcc: victim@example.com' },
+    { address: 'hello@example.com', name: 'Forward\u0000' },
+    { address: 'a@example.com>, b@example.com' },
+  ])('rejects invalid sender headers: %j', (from) => {
+    expect(() =>
+      buildPreviewMessage({ html: '', text: '', subject: 'Hello', from }),
+    ).toThrow();
   });
 });

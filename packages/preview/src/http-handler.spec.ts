@@ -15,6 +15,7 @@ describe('preview HTTP handler', () => {
   let server: Server;
   const token = 'test-preview-token';
   const send = vi.fn(async () => ({ id: 'sent-id', message: 'Delivered.' }));
+  const openInEditor = vi.fn<(path: string) => Promise<void>>();
 
   beforeEach(async () => {
     directory = await mkdtemp(join(tmpdir(), 'chakra-email-http-'));
@@ -69,6 +70,7 @@ describe('preview HTTP handler', () => {
     };
     events = new EventHub();
     send.mockClear();
+    openInEditor.mockReset();
     const handler = createPreviewHttpHandler({
       allowRemote: false,
       config,
@@ -76,6 +78,7 @@ describe('preview HTTP handler', () => {
       getRegistry: () => registry,
       render: async () => rendered,
       send,
+      openInEditor,
       token,
       uiRoot: join(directory, 'ui'),
     });
@@ -140,7 +143,7 @@ describe('preview HTTP handler', () => {
           title: expect.any(String),
         }),
       ]),
-      capabilities: { testSend: true, linkCheck: true },
+      capabilities: { testSend: true, linkCheck: true, openInEditor: true },
       templates: [
         { id: 'template-id', name: 'Welcome', path: 'emails/welcome.tsx' },
       ],
@@ -156,6 +159,34 @@ describe('preview HTTP handler', () => {
     });
     expect(rendered.status).toBe(200);
     await expect(rendered.json()).resolves.toMatchObject({ text: 'Hello' });
+  });
+
+  it('opens only discovered template paths with a valid token', async () => {
+    const request = (body: unknown, authenticated = true) =>
+      fetch(`${baseUrl}/api/open`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(authenticated ? { 'x-chakra-email-preview-token': token } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+    expect((await request({ id: 'template-id' }, false)).status).toBe(401);
+    expect((await request({ id: '../../secret.tsx' })).status).toBe(404);
+    expect((await request({ path: '/etc/passwd' })).status).toBe(400);
+    expect(openInEditor).not.toHaveBeenCalled();
+    const opened = await request({ id: 'template-id', path: '/etc/passwd' });
+    expect(opened.status).toBe(204);
+    expect(await opened.text()).toBe('');
+    expect(openInEditor).toHaveBeenCalledExactlyOnceWith(
+      join(directory, 'emails', 'welcome.tsx'),
+    );
+    openInEditor.mockRejectedValueOnce(new Error('Editor could not start.'));
+    const failed = await request({ id: 'template-id' });
+    expect(failed.status).toBe(500);
+    await expect(failed.json()).resolves.toMatchObject({
+      error: { message: 'Editor could not start.' },
+    });
   });
 
   it('validates and delegates authenticated test sends', async () => {

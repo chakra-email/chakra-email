@@ -2235,6 +2235,129 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
+  it('uses server envelope metadata in the inbox, Info, and EML exports and opens only the template ID', async () => {
+    const harness = createHarness();
+    const original = harness.fetcher.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    const open = vi.fn<(init?: RequestInit) => Promise<Response>>(async () =>
+      jsonResponse({}, 204),
+    );
+    harness.fetcher.mockImplementation(async (url, init) => {
+      if (url === '/api/open') return open(init);
+      const response = await original(url, init);
+      const payload = (await response.json()) as Record<string, unknown>;
+      if (url === '/api/templates')
+        return jsonResponse({
+          ...payload,
+          capabilities: { testSend: true, openInEditor: true },
+        });
+      if (url === '/api/render')
+        return jsonResponse({
+          ...payload,
+          from: { name: 'Forward', address: 'hello@forward.domains' },
+          previewText: 'This preheader comes from the server.',
+        });
+      return response;
+    });
+    await harness.application.start();
+    expect(document.querySelector('.inbox-preview')?.textContent).toContain(
+      'hello@forward.domains',
+    );
+    expect(document.body.textContent).toContain(
+      'This preheader comes from the server.',
+    );
+    getElement<HTMLButtonElement>('[data-inspector-tab="info"]').click();
+    expect(document.body.textContent).toContain(
+      'Forward <hello@forward.domains>',
+    );
+    getElement<HTMLButtonElement>('[data-action="open-editor"]').click();
+    await vi.waitFor(() => expect(open).toHaveBeenCalledOnce());
+    const options = open.mock.calls[0]?.[0] as RequestInit;
+    expect(JSON.parse(String(options.body))).toEqual({ id: 'welcome' });
+    expect(options.headers).toMatchObject({
+      'x-chakra-email-preview-token': 'preview-token',
+    });
+    const download = [
+      ...document.querySelectorAll<HTMLButtonElement>('button'),
+    ].find((button) => button.textContent === 'Download .eml');
+    download?.click();
+    expect(harness.downloadText.mock.calls[0]?.[0]).toContain(
+      'From: "Forward"\r\n <hello@forward.domains>',
+    );
+  });
+
+  it('hides unavailable editor controls and reports editor failures inline with retry', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    expect(document.querySelector('[data-action="open-editor"]')).toBeNull();
+    const original = harness.fetcher.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    let failing = true;
+    harness.fetcher.mockImplementation(async (url, init) => {
+      if (url === '/api/open')
+        return failing
+          ? jsonResponse(
+              { error: { message: 'No editor found. Set EDITOR.' } },
+              500,
+            )
+          : jsonResponse({}, 204);
+      const response = await original(url, init);
+      if (url === '/api/templates')
+        return jsonResponse({
+          ...(await response.json()),
+          capabilities: { openInEditor: true },
+        });
+      return response;
+    });
+    harness.eventSource.dispatchEvent(new Event('templates'));
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-action="open-editor"]'),
+      ).not.toBeNull(),
+    );
+    getElement<HTMLButtonElement>('[data-inspector-tab="info"]').click();
+    getElement<HTMLButtonElement>('[data-action="open-editor"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain(
+        'No editor found. Set EDITOR.',
+      ),
+    );
+    failing = false;
+    getElement<HTMLButtonElement>('[data-action="open-editor"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).not.toContain(
+        'No editor found. Set EDITOR.',
+      ),
+    );
+    expect(
+      getElement<HTMLButtonElement>('[data-action="open-editor"]').disabled,
+    ).toBe(false);
+  });
+
+  it.each([
+    { from: { address: 'hello@example.com\nBcc: other@example.com' } },
+    { from: { address: 'hello@example.com', name: false } },
+    { previewText: 123 },
+  ])('rejects malformed envelope metadata %#', async (metadata) => {
+    const harness = createHarness();
+    const original = harness.fetcher.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    harness.fetcher.mockImplementation(async (url, init) => {
+      const response = await original(url, init);
+      return url === '/api/render'
+        ? jsonResponse({ ...(await response.json()), ...metadata })
+        : response;
+    });
+    await harness.application.start();
+    expect(document.body.textContent).toContain('invalid envelope metadata');
+  });
+
   it('has no automated accessibility violations in its rendered workspace', async () => {
     const harness = createHarness();
     await harness.application.start();

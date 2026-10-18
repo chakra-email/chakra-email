@@ -101,6 +101,12 @@ file. `templates` and `assets` are resolved relative to `root`; `include` and
   including `tokens`, `semanticTokens`, `recipes`, and `slotRecipes`.
 - `renderer` accepts an `EmailRenderer` implementation and remains on the
   preview server; functions are never serialized into the browser UI.
+- `previewFrom` supplies a preview sender (`Name <address>` or a bare address).
+  A template's string or prop-dependent `previewFrom` export overrides it. This
+  is display/export metadata, not your delivery provider's sender configuration.
+- `openInEditor` defaults to `true` on loopback hosts; set `false` to hide the
+  authenticated, discovered-file-only editor action. `LAUNCH_EDITOR` / `EDITOR`
+  select the local editor when automatic detection is unavailable.
 - `testSend` accepts a server-only delivery adapter. When configured, the
   top-bar popover exposes recipient and subject fields for sending the active render.
 
@@ -173,7 +179,7 @@ and a tabbed **Props · Info · Checks** inspector. It fills the dynamic viewpor
 - **Send test** is a top-bar popover, shown only when `testSend` is configured.
   **Export** offers HTML/plain-text copy and download, plus a local
   multipart `.eml` export for opening in a mail client. The export uses
-  `preview@localhost` as sender until sender metadata is supported.
+  `previewFrom` as sender when supplied, otherwise `preview@localhost`.
 - ⌘K / Ctrl K opens the command palette, including panel toggles and interface
   theme choices. The interface follows the OS by default; explicit Light or
   Dark choices persist. The sidebar becomes an overlay below 760px; the

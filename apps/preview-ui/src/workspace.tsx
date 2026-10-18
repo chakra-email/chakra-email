@@ -103,6 +103,7 @@ export type PreviewWorkspaceProps = {
   onCopy(format?: PreviewTab): void;
   onDownload(format?: PreviewTab | 'eml'): void;
   onSend(): void;
+  onOpenInEditor(): void;
   onCheckLinks(): void;
   onRetry(): void;
   onDismissError(): void;
@@ -889,6 +890,9 @@ function Palette(
       run: () => props.onPreferenceChange('workspaceColorMode', mode),
     })),
     { label: 'Copy HTML', run: () => props.onCopy('html') },
+    ...(props.state.canOpenInEditor && props.state.selectedId
+      ? [{ label: 'Open in editor', run: props.onOpenInEditor }]
+      : []),
     ...(props.state.canCheckLinks
       ? [{ label: 'Check links', run: props.onCheckLinks }]
       : []),
@@ -1195,6 +1199,8 @@ function Inspector(props: PreviewWorkspaceProps) {
     fields = [];
   }
   const stats = messageStats(state.result?.html ?? '');
+  const previewText = state.result?.previewText ?? stats.previewText;
+  const from = state.result?.from;
   const passed = state.lintRules.filter(
     (rule) =>
       state.result?.rulesRun?.includes(rule.id) &&
@@ -1427,10 +1433,17 @@ function Inspector(props: PreviewWorkspaceProps) {
               {
                 title: 'Envelope',
                 entries: [
-                  ['From', 'Not set'],
+                  [
+                    'From',
+                    from
+                      ? from.name
+                        ? `${from.name} <${from.address}>`
+                        : from.address
+                      : 'Not set — add previewFrom',
+                  ],
                   ['To', state.sendTo || '—'],
                   ['Subject', state.result?.subject || '—'],
-                  ['Preview text', stats.previewText || 'No preview text'],
+                  ['Preview text', previewText || 'No preview text'],
                 ],
               },
               {
@@ -1487,6 +1500,26 @@ function Inspector(props: PreviewWorkspaceProps) {
                     </Grid>
                   ))}
                 </Box>
+                {section.title === 'Source' && state.canOpenInEditor ? (
+                  <Stack gap="2" mt="2">
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      data-action="open-editor"
+                      disabled={!state.selectedId || state.openingEditor}
+                      onClick={props.onOpenInEditor}
+                    >
+                      {state.openingEditor
+                        ? 'Opening editor…'
+                        : 'Open in editor'}
+                    </Button>
+                    {state.editorError ? (
+                      <Text role="alert" color="preview.danger" fontSize="xs">
+                        {state.editorError}
+                      </Text>
+                    ) : null}
+                  </Stack>
+                ) : null}
               </Box>
             ))}
             <Flex gap="2" flexWrap="wrap">
@@ -2158,6 +2191,8 @@ function Viewer(props: PreviewWorkspaceProps) {
     );
   const result = state.result;
   const stats = messageStats(result.html);
+  const previewText = result.previewText ?? stats.previewText;
+  const senderName = result.from?.name || shortTemplateName(result.name);
   const variants = (
     <Flex align="center" gap="2" flexShrink="0">
       <chakra.label htmlFor="variant" fontSize="xs" color="preview.textMuted">
@@ -2188,7 +2223,7 @@ function Viewer(props: PreviewWorkspaceProps) {
         css={styles.surface}
       >
         <Stack css={styles.stage}>
-          <Stack css={styles.inbox} gap="3">
+          <Stack className="inbox-preview" css={styles.inbox} gap="3">
             <Flex justify="space-between" align="center" gap="3">
               <Text
                 fontSize="11px"
@@ -2216,17 +2251,24 @@ function Viewer(props: PreviewWorkspaceProps) {
                 borderRadius="full"
                 fontWeight="semibold"
               >
-                {shortTemplateName(state.result.name).charAt(0)}
+                {senderName.charAt(0)}
               </Grid>
               <Stack gap="0.5" minW="0" flex="1" fontSize="xs">
                 <Flex gap="2" justify="space-between">
-                  <Text
-                    truncate
-                    fontWeight="semibold"
-                    title={state.result.name}
-                  >
-                    {shortTemplateName(state.result.name)}
-                  </Text>
+                  <Flex gap="2" minW="0" align="baseline">
+                    <Text truncate fontWeight="semibold" title={senderName}>
+                      {senderName}
+                    </Text>
+                    {result.from ? (
+                      <Text
+                        truncate
+                        color="preview.textMuted"
+                        title={result.from.address}
+                      >
+                        {result.from.address}
+                      </Text>
+                    ) : null}
+                  </Flex>
                   <Text color="preview.textMuted" whiteSpace="nowrap">
                     9:41 AM
                   </Text>
@@ -2236,12 +2278,10 @@ function Viewer(props: PreviewWorkspaceProps) {
                 </Text>
                 <Text
                   truncate
-                  title={stats.previewText || 'No preview text'}
-                  color={
-                    stats.previewText ? 'preview.textMuted' : 'preview.warning'
-                  }
+                  title={previewText || 'No preview text'}
+                  color={previewText ? 'preview.textMuted' : 'preview.warning'}
                 >
-                  {stats.previewText || 'No preview text'}
+                  {previewText || 'No preview text'}
                 </Text>
               </Stack>
             </Flex>

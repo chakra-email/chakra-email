@@ -8,6 +8,7 @@ import type { TemplateRegistry } from './discovery.js';
 import type { EventHub } from './event-hub.js';
 import { createEmailLinkChecker } from './check-links.js';
 import { getLintRules } from './lint-rules.js';
+import { isLoopbackHost, openTemplateInEditor } from './open-in-editor.js';
 import type {
   PreviewErrorResponse,
   PreviewRenderRequest,
@@ -46,6 +47,8 @@ function encodeTheme(config: ResolvedPreviewConfig): string {
 }
 
 export interface PreviewHttpDependencies {
+  /** Injectable for tests; only receives paths from the discovered registry. */
+  openInEditor?(path: string): Promise<void>;
   allowRemote: boolean;
   config: ResolvedPreviewConfig;
   events: EventHub;
@@ -109,14 +112,6 @@ function hostnameFromHostHeader(value: string): string | undefined {
   }
 }
 
-function isLoopback(hostname: string): boolean {
-  return (
-    hostname === 'localhost' ||
-    hostname === '::1' ||
-    (isIP(hostname) === 4 && hostname.startsWith('127.'))
-  );
-}
-
 function isAllowedHost(
   hostHeader: string | undefined,
   config: ResolvedPreviewConfig,
@@ -133,7 +128,7 @@ function isAllowedHost(
   if (
     hostname === configured ||
     config.allowedHosts.includes(hostname) ||
-    (isLoopback(configured) && isLoopback(hostname))
+    (isLoopbackHost(configured) && isLoopbackHost(hostname))
   ) {
     return true;
   }
@@ -327,6 +322,9 @@ export function createPreviewHttpHandler(
       )
     : undefined;
   let checkingLinks = false;
+  const canOpenInEditor =
+    dependencies.config.openInEditor !== false &&
+    isLoopbackHost(dependencies.config.host);
   return async (request, response) => {
     try {
       if (
@@ -382,12 +380,77 @@ export function createPreviewHttpHandler(
           const body: PreviewTemplatesResponse = {
             lintRules: getLintRules(dependencies.config.lint?.rules),
             capabilities: {
+              openInEditor: canOpenInEditor,
               testSend: Boolean(dependencies.send),
               ...(checkLinks ? { linkCheck: true } : {}),
             },
             templates: dependencies.getRegistry().templates,
           };
           sendJson(response, 200, body);
+          return;
+        }
+
+        if (url.pathname === '/api/open') {
+          if (method !== 'POST') {
+            response.setHeader('allow', 'POST');
+            sendText(response, 405, 'Method not allowed.');
+            return;
+          }
+          if (!canOpenInEditor) {
+            sendJson(response, 403, {
+              error: {
+                message:
+                  'Opening the editor is disabled or requires a loopback host.',
+              },
+            });
+            return;
+          }
+          if (!isSameOriginRequest(request)) {
+            sendJson(response, 403, {
+              error: { message: 'Cross-origin request rejected.' },
+            });
+            return;
+          }
+          if (
+            !request.headers['content-type']?.startsWith('application/json')
+          ) {
+            sendJson(response, 415, {
+              error: { message: 'Expected application/json.' },
+            });
+            return;
+          }
+          let id: string;
+          try {
+            id = parseRenderRequest(await readJsonBody(request)).id;
+          } catch (error) {
+            sendJson(
+              response,
+              400,
+              serializeError(error, dependencies.config.root),
+            );
+            return;
+          }
+          const template = dependencies.getRegistry().byId.get(id);
+          if (!template) {
+            sendJson(response, 404, {
+              error: { message: 'Template was not found.' },
+            });
+            return;
+          }
+          try {
+            await (dependencies.openInEditor ?? openTemplateInEditor)(
+              template.absolutePath,
+            );
+            setCommonHeaders(response);
+            response.statusCode = 204;
+            response.end();
+          } catch (error) {
+            sendJson(
+              response,
+              500,
+              serializeError(error, dependencies.config.root),
+            );
+          }
           return;
         }
 

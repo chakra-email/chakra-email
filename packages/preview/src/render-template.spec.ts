@@ -81,6 +81,64 @@ describe('renderTemplate', () => {
     expect(result.subject).toBe('Welcome Grace');
   });
 
+  it('exposes the configured sender and normalized hidden preview text', async () => {
+    const result = await renderTemplate({
+      template,
+      previewFrom: { address: 'hello@example.org', name: 'Default sender' },
+      module: { default: () => createElement('p') },
+      renderer: {
+        render: async () => ({
+          html: '<body><div aria-hidden="true" style="display:none"> Hello &nbsp; world &zwnj;&nbsp; </div><p>Body</p></body>',
+          text: 'Body',
+        }),
+      },
+    });
+    expect(result.from).toEqual({
+      address: 'hello@example.org',
+      name: 'Default sender',
+    });
+    expect(result.previewText).toBe('Hello world');
+  });
+
+  it.each([
+    'Template <template@example.org>',
+    async (props: Record<string, unknown>) =>
+      `${String(props['name'])} <template@example.org>`,
+  ])(
+    'lets template sender metadata override config %#',
+    async (previewFrom) => {
+      const result = await renderTemplate({
+        template,
+        previewFrom: { address: 'config@example.org' },
+        module: {
+          default: () => createElement('p'),
+          previewProps: { name: 'Base' },
+          previewVariants: { named: { name: 'Variant' } },
+          previewFrom,
+        },
+        variant: 'named',
+        props: { name: 'Template' },
+      });
+      expect(result.from).toEqual({
+        address: 'template@example.org',
+        name: 'Template',
+      });
+    },
+  );
+
+  it.each([
+    42,
+    async () => 'a@example.org\r\nBcc: hidden@example.org',
+    'not-an-address',
+  ])('rejects invalid template sender metadata %#', async (previewFrom) => {
+    await expect(
+      renderTemplate({
+        template,
+        module: { default: () => createElement('p'), previewFrom },
+      }),
+    ).rejects.toThrow('previewFrom');
+  });
+
   it('uses configured lint rules without changing rendered HTML or text', async () => {
     const module = {
       default: () =>

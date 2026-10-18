@@ -55,6 +55,8 @@ are omitted, discovery defaults to `./emails` below the resolved root.
 | `allowedHosts` | Exact trusted reverse-proxy hostnames; wildcards and ports fail.      |
 | `port`         | Listening port; defaults to `4100`.                                   |
 | `renderer`     | Optional server-side email renderer adapter.                          |
+| `previewFrom`  | Default preview sender, as an address or `Name <address>`.            |
+| `openInEditor` | Allow local editor launches; defaults to `true` on loopback hosts.    |
 | `lint.rules`   | Per-rule severity overrides: `off`, `info`, `warning`, or `error`.    |
 | `testSend`     | Optional server-side test-delivery adapter.                           |
 | `theme`        | JSON-safe theme and recipe overrides for the browser workspace.       |
@@ -123,6 +125,20 @@ props object that changes only the scenario-specific values.
 merged props. It is validated as an email subject, displayed in the preview,
 used as the default test-send subject, and included in exported metadata.
 
+`previewFrom` accepts one ASCII mailbox address, optionally with a Unicode
+display name: `Forward <hello@forward.domains>`. Set it in the config for a
+default, or export a string or synchronous/async function from a template to
+override it with the merged props. Invalid addresses, recipient lists, and
+CR/LF header injection are rejected at config load or template render.
+
+```ts
+export const previewFrom = 'Forward <hello@forward.domains>';
+// Or: export const previewFrom = (props) => `${props.brand} <hello@example.com>`;
+```
+
+This metadata controls the preview and `.eml` export only. Your `testSend`
+adapter still owns the provider's actual sender configuration.
+
 If a module does not export named `previewProps`, the server also recognizes a
 `PreviewProps` value attached to the default component:
 
@@ -150,8 +166,8 @@ desktop/light, mobile/light, and mobile/dark together.
 
 Props supports generated fields or JSON. Edits render after 300ms of inactivity;
 invalid JSON leaves the previous render visible. Reset props restores the
-selected fixture and variant. The inbox row shows the subject and hidden
-preheader, with the variant selector above it.
+selected fixture and variant. The inbox row shows the sender, subject, and
+server-normalized hidden preheader, with the variant selector above it.
 
 **Copy as variant** opens an inline name field (defaulting to the next variant
 number), then copies a single-quoted entry for `previewVariants`. Only keys that
@@ -174,8 +190,18 @@ exported HTML. The client grid filters findings to known breakages for that
 client; its reviewed date and disclaimer distinguish this from a rendering test.
 
 Use Export for HTML/plain-text copy and downloads or a local multipart `.eml`
-message. The `.eml` sender defaults to `preview@localhost`; exporting does not
-send email. A configured test-send transport enables a top-bar Send test popover.
+message. The `.eml` sender uses `previewFrom` when supplied, or defaults to
+`preview@localhost`; exporting does not send email. Display names and subjects
+are safely encoded for non-ASCII text. A configured test-send transport enables
+a top-bar Send test popover.
+
+Info's **Open in editor** action (also in the command palette) launches only
+discovered template source files, with the same request token and origin checks
+as rendering. It is hidden for non-loopback binds and when `openInEditor` is
+`false`. Set `LAUNCH_EDITOR` or `EDITOR` if editor auto-detection fails. Launches
+are acknowledged after a short immediate-error window, not when the editor
+closes; failures reported later by a GUI editor cannot be reflected in that
+completed request.
 
 ⌘K / Ctrl K opens the command palette for templates, views, panel toggles, and
 interface theme settings. The interface follows the OS unless overridden;

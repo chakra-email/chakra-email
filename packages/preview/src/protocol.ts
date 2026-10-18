@@ -1,6 +1,7 @@
 import type { JsonObject } from './config.js';
 import type { PreviewCompatibilityReference } from './compatibility.js';
 import type { PreviewClientId } from './client-support.js';
+import type { PreviewSender } from './preview-from.js';
 
 export interface PreviewTemplate {
   group?: string;
@@ -12,6 +13,7 @@ export interface PreviewTemplate {
 export interface PreviewTemplatesResponse {
   lintRules?: PreviewLintRule[];
   capabilities: {
+    openInEditor?: boolean;
     linkCheck?: boolean;
     testSend: boolean;
   };
@@ -68,6 +70,8 @@ export interface PreviewLintFinding {
 }
 
 export interface PreviewRenderResponse {
+  from?: PreviewSender;
+  previewText?: string;
   rulesRun?: string[];
   renderMs?: number;
   linkCheck?: { checked: number; skipped: number };
@@ -87,4 +91,16 @@ export interface PreviewErrorResponse {
     message: string;
     stack?: string;
   };
+}
+
+export interface PreviewLintSummaryEntry {
+  id: string;
+  error: number;
+  warning: number;
+  info: number;
+}
+
+export interface PreviewLintSummary {
+  generation: number;
+  templates: PreviewLintSummaryEntry[];
 }

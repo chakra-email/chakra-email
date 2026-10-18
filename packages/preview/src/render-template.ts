@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { parse } from 'parse5';
 import {
   chakraEmailRenderer,
   type EmailRenderer,
@@ -13,15 +14,18 @@ import {
 import type { JsonObject, JsonValue } from './config.js';
 import type { PreviewRenderResponse } from './protocol.js';
 import type { RegisteredTemplate } from './discovery.js';
-import { lintEmail } from './lint-email.js';
+import { extractPreviewText, lintEmail } from './lint-email.js';
+import { parsePreviewFrom, type PreviewSender } from './preview-from.js';
 import type { PreviewLintOverrides } from './lint-rules.js';
 
 export type TemplateModule = Record<string, unknown> & { default?: unknown };
 export type PreviewSubject<Props = JsonObject> =
   | string
   | ((props: Props) => string | Promise<string>);
+export type PreviewFrom<Props = JsonObject> = PreviewSubject<Props>;
 
 export interface RenderTemplateOptions {
+  previewFrom?: PreviewSender;
   lintRules?: PreviewLintOverrides;
   module: TemplateModule;
   pretty?: boolean;
@@ -189,7 +193,7 @@ export async function renderTemplate(
   const props = { ...baseProps, ...variantProps, ...customProps };
   const element = createTemplateElement(component, props);
   const renderer = options.renderer ?? chakraEmailRenderer;
-  const [output, source, subject] = await Promise.all([
+  const [output, source, subject, from] = await Promise.all([
     renderer.render(element, { pretty: options.pretty ?? true }),
     readFile(options.template.absolutePath, 'utf8'),
     resolvePreviewSubject(
@@ -197,11 +201,20 @@ export async function renderTemplate(
       props,
       options.template.name,
     ),
+    options.module.previewFrom === undefined
+      ? options.previewFrom
+      : Promise.resolve(
+          typeof options.module.previewFrom === 'function'
+            ? options.module.previewFrom(props)
+            : options.module.previewFrom,
+        ).then(parsePreviewFrom),
   ]);
   const { html, text } = output;
   const lint = lintEmail(html, { text, subject, rules: options.lintRules });
 
   return {
+    ...(from ? { from } : {}),
+    previewText: extractPreviewText(parse(html)),
     html,
     id: options.template.id,
     lint: lint.findings,

@@ -24,6 +24,33 @@ describe('preview config', () => {
     expect(defineConfig(config)).toBe(config);
   });
 
+  it('normalizes sender metadata and enables local editor support by default', () => {
+    expect(
+      normalizeConfig({ previewFrom: 'Forward <hello@forward.domains>' }),
+    ).toMatchObject({
+      previewFrom: { address: 'hello@forward.domains', name: 'Forward' },
+      openInEditor: true,
+    });
+    expect(
+      normalizeConfig({
+        previewFrom: 'hello@example.org',
+        openInEditor: false,
+      }),
+    ).toMatchObject({
+      previewFrom: { address: 'hello@example.org' },
+      openInEditor: false,
+    });
+    expect(normalizeConfig().previewFrom).toBeUndefined();
+    expect(() =>
+      normalizeConfig({
+        previewFrom: 'hello@example.org\r\nBcc: hidden@example.org',
+      }),
+    ).toThrow('previewFrom');
+    expect(() => normalizeConfig({ openInEditor: 'yes' } as never)).toThrow(
+      'openInEditor',
+    );
+  });
+
   it('normalizes lint severity overrides without changing the input', () => {
     const rules = { 'image-alt': 'warning', 'document-title': 'off' } as const;
     const config = normalizeConfig({ lint: { rules } });

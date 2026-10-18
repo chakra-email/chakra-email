@@ -13,6 +13,7 @@ import {
 } from './config.js';
 import { discoverTemplates, type TemplateRegistry } from './discovery.js';
 import { EventHub } from './event-hub.js';
+import { isLoopbackHost } from './open-in-editor.js';
 import { createPreviewHttpHandler } from './http-handler.js';
 import type {
   PreviewRenderRequest,
@@ -48,15 +49,6 @@ export interface PreviewServerAddress {
 export interface PreviewServer {
   close(): Promise<void>;
   listen(): Promise<PreviewServerAddress>;
-}
-
-function isLoopbackHost(host: string): boolean {
-  const normalized = host.toLowerCase().replace(/^\[|\]$/gu, '');
-  return (
-    normalized === 'localhost' ||
-    normalized === '::1' ||
-    normalized.startsWith('127.')
-  );
 }
 
 async function resolveConfig(
@@ -189,6 +181,7 @@ export async function createPreviewServer(
       throw new Error('Template was not found.');
     }
     return renderTemplate({
+      previewFrom: config.previewFrom,
       lintRules: config.lint?.rules,
       module: await moduleLoader.load(template.absolutePath),
       props: request.props,

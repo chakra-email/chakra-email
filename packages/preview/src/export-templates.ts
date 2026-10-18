@@ -124,6 +124,7 @@ export async function* renderAllTemplates(
       }
       try {
         const output = await renderTemplate({
+          previewFrom: config.previewFrom,
           lintRules: config.lint?.rules,
           module,
           pretty: options.pretty ?? true,
@@ -141,6 +142,7 @@ export async function* renderAllTemplates(
       for (const variant of variants) {
         try {
           const output = await renderTemplate({
+            previewFrom: config.previewFrom,
             lintRules: config.lint?.rules,
             module,
             pretty: options.pretty ?? true,
