@@ -4,6 +4,8 @@
 
 ### Added
 
+- Selectable Checks cards outline affected elements in Preview and Compare,
+  link to highlighted HTML lines, and filter by curated client breakages.
 - Curated known-client breakage metadata on compatibility findings, reviewed
   against Can I Email in October 2026 and excluding partial/conditional results.
 - `chakra-email-preview check` and `checkTemplates()` for CI reports across

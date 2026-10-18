@@ -31,7 +31,13 @@ import {
 import type { IconButtonProps } from '@chakra-ui/react';
 import { forwardRef, useMemo, useRef, useState, useEffect } from 'react';
 import type { ReactElement } from 'react';
-import { withPreviewColorMode, withPreviewContentSecurityPolicy } from './app';
+import {
+  findingKey,
+  withPreviewColorMode,
+  withPreviewContentSecurityPolicy,
+  withPreviewHighlight,
+} from './app';
+import { clientSupportReviewed, previewClients } from './client-support';
 import type {
   ApplicationState,
   LintFinding,
@@ -79,6 +85,9 @@ const viewports: ReadonlyArray<{
 ];
 
 export type PreviewWorkspaceProps = {
+  highlightColor: string;
+  onClientChange(client: string | null): void;
+  onSelectFinding(key: string | null): void;
   state: Readonly<ApplicationState>;
   securedHtml: string | null;
   theme?: Record<string, unknown>;
@@ -165,6 +174,7 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
         props.onPanelChange('paletteOpen', !state.paletteOpen);
         return;
       }
+      if (event.key === 'Escape') props.onSelectFinding(null);
       if (editing || event.metaKey || event.ctrlKey || event.altKey) return;
       const view = tabs[Number(event.key) - 1];
       if (view && /^[1-5]$/.test(event.key)) props.onTabChange(view.id);
@@ -1585,7 +1595,7 @@ function Inspector(props: PreviewWorkspaceProps) {
                 Re-run
               </Button>
             </Flex>
-            <LintPanel findings={state.result?.lint ?? null} />
+            <LintPanel {...props} passedCount={passed.length} />
             {state.result?.rulesRun ? (
               <Box as="details">
                 <chakra.summary fontSize="xs" cursor="pointer">
@@ -1830,125 +1840,238 @@ function SendPanel(props: PreviewWorkspaceProps) {
   );
 }
 
-function LintPanel({ findings }: { findings: LintFinding[] | null }) {
+function LintPanel(props: PreviewWorkspaceProps & { passedCount: number }) {
+  const { state } = props;
+  const findings = state.result?.lint ?? null;
+  const client = state.selectedClient;
   const recipe = usePreviewSlotRecipe(
     previewSlotRecipeKeys.inspector,
     previewInspectorSlotRecipe,
   );
   const styles = recipe();
-  const errors =
-    findings?.filter((finding) => finding.severity === 'error').length ?? 0;
-  const warnings =
-    findings?.filter((finding) => finding.severity === 'warning').length ?? 0;
+  const severityOrder = { error: 0, warning: 1, info: 2 };
+  const visible = (findings ?? [])
+    .filter((finding) => !client || finding.clients?.includes(client))
+    .sort(
+      (a, b) =>
+        severityOrder[a.severity] - severityOrder[b.severity] ||
+        a.category.localeCompare(b.category) ||
+        (a.line ?? 0) - (b.line ?? 0) ||
+        (a.column ?? 0) - (b.column ?? 0),
+    );
 
   return (
     <Stack className="lint-panel" css={styles.lintRoot}>
       <Flex css={styles.lintHeader}>
-        <Box>
-          <Text css={styles.eyebrow}>Email lint</Text>
-          <Heading as="h3" fontSize="sm">
-            Client checks
-          </Heading>
-        </Box>
-        {findings ? (
-          <Badge
-            color={
-              errors > 0
-                ? 'preview.danger'
-                : warnings > 0
-                  ? 'preview.warning'
-                  : 'preview.accent'
-            }
-            bg={
-              errors > 0
-                ? 'preview.dangerSoft'
-                : warnings > 0
-                  ? 'preview.warningSoft'
-                  : 'preview.accentSoft'
-            }
-          >
-            {findings.length}
-          </Badge>
-        ) : null}
+        <Heading as="h3" fontSize="sm">
+          Issues
+        </Heading>
+        {findings ? <Badge>{visible.length}</Badge> : null}
       </Flex>
-
       {!findings ? (
         <Text color="preview.textMuted" fontSize="xs">
           Render a template to check its generated HTML.
         </Text>
-      ) : findings.length === 0 ? (
+      ) : visible.length === 0 ? (
         <Flex css={styles.lintEmpty}>
           <Text aria-hidden="true">✓</Text>
-          <Text>No compatibility or accessibility issues detected.</Text>
+          <Text>
+            {client
+              ? 'No known issues for this client.'
+              : `No issues. ${props.passedCount} checks passed.`}
+          </Text>
         </Flex>
       ) : (
         <Stack as="ul" className="lint-findings" css={styles.lintList}>
-          {findings.map((finding, index) => (
-            <Box
-              as="li"
-              key={`${finding.ruleId}-${finding.line ?? 'document'}-${index}`}
-              className="lint-finding"
-              data-lint-rule={finding.ruleId}
-              data-severity={finding.severity}
-              css={styles.lintItem}
-            >
-              <Flex align="center" justify="space-between" gap="2" mb="2">
-                <Badge
-                  color={lintSeverityColor(finding.severity)}
-                  bg={lintSeverityBackground(finding.severity)}
-                  fontSize="2xs"
-                  textTransform="uppercase"
+          {visible.map((finding, index) => {
+            const key = findingKey(finding);
+            const selected = state.selectedFindingKey === key;
+            const detailsId = 'finding-details-' + index;
+            return (
+              <Box
+                as="li"
+                key={key}
+                className="lint-finding"
+                data-lint-rule={finding.ruleId}
+                data-severity={finding.severity}
+                css={styles.lintItem}
+                bg={
+                  selected
+                    ? lintSeverityBackground(finding.severity)
+                    : undefined
+                }
+              >
+                <Button
+                  variant="plain"
+                  data-action="select-finding"
+                  aria-expanded={selected}
+                  aria-controls={selected ? detailsId : undefined}
+                  display="flex"
+                  w="full"
+                  h="auto"
+                  p="0"
+                  gap="2"
+                  alignItems="start"
+                  textAlign="left"
+                  whiteSpace="normal"
+                  onClick={() => props.onSelectFinding(key)}
                 >
-                  {finding.severity}
-                </Badge>
-                <Code
-                  overflow="hidden"
-                  color="preview.textMuted"
-                  bg="transparent"
-                  fontFamily="previewMono"
-                  fontSize="2xs"
-                  textOverflow="ellipsis"
-                  whiteSpace="nowrap"
-                >
-                  {finding.ruleId}
-                </Code>
-              </Flex>
-              <Text color="preview.text" fontSize="xs" fontWeight="bold">
-                {finding.message}
-              </Text>
-              <Text mt="1" color="preview.textMuted" fontSize="2xs">
-                {finding.suggestion}
-              </Text>
-              {finding.compatibility ? (
-                <Link
-                  href={finding.compatibility.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  css={styles.lintReference}
-                >
-                  {finding.compatibility.feature} on{' '}
-                  {finding.compatibility.source} ↗
-                </Link>
-              ) : null}
-              {finding.line || finding.element ? (
-                <Text
-                  mt="2"
-                  color="preview.textMuted"
-                  fontFamily="previewMono"
-                  fontSize="2xs"
-                >
-                  {[
-                    finding.element,
-                    finding.line ? `HTML line ${finding.line}` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </Text>
-              ) : null}
-            </Box>
-          ))}
+                  <Text
+                    as="span"
+                    color={lintSeverityColor(finding.severity)}
+                    aria-label={finding.severity}
+                    role="img"
+                    flexShrink="0"
+                  >
+                    {finding.severity === 'error'
+                      ? '⊗'
+                      : finding.severity === 'warning'
+                        ? '⚠'
+                        : 'ⓘ'}
+                  </Text>
+                  <Stack as="span" gap="1" minW="0" flex="1">
+                    <Text
+                      as="span"
+                      color="preview.text"
+                      fontSize="xs"
+                      fontWeight="bold"
+                    >
+                      {finding.message}
+                    </Text>
+                    <Text
+                      as="span"
+                      color="preview.textMuted"
+                      fontFamily="previewMono"
+                      fontSize="2xs"
+                    >
+                      {finding.category[0].toUpperCase() +
+                        finding.category.slice(1)}{' '}
+                      · {finding.ruleId}
+                    </Text>
+                  </Stack>
+                </Button>
+                {selected ? (
+                  <Stack id={detailsId} gap="2" mt="3">
+                    <Text color="preview.textMuted" fontSize="xs">
+                      {finding.suggestion}
+                    </Text>
+                    {finding.element ? (
+                      <Code
+                        fontSize="2xs"
+                        whiteSpace="pre-wrap"
+                        overflowWrap="anywhere"
+                      >
+                        {finding.element}
+                      </Code>
+                    ) : null}
+                    {finding.line ? (
+                      <Link asChild fontSize="xs" alignSelf="start">
+                        <a
+                          href={'#html-line-' + finding.line}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            props.onTabChange('html');
+                          }}
+                        >
+                          HTML line {finding.line}
+                        </a>
+                      </Link>
+                    ) : null}
+                    {finding.compatibility ? (
+                      <Link
+                        href={finding.compatibility.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        css={styles.lintReference}
+                      >
+                        Can I Email: {finding.compatibility.feature} ↗
+                      </Link>
+                    ) : null}
+                  </Stack>
+                ) : null}
+              </Box>
+            );
+          })}
         </Stack>
       )}
+      <Stack gap="2" mt="3">
+        <Flex align="center" justify="space-between" gap="2">
+          <Heading as="h3" fontSize="sm">
+            Client support
+          </Heading>
+          {client ? (
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={() => props.onClientChange(null)}
+            >
+              All clients
+            </Button>
+          ) : null}
+        </Flex>
+        <Grid gridTemplateColumns="repeat(2, minmax(0, 1fr))" gap="2">
+          {Object.entries(previewClients).map(([id, name]) => {
+            const issues =
+              findings?.filter((finding) => finding.clients?.includes(id)) ??
+              [];
+            const color = issues.some((finding) => finding.severity === 'error')
+              ? 'preview.danger'
+              : issues.length
+                ? 'preview.warning'
+                : 'preview.success';
+            const content = (
+              <Stack gap="1" textAlign="left" fontSize="xs">
+                <Text>{name}</Text>
+                <Text color={color}>
+                  {issues.length
+                    ? issues.length +
+                      (issues.length === 1 ? ' issue' : ' issues')
+                    : 'No known issues'}
+                </Text>
+              </Stack>
+            );
+            return issues.length ? (
+              <Button
+                key={id}
+                data-client={id}
+                size="sm"
+                variant="outline"
+                h="auto"
+                p="2"
+                aria-pressed={client === id}
+                aria-label={
+                  name +
+                  ', ' +
+                  issues.length +
+                  (issues.length === 1
+                    ? ' issue. Filter issues.'
+                    : ' issues. Filter issues.')
+                }
+                onClick={() => {
+                  props.onClientChange(id);
+                }}
+              >
+                {content}
+              </Button>
+            ) : (
+              <Box
+                key={id}
+                data-client={id}
+                borderWidth="1px"
+                borderColor="preview.border"
+                borderRadius="md"
+                p="2"
+              >
+                {content}
+              </Box>
+            );
+          })}
+        </Grid>
+        <Text fontSize="2xs" color="preview.textMuted">
+          Known breakages, reviewed {clientSupportReviewed}. Not a rendering
+          test. No known issues is not a guarantee of support.
+        </Text>
+      </Stack>
     </Stack>
   );
 }
@@ -1985,6 +2108,17 @@ function Viewer(props: PreviewWorkspaceProps) {
   );
   const styles = recipe();
   const frameRef = useRef<HTMLDivElement>(null);
+  const selectedFinding = state.result?.lint.find(
+    (finding) => findingKey(finding) === state.selectedFindingKey,
+  );
+  const selectedLineRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (state.activeTab === 'html')
+      selectedLineRef.current?.scrollIntoView?.({
+        block: 'center',
+        inline: 'nearest',
+      });
+  }, [state.activeTab, state.selectedFindingKey, state.result]);
   useEffect(() => {
     const element = frameRef.current;
     if (!element || typeof ResizeObserver === 'undefined') return;
@@ -2168,7 +2302,11 @@ function Viewer(props: PreviewWorkspaceProps) {
                       }
                       sandbox=""
                       srcDoc={withPreviewContentSecurityPolicy(
-                        withPreviewColorMode(result.html, frame.mode),
+                        withPreviewHighlight(
+                          withPreviewColorMode(result.html, frame.mode),
+                          selectedFinding?.selector,
+                          props.highlightColor,
+                        ),
                         state.remoteImages,
                       )}
                       w={frame.width + 'px'}
@@ -2270,7 +2408,43 @@ function Viewer(props: PreviewWorkspaceProps) {
         <code>
           {state.activeTab === 'html'
             ? output.split('\n').map((line, index) => (
-                <Box as="span" display="block" key={index}>
+                <Box
+                  as="span"
+                  display="block"
+                  key={index}
+                  id={'html-line-' + (index + 1)}
+                  ref={
+                    selectedFinding?.line === index + 1
+                      ? selectedLineRef
+                      : undefined
+                  }
+                  data-selected-finding={
+                    selectedFinding?.line === index + 1
+                      ? selectedFinding.severity
+                      : undefined
+                  }
+                  bg={
+                    selectedFinding?.line === index + 1
+                      ? 'preview.warningSoft'
+                      : undefined
+                  }
+                  borderLeftWidth="2px"
+                  borderLeftColor={
+                    selectedFinding?.line === index + 1
+                      ? lintSeverityColor(selectedFinding.severity)
+                      : 'transparent'
+                  }
+                  aria-label={
+                    selectedFinding?.line === index + 1
+                      ? 'HTML line ' +
+                        (index + 1) +
+                        ', ' +
+                        selectedFinding.severity +
+                        ': ' +
+                        selectedFinding.message
+                      : undefined
+                  }
+                >
                   <Box
                     as="span"
                     aria-hidden="true"

@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { PreviewRoot } from './workspace';
 import { buildPreviewMessage } from './message';
 import { buildVariantSnippet } from './variant';
+import { previewClients } from './client-support';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -63,6 +64,10 @@ export type LintFinding = {
   suggestion: string;
 };
 
+export function findingKey(finding: LintFinding): string {
+  return `${finding.ruleId}:${finding.line ?? ''}:${finding.column ?? ''}`;
+}
+
 type Fetcher = (
   input: RequestInfo | URL,
   init?: RequestInit,
@@ -86,6 +91,8 @@ export type PreviewApplicationOptions = {
 };
 
 export type ApplicationState = {
+  selectedClient: string | null;
+  selectedFindingKey: string | null;
   lintRules: Array<{ id: string; title: string }>;
   canCheckLinks: boolean;
   checkingLinks: boolean;
@@ -492,6 +499,66 @@ export function withPreviewContentSecurityPolicy(
   return `<!doctype html><html><head>${meta}</head><body>${html}</body></html>`;
 }
 
+/** Resolve an untrusted selector as DOM, never interpolate it into CSS or HTML. */
+export function withPreviewHighlight(
+  html: string,
+  selector?: string,
+  highlightColor?: string,
+): string {
+  if (!selector || selector.length > 4096) return html;
+  const document = new DOMParser().parseFromString(html, 'text/html');
+  document
+    .querySelectorAll('[data-chakra-email-preview-highlight-style]')
+    .forEach((element) => element.remove());
+  // Resolve against the linter's original element positions, not the extra
+  // color-mode style that the preceding preview rewrite prepends to <head>.
+  const colorStyles = Array.from(
+    document.querySelectorAll('style[data-chakra-email-preview-color-mode]'),
+    (element) => ({
+      element,
+      parent: element.parentNode,
+      next: element.nextSibling,
+    }),
+  );
+  colorStyles.forEach(({ element }) => element.remove());
+  let matches: NodeListOf<Element>;
+  try {
+    matches = document.querySelectorAll(selector);
+  } catch {
+    return html;
+  }
+  // The linter emits unique selectors. Do not turn an ambiguous selector into a
+  // document-wide highlight or accept CSS declarations supplied as selectors.
+  if (matches.length !== 1) return html;
+  colorStyles
+    .reverse()
+    .forEach(({ element, parent, next }) =>
+      parent?.insertBefore(element, next),
+    );
+  const attribute = 'data-chakra-email-preview-highlight';
+  document.querySelectorAll(`[${attribute}]`).forEach((element) => {
+    element.removeAttribute(attribute);
+  });
+  matches[0]?.setAttribute(attribute, 'selected');
+  // Parse as a single color declaration, then reject context-sensitive variables
+  // and markup delimiters before serializing into the standalone email document.
+  const colorDeclaration = document.createElement('span').style;
+  if (highlightColor) colorDeclaration.color = highlightColor;
+  const normalizedColor = colorDeclaration.color;
+  const color =
+    normalizedColor && !/[<>{};@\\]|(?:var|url)\s*\(/iu.test(normalizedColor)
+      ? normalizedColor
+      : '#f5a524';
+  const style = document.createElement('style');
+  style.setAttribute('data-chakra-email-preview-highlight-style', '');
+  style.textContent = `[${attribute}="selected"]{outline:2px dashed ${color} !important;outline-offset:3px !important}`;
+  document.head.append(style);
+  const doctype = document.doctype
+    ? new XMLSerializer().serializeToString(document.doctype) + '\n'
+    : '';
+  return doctype + document.documentElement.outerHTML;
+}
+
 export class PreviewApplication {
   private readonly root: HTMLElement;
   private readonly token: string;
@@ -518,6 +585,8 @@ export class PreviewApplication {
   private mediaQuery: MediaQueryList | null = null;
 
   private readonly state: ApplicationState = {
+    selectedClient: null,
+    selectedFindingKey: null,
     lintRules: [],
     canCheckLinks: false,
     checkingLinks: false,
@@ -737,6 +806,8 @@ export class PreviewApplication {
     this.cancelPropsApply();
 
     this.state.selectedId = templateId;
+    this.state.selectedClient = null;
+    this.state.selectedFindingKey = null;
     this.resetVariantCopy(true);
     this.state.result = null;
     this.state.selectedVariant = '';
@@ -776,9 +847,11 @@ export class PreviewApplication {
       this.state.lintRules = parsed.lintRules;
       this.state.canCheckLinks = parsed.canCheckLinks;
       this.state.templates = templates;
+      this.state.selectedClient = null;
       this.state.loadingTemplates = false;
 
       if (templates.length === 0) {
+        this.state.selectedFindingKey = null;
         this.state.selectedId = null;
         this.state.result = null;
         this.state.rendering = false;
@@ -796,6 +869,7 @@ export class PreviewApplication {
       const selectionChanged = this.state.selectedId !== previousId;
 
       if (selectionChanged) {
+        this.state.selectedFindingKey = null;
         this.state.result = null;
         this.state.selectedVariant = '';
         this.state.propsText = '{}';
@@ -884,6 +958,21 @@ export class PreviewApplication {
       }
 
       this.state.result = result;
+      if (
+        this.state.selectedClient &&
+        !result.lint.some((finding) =>
+          finding.clients?.includes(this.state.selectedClient ?? ''),
+        )
+      ) {
+        this.state.selectedClient = null;
+      }
+      if (
+        !result.lint.some(
+          (finding) => findingKey(finding) === this.state.selectedFindingKey,
+        )
+      ) {
+        this.state.selectedFindingKey = null;
+      }
       this.state.templateFindings = {
         ...this.state.templateFindings,
         [id]: result.lint,
@@ -1314,9 +1403,24 @@ export class PreviewApplication {
       workspaceMode === 'light',
     );
     document.documentElement.style.colorScheme = workspaceMode;
+    let highlightColor = '#f5a524';
+    if (state.selectedFindingKey) {
+      const colorProbe = document.createElement('span');
+      colorProbe.hidden = true;
+      colorProbe.style.color = 'var(--chakra-colors-preview-highlight)';
+      this.root.append(colorProbe);
+      highlightColor = window.getComputedStyle(colorProbe).color;
+      colorProbe.remove();
+    }
     const securedHtml = state.result
       ? withPreviewContentSecurityPolicy(
-          withPreviewColorMode(state.result.html, state.emailColorMode),
+          withPreviewHighlight(
+            withPreviewColorMode(state.result.html, state.emailColorMode),
+            state.result.lint.find(
+              (finding) => findingKey(finding) === state.selectedFindingKey,
+            )?.selector,
+            highlightColor,
+          ),
           state.remoteImages,
         )
       : null;
@@ -1326,7 +1430,29 @@ export class PreviewApplication {
         createElement(PreviewRoot, {
           state,
           securedHtml,
+          highlightColor,
           theme: this.theme,
+          onClientChange: (client: string | null) => {
+            if (client !== null && !Object.hasOwn(previewClients, client))
+              return;
+            this.state.selectedClient = client;
+            if (
+              client &&
+              !this.state.result?.lint.some(
+                (finding) =>
+                  findingKey(finding) === this.state.selectedFindingKey &&
+                  finding.clients?.includes(client),
+              )
+            ) {
+              this.state.selectedFindingKey = null;
+            }
+            this.render();
+          },
+          onSelectFinding: (key: string | null) => {
+            this.state.selectedFindingKey =
+              key === this.state.selectedFindingKey ? null : key;
+            this.render();
+          },
           onPreferenceChange: this.changePreference,
           onFilterTextChange: (value: string) => {
             this.state.filterText = value;

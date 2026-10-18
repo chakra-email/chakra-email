@@ -162,6 +162,9 @@ and a tabbed **Props · Info · Checks** inspector. It fills the dynamic viewpor
 - Info shows the current envelope, message sizes, link/image counts, and source.
   Checks shows severity totals, on-demand link checks, and passed rules from
   the server's effective catalog and `rulesRun`. Network requests remain opt-in.
+- Checks cards select one finding at a time, outline its affected element in
+  Preview and Compare, and jump to its highlighted HTML line. The reviewed
+  known-client grid filters mapped findings; it is not a rendering test.
 - The status bar shows measured frame dimensions, UTF-8 HTML size against the
   102KB Gmail clipping threshold, link/image counts, and a tally that opens
   Checks. Drag the frame's bottom-right corner to resize it; the reset action

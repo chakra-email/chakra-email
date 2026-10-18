@@ -165,6 +165,14 @@ findings. Its findings tally opens Checks, which includes passed rules from the
 effective server catalog. Sidebar findings currently reflect templates rendered
 in this session; background lint summaries are still pending.
 
+Checks cards open one at a time. Select a finding to outline its affected
+element in Preview and all Compare frames; **HTML line N** opens and scrolls to
+the highlighted rendered-HTML line. Selecting the card again or pressing Escape
+clears it. Selection survives a re-render only while the same finding remains.
+Outlines use injected CSS, never iframe scripts, and do not change copied or
+exported HTML. The client grid filters findings to known breakages for that
+client; its reviewed date and disclaimer distinguish this from a rendering test.
+
 Use Export for HTML/plain-text copy and downloads or a local multipart `.eml`
 message. The `.eml` sender defaults to `preview@localhost`; exporting does not
 send email. A configured test-send transport enables a top-bar Send test popover.

@@ -6,6 +6,7 @@ import {
   PreviewApplication,
   withPreviewContentSecurityPolicy,
   withPreviewColorMode,
+  withPreviewHighlight,
   type PreviewApplicationOptions,
 } from './app';
 
@@ -180,6 +181,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
               line: 1,
               message: 'This image has no alt attribute.',
               ruleId: 'image-alt',
+              selector: 'body > img',
               severity: 'error',
               suggestion: 'Add descriptive alternative text.',
             },
@@ -353,9 +355,15 @@ describe('PreviewApplication', () => {
     ).toBe(true);
     await vi.waitFor(() =>
       expect(
-        document.querySelector('[data-lint-rule="link-broken"]')?.textContent,
-      ).toContain('HTML line 95'),
+        document.querySelector('[data-lint-rule="link-broken"]'),
+      ).not.toBeNull(),
     );
+    getElement<HTMLButtonElement>(
+      '[data-lint-rule="link-broken"] button',
+    ).click();
+    expect(
+      document.querySelector('[data-lint-rule="link-broken"]')?.textContent,
+    ).toContain('HTML line 95');
     expect(document.body.textContent).toContain(
       '2 checked (including cached results) · 1 skipped',
     );
@@ -694,6 +702,12 @@ describe('PreviewApplication', () => {
     await harness.application.start();
 
     expect(
+      document.querySelector('[data-lint-rule="image-alt"]')?.textContent,
+    ).not.toContain('Add descriptive alternative text');
+    getElement<HTMLButtonElement>(
+      '[data-lint-rule="image-alt"] button',
+    ).click();
+    expect(
       document.querySelector('.lint-summary')?.getAttribute('aria-label'),
     ).toContain('1 error, 1 warning');
     expect(
@@ -707,11 +721,411 @@ describe('PreviewApplication', () => {
     expect(document.querySelector('.lint-panel')?.textContent).toContain(
       'HTML line 1',
     );
+    getElement<HTMLButtonElement>(
+      '[data-lint-rule="viewport-meta"] button',
+    ).click();
     expect(
-      document.querySelector<HTMLAnchorElement>('.lint-panel a')?.href,
+      document
+        .querySelector('[data-lint-rule="image-alt"] button')
+        ?.getAttribute('aria-expanded'),
+    ).toBe('false');
+    expect(
+      document.querySelector<HTMLAnchorElement>(
+        '.lint-panel a[target="_blank"]',
+      )?.href,
     ).toBe('https://www.caniemail.com/features/css-display-grid/');
 
     harness.application.destroy();
+  });
+
+  it('selects one finding, outlines protected preview and compare frames, and jumps to its HTML line', async () => {
+    const harness = createHarness();
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    await harness.application.start();
+    const card = getElement<HTMLButtonElement>(
+      '[data-lint-rule="image-alt"] button',
+    );
+    expect(card.tagName).toBe('BUTTON');
+    expect(card.getAttribute('aria-expanded')).toBe('false');
+    card.focus();
+    card.click();
+    expect(card.getAttribute('aria-expanded')).toBe('true');
+    const preview = getElement<HTMLIFrameElement>('#email-preview-frame');
+    expect(preview.srcdoc).toContain(
+      'data-chakra-email-preview-highlight="selected"',
+    );
+    expect(preview.srcdoc).toContain('outline:2px dashed #f5a524');
+    expect(preview.getAttribute('sandbox')).toBe('');
+    expect(preview.srcdoc).toContain("script-src 'none'");
+    card.click();
+    expect(card.getAttribute('aria-expanded')).toBe('false');
+    expect(preview.srcdoc).not.toContain(
+      'data-chakra-email-preview-highlight="selected"',
+    );
+    card.click();
+    getElement<HTMLButtonElement>('[data-tab="compare"]').click();
+    document
+      .querySelectorAll<HTMLIFrameElement>('.compare-frames iframe')
+      .forEach((frame) => {
+        expect(frame.srcdoc).toContain(
+          'data-chakra-email-preview-highlight="selected"',
+        );
+        expect(frame.getAttribute('sandbox')).toBe('');
+        expect(frame.srcdoc).toContain("script-src 'none'");
+        expect(frame.srcdoc).not.toContain('img-src https:');
+      });
+    getElement<HTMLAnchorElement>('[data-lint-rule="image-alt"] a').click();
+    expect(getElement<HTMLElement>('.code-view').dataset['language']).toBe(
+      'html',
+    );
+    expect(
+      getElement<HTMLElement>('#html-line-1').dataset['selectedFinding'],
+    ).toBe('error');
+    await vi.waitFor(() =>
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        block: 'center',
+        inline: 'nearest',
+      }),
+    );
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(document.querySelector('[data-selected-finding]')).toBeNull();
+    expect(card.getAttribute('aria-expanded')).toBe('false');
+    delete (HTMLElement.prototype as { scrollIntoView?: unknown })
+      .scrollIntoView;
+  });
+
+  it('keeps a finding selected by key after a rerender and clears it when removed or changing templates', async () => {
+    const harness = createHarness();
+    let includeImage = true;
+    const fetcher = harness.fetcher.getMockImplementation() as NonNullable<
+      PreviewApplicationOptions['fetch']
+    >;
+    harness.fetcher.mockImplementation(async (input, init) => {
+      const response = await fetcher(input, init);
+      if (input !== '/api/render') return response;
+      const payload = await response.json();
+      return jsonResponse({
+        ...payload,
+        lint: includeImage
+          ? payload.lint
+          : payload.lint.filter(
+              (finding: { ruleId: string }) => finding.ruleId !== 'image-alt',
+            ),
+      });
+    });
+    await harness.application.start();
+    getElement<HTMLButtonElement>(
+      '[data-lint-rule="image-alt"] button',
+    ).click();
+    getElement<HTMLButtonElement>('[data-inspector-tab="checks"]').click();
+    const rerun = Array.from(document.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Re-run',
+    );
+    if (!rerun) throw new Error('Missing Re-run button');
+    rerun.click();
+    await vi.waitFor(() => expect(harness.renderRequests).toHaveLength(2));
+    await vi.waitFor(() => expect(rerun.disabled).toBe(false));
+    await vi.waitFor(() =>
+      expect(
+        getElement<HTMLButtonElement>(
+          '[data-lint-rule="image-alt"] button',
+        ).getAttribute('aria-expanded'),
+      ).toBe('true'),
+    );
+    includeImage = false;
+    rerun.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-lint-rule="image-alt"]')).toBeNull(),
+    );
+    await vi.waitFor(() => expect(rerun.disabled).toBe(false));
+    expect(
+      getElement<HTMLIFrameElement>('#email-preview-frame').srcdoc,
+    ).not.toContain('data-chakra-email-preview-highlight="selected"');
+    includeImage = true;
+    rerun.click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-lint-rule="image-alt"]'),
+      ).not.toBeNull(),
+    );
+    expect(
+      getElement<HTMLButtonElement>(
+        '[data-lint-rule="image-alt"] button',
+      ).getAttribute('aria-expanded'),
+    ).toBe('false');
+    getElement<HTMLButtonElement>(
+      '[data-lint-rule="image-alt"] button',
+    ).click();
+    getElement<HTMLButtonElement>('[data-template-id="receipt"]').click();
+    await vi.waitFor(() =>
+      expect(harness.renderRequests.at(-1)?.id).toBe('receipt'),
+    );
+    await vi.waitFor(() =>
+      expect(
+        getElement<HTMLButtonElement>(
+          '[data-lint-rule="image-alt"] button',
+        ).getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+  });
+
+  it('filters reviewed client breakages without inferring mappings for unmapped findings', async () => {
+    const harness = createHarness();
+    let includeMappedIssue = true;
+    const fetcher = harness.fetcher.getMockImplementation() as NonNullable<
+      PreviewApplicationOptions['fetch']
+    >;
+    harness.fetcher.mockImplementation(async (input, init) => {
+      const response = await fetcher(input, init);
+      if (input !== '/api/render') return response;
+      const payload = await response.json();
+      return jsonResponse({
+        ...payload,
+        lint: [
+          ...payload.lint,
+          ...(includeMappedIssue
+            ? [
+                {
+                  category: 'compatibility',
+                  severity: 'warning',
+                  ruleId: 'css-border-radius',
+                  clients: ['outlook-windows'],
+                  message: 'Rounded button needs a fallback.',
+                  suggestion: 'Add VML.',
+                  selector: 'h1',
+                },
+              ]
+            : []),
+        ],
+      });
+    });
+    await harness.application.start();
+    expect(document.querySelectorAll('[data-client]')).toHaveLength(8);
+    expect(
+      getElement<HTMLElement>('[data-client="gmail"]').textContent,
+    ).toContain('No known issues');
+    expect(getElement<HTMLElement>('[data-client="gmail"]').tagName).not.toBe(
+      'BUTTON',
+    );
+    getElement<HTMLButtonElement>('[data-client="outlook-windows"]').click();
+    expect(document.querySelectorAll('.lint-finding')).toHaveLength(1);
+    expect(
+      document.querySelector('[data-lint-rule="css-border-radius"]'),
+    ).not.toBeNull();
+    expect(
+      getElement<HTMLButtonElement>(
+        '[data-client="outlook-windows"]',
+      ).getAttribute('aria-pressed'),
+    ).toBe('true');
+    const clear = Array.from(document.querySelectorAll('button')).find(
+      (button) => button.textContent === 'All clients',
+    );
+    if (!clear) throw new Error('Missing All clients button');
+    clear.click();
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('.lint-finding')).toHaveLength(3),
+    );
+    expect(document.querySelector('.lint-panel')?.textContent).toContain(
+      'Known breakages, reviewed 2026-10. Not a rendering test.',
+    );
+    getElement<HTMLButtonElement>('[data-client="outlook-windows"]').click();
+    harness.eventSource.dispatchEvent(new Event('templates'));
+    await vi.waitFor(() => expect(harness.renderRequests).toHaveLength(2));
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('.lint-finding')).toHaveLength(3),
+    );
+    expect(
+      getElement<HTMLButtonElement>(
+        '[data-client="outlook-windows"]',
+      ).getAttribute('aria-pressed'),
+    ).toBe('false');
+    getElement<HTMLButtonElement>('[data-client="outlook-windows"]').click();
+    includeMappedIssue = false;
+    harness.eventSource.dispatchEvent(new Event('invalidate'));
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('.lint-finding')).toHaveLength(2),
+    );
+    expect(
+      getElement<HTMLElement>('[data-client="outlook-windows"]').tagName,
+    ).not.toBe('BUTTON');
+  });
+
+  it('highlights only a unique DOM match without accepting CSS, markup, or URL injection through selectors', () => {
+    const html =
+      '<!doctype html><html><head></head><body><p id="notice">Hello</p><p>Other</p></body></html>';
+    const output = withPreviewContentSecurityPolicy(
+      withPreviewHighlight(withPreviewColorMode(html, 'dark'), '#notice'),
+      false,
+    );
+    const document = new DOMParser().parseFromString(output, 'text/html');
+    expect(
+      document.querySelectorAll(
+        '[data-chakra-email-preview-highlight="selected"]',
+      ),
+    ).toHaveLength(1);
+    expect(
+      document
+        .querySelector('#notice')
+        ?.getAttribute('data-chakra-email-preview-highlight'),
+    ).toBe('selected');
+    expect(
+      document.querySelectorAll('[data-chakra-email-preview-highlight-style]'),
+    ).toHaveLength(1);
+    expect(
+      document.querySelector('style[data-chakra-email-preview-highlight-style]')
+        ?.textContent,
+    ).toContain('outline:2px dashed');
+    expect(output).toContain(':root{color-scheme:only dark}');
+    expect(output).toContain("script-src 'none'");
+    expect(output).toContain('<!DOCTYPE html>');
+    for (const selector of [
+      undefined,
+      'p',
+      '#missing',
+      '*',
+      '[',
+      'p{background:url(https://evil.test)}',
+      '</style><script>alert(1)</script>',
+      'p} @import "https://evil.test";',
+      'x'.repeat(4097),
+    ]) {
+      expect(withPreviewHighlight(html, selector)).toBe(html);
+    }
+    const unusual = '<p id="a{background:url(https://evil.test)}">Hello</p>';
+    const safelyResolved = withPreviewHighlight(
+      unusual,
+      '[id="a{background:url(https://evil.test)}"]',
+    );
+    const safeDocument = new DOMParser().parseFromString(
+      safelyResolved,
+      'text/html',
+    );
+    expect(safeDocument.querySelector('style')?.textContent).not.toContain(
+      'evil.test',
+    );
+    expect(safeDocument.querySelector('style')?.textContent).not.toContain(
+      'url(',
+    );
+    expect(safeDocument.querySelector('script')).toBeNull();
+  });
+
+  it('validates highlight colors and replaces its own marker and style on repeated rewrites', () => {
+    const html = '<p id="first">First</p><p id="second">Second</p>';
+    const first = withPreviewHighlight(html, '#first', '#123456');
+    expect(first).toContain('outline:2px dashed rgb(18, 52, 86)');
+    const second = withPreviewHighlight(first, '#second', 'rebeccapurple');
+    const document = new DOMParser().parseFromString(second, 'text/html');
+    expect(
+      document.querySelectorAll('[data-chakra-email-preview-highlight-style]'),
+    ).toHaveLength(1);
+    expect(
+      document.querySelectorAll(
+        '[data-chakra-email-preview-highlight="selected"]',
+      ),
+    ).toHaveLength(1);
+    expect(
+      document
+        .querySelector('#first')
+        ?.hasAttribute('data-chakra-email-preview-highlight'),
+    ).toBe(false);
+    expect(
+      document
+        .querySelector('#second')
+        ?.getAttribute('data-chakra-email-preview-highlight'),
+    ).toBe('selected');
+    expect(document.querySelector('style')?.textContent).toContain(
+      'rebeccapurple',
+    );
+    for (const color of [
+      'not-a-color',
+      'red; background:url(https://evil.test)',
+      '</style><script>alert(1)</script>',
+      'var(--injected, </style><img src=https://evil.test>)',
+      'url(https://evil.test)',
+    ]) {
+      const output = withPreviewHighlight(html, '#first', color);
+      const parsed = new DOMParser().parseFromString(output, 'text/html');
+      expect(parsed.querySelector('style')?.textContent).toContain('#f5a524');
+      expect(parsed.querySelector('style')?.textContent).not.toContain(
+        'evil.test',
+      );
+      expect(parsed.querySelector('script')).toBeNull();
+    }
+  });
+
+  it('keeps authored head selectors accurate after injecting color-mode and highlight styles', () => {
+    const html =
+      '<html><head><style>.example { display:grid }</style><style>.another { display:flex }</style></head><body>Preview</body></html>';
+    const output = withPreviewHighlight(
+      withPreviewColorMode(html, 'dark'),
+      'html > head:nth-child(1) > style:nth-child(1)',
+    );
+    const parsed = new DOMParser().parseFromString(output, 'text/html');
+    expect(
+      parsed.querySelector('[data-chakra-email-preview-highlight="selected"]')
+        ?.textContent,
+    ).toContain('display:grid');
+    expect(
+      parsed.querySelector(
+        'style[data-chakra-email-preview-color-mode="dark"]',
+      ),
+    ).not.toBeNull();
+    const repeated = new DOMParser().parseFromString(
+      withPreviewHighlight(
+        output,
+        'html > head:nth-child(1) > style:nth-child(2)',
+      ),
+      'text/html',
+    );
+    expect(
+      repeated.querySelector('[data-chakra-email-preview-highlight="selected"]')
+        ?.textContent,
+    ).toContain('display:flex');
+    expect(
+      repeated.querySelectorAll('[data-chakra-email-preview-highlight-style]'),
+    ).toHaveLength(1);
+  });
+
+  it('uses the resolved workspace highlight color in Preview and all Compare frames', async () => {
+    const computedStyle = window.getComputedStyle.bind(window);
+    vi.spyOn(window, 'getComputedStyle').mockImplementation(
+      (element, pseudo) => {
+        const result = computedStyle(element, pseudo);
+        if (
+          (element as HTMLElement).style.color !==
+          'var(--chakra-colors-preview-highlight)'
+        )
+          return result;
+        return new Proxy(result, {
+          get: (target, key) =>
+            key === 'color' ? 'rgb(12, 34, 56)' : Reflect.get(target, key),
+        });
+      },
+    );
+    const harness = createHarness({
+      theme: {
+        semanticTokens: {
+          colors: { preview: { highlight: { value: '#0c2238' } } },
+        },
+      },
+    });
+    await harness.application.start();
+    getElement<HTMLButtonElement>(
+      '[data-lint-rule="image-alt"] button',
+    ).click();
+    expect(
+      getElement<HTMLIFrameElement>('#email-preview-frame').srcdoc,
+    ).toContain('outline:2px dashed rgb(12, 34, 56)');
+    getElement<HTMLButtonElement>('[data-tab="compare"]').click();
+    document
+      .querySelectorAll<HTMLIFrameElement>('.compare-frames iframe')
+      .forEach((frame) => {
+        expect(frame.srcdoc).toContain('outline:2px dashed rgb(12, 34, 56)');
+      });
   });
 
   it('validates and sends the active template through the configured transport', async () => {
