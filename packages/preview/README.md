@@ -161,8 +161,10 @@ and a tabbed **Props · Info · Checks** inspector. It fills the dynamic viewpor
   templates, after discovery and changes. Counts describe default fixtures, not
   the active variant or edited props. **With issues** excludes info-only results.
 - Props opens in Fields mode for small objects; JSON supports arrays and larger
-  objects. Edits render after 300ms of inactivity. Invalid JSON keeps the last
-  good render, and **Reset props** restores the selected fixture/variant.
+  objects or empty nested objects. Field types stay stable while editing; invalid
+  number drafts show accessible errors without changing the last good render.
+  Clearing an originally null field restores `null`. Valid edits render after
+  300ms of inactivity, and **Reset props** restores the selected fixture/variant.
 - **Copy as variant** copies a named entry to paste into `previewVariants`, with
   only keys that differ from the base fixture. It never writes source files.
 - Info shows the current envelope, message sizes, link/image counts, and source.

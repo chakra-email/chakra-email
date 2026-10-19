@@ -166,8 +166,12 @@ Source views, a filterable template sidebar, and a Props / Info / Checks
 inspector. Desktop and Mobile presets use 600px and 375px; Compare shows
 desktop/light, mobile/light, and mobile/dark together.
 
-Props supports generated fields or JSON. Edits render after 300ms of inactivity;
-invalid JSON leaves the previous render visible. Reset props restores the
+Props supports generated fields or JSON. Fields retain their fixture types while
+you edit: invalid or empty number drafts show an inline error rather than becoming
+strings, and clearing an originally `null` field restores `null`. Arrays, empty
+nested objects, and objects with more than 20 scalar leaves use JSON instead.
+Edits render after 300ms of inactivity; invalid fields or JSON leave the previous
+render visible. Reset props restores the
 selected fixture and variant. The inbox row shows the sender, subject, and
 server-normalized hidden preheader, with the variant selector above it.
 Late variant or watch responses preserve props edited while a request was in

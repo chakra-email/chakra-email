@@ -6,6 +6,11 @@ import { buildPreviewMessage } from './message';
 import { buildVariantSnippet } from './variant';
 import { previewClients } from './client-support';
 import { parseLintSummary, type TemplateLintCounts } from './lint-summary';
+import {
+  createPropsFields,
+  updatePropsField,
+  type PropsField,
+} from './props-fields';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -118,6 +123,7 @@ export type ApplicationState = {
   emailColorMode: EmailColorMode;
   selectedVariant: string;
   propsText: string;
+  propsFields: PropsField[] | null;
   appliedProps: JsonRecord | null;
   propsDirty: boolean;
   propsError: string | null;
@@ -648,6 +654,7 @@ export class PreviewApplication {
     emailColorMode: initialEmailColorMode(),
     selectedVariant: '',
     propsText: '{}',
+    propsFields: null,
     appliedProps: null,
     propsDirty: false,
     propsError: null,
@@ -777,6 +784,7 @@ export class PreviewApplication {
     this.state.selectedVariant = variant;
     this.state.propsDirty = false;
     this.state.propsError = null;
+    this.state.propsFields = null;
     void this.renderCurrent({ replaceEditor: true });
   };
 
@@ -784,6 +792,7 @@ export class PreviewApplication {
     this.resetVariantCopy();
     this.cancelPropsApply();
     this.state.propsText = value;
+    this.state.propsFields = createPropsFields(value);
     this.state.propsDirty = true;
     this.state.propsError = null;
     this.render();
@@ -791,6 +800,35 @@ export class PreviewApplication {
       this.propsTimer = null;
       void this.applyProps();
     }, 300);
+  };
+
+  private readonly changePropsField = (
+    index: number,
+    value: string | boolean,
+  ): void => {
+    const field = this.state.propsFields?.[index];
+    if (!field || !this.state.propsFields) return;
+    this.resetVariantCopy();
+    this.cancelPropsApply();
+    this.state.propsDirty = true;
+    try {
+      const updated = updatePropsField(this.state.propsText, field, value);
+      this.state.propsFields[index] = updated.field;
+      this.state.propsText = updated.text;
+      const invalid = this.state.propsFields.find((item) => item.error);
+      this.state.propsError = invalid
+        ? `${invalid.path.join('.')}: ${invalid.error}`
+        : null;
+      if (!invalid)
+        this.propsTimer = window.setTimeout(() => {
+          this.propsTimer = null;
+          void this.applyProps();
+        }, 300);
+    } catch (error) {
+      this.state.propsError =
+        error instanceof Error ? error.message : 'Edit props in JSON.';
+    }
+    this.render();
   };
 
   private cancelPropsApply(): void {
@@ -864,6 +902,7 @@ export class PreviewApplication {
     this.state.result = null;
     this.state.selectedVariant = '';
     this.state.propsText = '{}';
+    this.state.propsFields = null;
     this.state.appliedProps = null;
     this.state.propsDirty = false;
     this.state.propsError = null;
@@ -928,6 +967,7 @@ export class PreviewApplication {
         this.state.result = null;
         this.state.selectedVariant = '';
         this.state.propsText = '{}';
+        this.state.propsFields = null;
         this.state.appliedProps = null;
         this.state.propsDirty = false;
         this.state.propsError = null;
@@ -1045,6 +1085,7 @@ export class PreviewApplication {
 
       if (options.replaceEditor && this.state.propsText === editorAtStart) {
         this.state.propsText = formatJson(result.props);
+        this.state.propsFields = createPropsFields(this.state.propsText);
         this.state.propsDirty = false;
         this.state.propsError = null;
       }
@@ -1064,6 +1105,7 @@ export class PreviewApplication {
 
   private async applyProps(): Promise<void> {
     this.cancelPropsApply();
+    if (this.state.propsFields?.some((field) => field.error)) return;
     const editorText = this.state.propsText;
     const templateId = this.state.selectedId;
     const variant = this.state.selectedVariant;
@@ -1089,6 +1131,7 @@ export class PreviewApplication {
       this.state.propsText === editorText &&
       this.state.selectedId === templateId &&
       this.state.selectedVariant === variant &&
+      !this.state.propsError &&
       !this.state.error
     ) {
       this.state.propsDirty = false;
@@ -1593,6 +1636,8 @@ export class PreviewApplication {
           onResetFrame: () => this.changeViewport(this.state.viewport),
           onResetProps: () => {
             this.cancelPropsApply();
+            this.state.propsFields = null;
+            this.state.propsError = null;
             void this.renderCurrent({ replaceEditor: true });
           },
           onSelectTemplate: (templateId: string) => {
@@ -1604,6 +1649,7 @@ export class PreviewApplication {
           onRemoteImagesChange: this.changeRemoteImages,
           onVariantChange: this.changeVariant,
           onPropsTextChange: this.changePropsText,
+          onPropsFieldChange: this.changePropsField,
           onCopyVariant: () => {
             void this.copyVariant();
           },

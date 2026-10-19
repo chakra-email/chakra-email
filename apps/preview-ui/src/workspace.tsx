@@ -98,6 +98,7 @@ export type PreviewWorkspaceProps = {
   onRemoteImagesChange(checked: boolean): void;
   onVariantChange(variant: string): void;
   onPropsTextChange(value: string): void;
+  onPropsFieldChange(index: number, value: string | boolean): void;
   onSendToChange(value: string): void;
   onSendSubjectChange(value: string): void;
   onCopy(format?: PreviewTab): void;
@@ -1190,19 +1191,7 @@ function Inspector(props: PreviewWorkspaceProps) {
     previewInspectorSlotRecipe,
   );
   const styles = recipe();
-  let fields: Array<{ path: string[]; value: unknown }> = [];
-  try {
-    const walk = (value: unknown, path: string[]) => {
-      if (value && typeof value === 'object' && !Array.isArray(value))
-        Object.entries(value).forEach(([key, item]) =>
-          walk(item, [...path, key]),
-        );
-      else fields.push({ path, value });
-    };
-    walk(JSON.parse(state.propsText), []);
-  } catch {
-    fields = [];
-  }
+  const fields = state.propsFields;
   const stats = messageStats(state.result?.html ?? '');
   const previewText = state.result?.previewText ?? stats.previewText;
   const from = state.result?.from;
@@ -1211,18 +1200,6 @@ function Inspector(props: PreviewWorkspaceProps) {
       state.result?.rulesRun?.includes(rule.id) &&
       !state.result.lint.some((finding) => finding.ruleId === rule.id),
   );
-  const updateField = (path: string[], value: unknown) => {
-    const draft = JSON.parse(state.propsText);
-    let parent = draft;
-    for (const key of path.slice(0, -1)) parent = parent[key];
-    Object.defineProperty(parent, path[path.length - 1], {
-      value,
-      enumerable: true,
-      configurable: true,
-      writable: true,
-    });
-    props.onPropsTextChange(JSON.stringify(draft, null, 2));
-  };
   return (
     <Tabs.Root
       unstyled
@@ -1323,15 +1300,16 @@ function Inspector(props: PreviewWorkspaceProps) {
                 Reset props
               </Button>
             </Flex>
-            {state.propsMode === 'fields' &&
-            fields.length &&
-            fields.length <= 20 &&
-            !fields.some((f) => Array.isArray(f.value)) ? (
-              fields.map(({ path, value }) => (
-                <Field.Root key={path.join('.')} disabled={!state.result}>
+            {state.propsMode === 'fields' && fields ? (
+              fields.map(({ path, value, type, error }, index) => (
+                <Field.Root
+                  key={JSON.stringify(path)}
+                  disabled={!state.result}
+                  invalid={Boolean(error)}
+                >
                   <Flex justify="space-between" w="full">
                     <Field.Label
-                      htmlFor={'prop-' + path.join('.')}
+                      htmlFor={'prop-field-' + index}
                       css={styles.fieldLabel}
                     >
                       {path.join('.')}
@@ -1341,38 +1319,34 @@ function Inspector(props: PreviewWorkspaceProps) {
                       color="preview.textMuted"
                       fontSize="11px"
                     >
-                      {value === null ? 'null' : typeof value}
+                      {type}
                     </Text>
                   </Flex>
-                  {typeof value === 'boolean' ? (
+                  {type === 'boolean' ? (
                     <Switch.Root
-                      checked={value}
+                      checked={Boolean(value)}
                       onCheckedChange={({ checked }) =>
-                        updateField(path, checked)
+                        props.onPropsFieldChange(index, checked)
                       }
                     >
-                      <Switch.HiddenInput id={'prop-' + path.join('.')} />
+                      <Switch.HiddenInput id={'prop-field-' + index} />
                       <Switch.Control>
                         <Switch.Thumb />
                       </Switch.Control>
                     </Switch.Root>
                   ) : (
                     <Input
-                      id={'prop-' + path.join('.')}
-                      type={typeof value === 'number' ? 'number' : 'text'}
-                      value={String(value ?? '')}
+                      id={'prop-field-' + index}
+                      type={type === 'number' ? 'number' : 'text'}
+                      step={type === 'number' ? 'any' : undefined}
+                      value={String(value)}
                       css={styles.sendInput}
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={
+                        'props-help' + (error ? ' props-error' : '')
+                      }
                       onInput={(e) =>
-                        updateField(
-                          path,
-                          typeof value === 'number'
-                            ? e.currentTarget.value === ''
-                              ? ''
-                              : Number(e.currentTarget.value)
-                            : value === null && !e.currentTarget.value
-                              ? null
-                              : e.currentTarget.value,
-                        )
+                        props.onPropsFieldChange(index, e.currentTarget.value)
                       }
                     />
                   )}

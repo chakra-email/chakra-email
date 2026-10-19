@@ -102,7 +102,10 @@ function elementDeclarations(element: Element): CSSStyleDeclaration[] {
   return declarations;
 }
 
-function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
+function createHarness(
+  overrides: Partial<PreviewApplicationOptions> = {},
+  fixtureProps: Record<string, unknown> = { name: 'Ada' },
+): {
   application: PreviewApplication;
   eventSource: FakeEventSource;
   fetcher: ReturnType<typeof vi.fn>;
@@ -150,7 +153,7 @@ function createHarness(overrides: Partial<PreviewApplicationOptions> = {}): {
           request.props ??
           (request.variant === 'reminder'
             ? { days: 3, name: 'Grace' }
-            : { name: 'Ada' });
+            : fixtureProps);
 
         return jsonResponse({
           ...(input === '/api/check-links'
@@ -1961,7 +1964,7 @@ describe('PreviewApplication', () => {
       ),
     ).toBe('true');
     vi.useFakeTimers();
-    const field = getElement<HTMLInputElement>('#prop-name');
+    const field = getElement<HTMLInputElement>('#prop-field-0');
     field.value = 'Grace';
     field.dispatchEvent(new Event('input', { bubbles: true }));
     await vi.advanceTimersByTimeAsync(299);
@@ -1977,6 +1980,125 @@ describe('PreviewApplication', () => {
     );
     vi.useRealTimers();
     harness.application.destroy();
+  });
+
+  it('keeps typed field drafts stable, blocks invalid numbers, and preserves nested nullable and boolean props', async () => {
+    window.localStorage.removeItem('chakra-email.preview.props-mode');
+    const fixture = { values: { count: 2, note: null, active: true } };
+    const harness = createHarness({}, fixture);
+    await harness.application.start();
+    const originalFrame = getElement<HTMLIFrameElement>('iframe').srcdoc;
+    vi.useFakeTimers();
+    const input = (id: string, value: string) => {
+      const field = document.getElementById(id) as HTMLInputElement;
+      field.value = value;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    input('prop-field-0', '');
+    await vi.advanceTimersByTimeAsync(500);
+    expect(harness.renderRequests).toHaveLength(1);
+    expect(document.getElementById('prop-field-0')?.getAttribute('type')).toBe(
+      'number',
+    );
+    expect(
+      document.getElementById('prop-field-0')?.getAttribute('aria-invalid'),
+    ).toBe('true');
+    expect(document.querySelector('#props-error')?.textContent).toContain(
+      'values.count: Enter a finite number.',
+    );
+    expect(getElement<HTMLIFrameElement>('iframe').srcdoc).toBe(originalFrame);
+    input('prop-field-1', 'temporary');
+    input('prop-field-1', '');
+    await vi.advanceTimersByTimeAsync(500);
+    expect(harness.renderRequests).toHaveLength(1);
+    input('prop-field-0', '3.5');
+    getElement<HTMLInputElement>('#prop-field-2').click();
+    await vi.advanceTimersByTimeAsync(300);
+    expect(harness.renderRequests.at(-1)?.props).toEqual({
+      values: { count: 3.5, note: null, active: false },
+    });
+    expect(document.querySelector('#props-error')).toBeNull();
+    expect(document.getElementById('prop-field-0')?.getAttribute('step')).toBe(
+      'any',
+    );
+    getElement<HTMLButtonElement>('[data-props-mode="json"]').click();
+    expect(
+      JSON.parse(getElement<HTMLTextAreaElement>('#preview-props').value),
+    ).toEqual({ values: { count: 3.5, note: null, active: false } });
+    getElement<HTMLButtonElement>('[data-action="reset-props"]').click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(
+      JSON.parse(getElement<HTMLTextAreaElement>('#preview-props').value),
+    ).toEqual(fixture);
+    harness.application.destroy();
+    vi.useRealTimers();
+  });
+
+  it('uses JSON for arrays and empty objects and rebuilds the field schema after JSON edits', async () => {
+    window.localStorage.removeItem('chakra-email.preview.props-mode');
+    const harness = createHarness({}, { values: { items: [] } });
+    await harness.application.start();
+    expect(document.querySelector('#preview-props')).not.toBeNull();
+    expect(
+      document.querySelector('[aria-label="Preview settings"]')?.textContent,
+    ).toContain('Edit in JSON');
+    vi.useFakeTimers();
+    const editor = getElement<HTMLTextAreaElement>('#preview-props');
+    editor.value = '{"values":{"count":1}}';
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(document.getElementById('prop-field-0')?.getAttribute('type')).toBe(
+      'number',
+    );
+    await vi.advanceTimersByTimeAsync(300);
+    expect(harness.renderRequests.at(-1)?.props).toEqual({
+      values: { count: 1 },
+    });
+    harness.application.destroy();
+    vi.useRealTimers();
+  });
+
+  it('discards invalid fields and pending edits when the variant changes', async () => {
+    window.localStorage.removeItem('chakra-email.preview.props-mode');
+    const harness = createHarness({}, { count: 2 });
+    await harness.application.start();
+    vi.useFakeTimers();
+    const field = getElement<HTMLInputElement>('#prop-field-0');
+    field.value = '';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(document.querySelector('#props-error')).not.toBeNull();
+    const variant = getElement<HTMLSelectElement>('#variant');
+    variant.value = 'reminder';
+    variant.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(500);
+    expect(document.querySelector('#props-error')).toBeNull();
+    expect(harness.renderRequests).toHaveLength(2);
+    expect(harness.renderRequests.at(-1)).toEqual({
+      id: 'welcome',
+      variant: 'reminder',
+    });
+    expect(getElement<HTMLInputElement>('#prop-field-0').value).toBe('3');
+    harness.application.destroy();
+    vi.useRealTimers();
+  });
+
+  it('gives literal dotted keys and nested paths unique controls without editing the wrong value', async () => {
+    window.localStorage.removeItem('chakra-email.preview.props-mode');
+    const harness = createHarness({}, { 'a.b': 'flat', a: { b: 'nested' } });
+    await harness.application.start();
+    expect(document.querySelectorAll('#prop-field-0')).toHaveLength(1);
+    expect(document.querySelectorAll('#prop-field-1')).toHaveLength(1);
+    expect(getElement<HTMLInputElement>('#prop-field-1').value).toBe('nested');
+    vi.useFakeTimers();
+    const field = getElement<HTMLInputElement>('#prop-field-0');
+    field.value = 'updated flat';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(300);
+    expect(harness.renderRequests.at(-1)?.props).toEqual({
+      'a.b': 'updated flat',
+      a: { b: 'nested' },
+    });
+    harness.application.destroy();
+    vi.useRealTimers();
   });
 
   it('copies a named variant against the base fixture without changing the selected preview', async () => {
