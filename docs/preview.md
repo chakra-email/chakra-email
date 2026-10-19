@@ -118,8 +118,10 @@ The effective component props are merged in this order:
 2. the selected entry from `previewVariants`;
 3. values entered in the preview JSON editor.
 
-Later sources override earlier ones. A variant can therefore contain a partial
-props object that changes only the scenario-specific values.
+Variant objects merge recursively with the base fixture, so a nested partial
+object preserves unchanged siblings. Arrays, scalar values, and `null` replace
+the base value. Live editor values override top-level keys last, replacing each
+edited value in full so removed nested fields stay removed.
 
 `previewSubject` accepts a string or a synchronous/async function of the fully
 merged props. It is validated as an email subject, displayed in the preview,

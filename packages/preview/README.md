@@ -291,8 +291,10 @@ export default function WelcomeEmail({ firstName, plan }: WelcomeEmailProps) {
 
 `previewProps` supplies the base props. Each selected `previewVariants` entry
 is merged over that base, and props entered in the preview JSON editor are
-merged last. Variant values can therefore contain only the fields that differ
-from the base case.
+merged last. Variant objects merge recursively, preserving unchanged nested
+fields; arrays, scalars, and `null` replace the base value. Editor values replace
+their top-level values in full, including nested objects. Copied variant diffs
+can therefore contain only the fields that differ from the base case.
 
 `previewSubject` may be a string or a synchronous/async function. Functions
 receive those fully merged props. The subject appears in the workspace,

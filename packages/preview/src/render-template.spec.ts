@@ -65,6 +65,51 @@ describe('renderTemplate', () => {
     expect(result.rulesRun).not.toContain('link-broken');
   });
 
+  it('merges nested variant diffs without losing fixture siblings or mutating inputs', async () => {
+    const previewProps = {
+      account: { name: 'Ada', details: { code: 'old', active: true } },
+      items: [{ label: 'base' }],
+      optional: { value: 'base' },
+      scalar: 'base',
+    };
+    const previewVariants = {
+      changed: {
+        account: { details: { code: 'new' } },
+        items: [{ label: 'variant' }],
+        optional: null,
+        scalar: { nested: true },
+      },
+    };
+    const module = {
+      default: () => createElement('p', null, 'Fixture'),
+      previewProps,
+      previewVariants,
+    };
+    const result = await renderTemplate({
+      module,
+      template,
+      variant: 'changed',
+    });
+    expect(result.props).toEqual({
+      account: { name: 'Ada', details: { code: 'new', active: true } },
+      items: [{ label: 'variant' }],
+      optional: null,
+      scalar: { nested: true },
+    });
+    expect(previewProps.account.details.code).toBe('old');
+    expect(previewVariants.changed.account).toEqual({
+      details: { code: 'new' },
+    });
+
+    const edited = await renderTemplate({
+      module,
+      template,
+      variant: 'changed',
+      props: { account: { name: 'Grace' } },
+    });
+    expect(edited.props['account']).toEqual({ name: 'Grace' });
+  });
+
   it('derives a subject from the fully merged preview props', async () => {
     const result = await renderTemplate({
       module: {

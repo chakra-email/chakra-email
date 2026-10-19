@@ -40,6 +40,8 @@
 
 ### Changed
 
+- Nested variant objects preserve unchanged fixture fields, so copied deep-diff
+  variants render the same props; arrays and live editor values remain replacements.
 - Findings from multiple attributes at the same HTML location remain separate,
   so selecting one issue never expands another card.
 - A late variant or watch refresh no longer overwrites props typed while the

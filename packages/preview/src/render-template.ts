@@ -102,6 +102,25 @@ export function normalizeJsonObject(value: unknown, label: string): JsonObject {
   return normalized;
 }
 
+// Both inputs have already been cloned and checked for reserved keys. Variant
+// objects are partial fixtures; arrays and scalar values remain replacements.
+function mergeVariantProps(base: JsonObject, variant: JsonObject): JsonObject {
+  const result = { ...base };
+  for (const [key, value] of Object.entries(variant)) {
+    const previous = base[key];
+    result[key] =
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      previous !== null &&
+      typeof previous === 'object' &&
+      !Array.isArray(previous)
+        ? mergeVariantProps(previous, value)
+        : value;
+  }
+  return result;
+}
+
 function getComponentPreviewProps(component: unknown): unknown {
   if (
     (typeof component === 'function' || typeof component === 'object') &&
@@ -190,7 +209,12 @@ export async function renderTemplate(
     );
   }
   const customProps = normalizeJsonObject(options.props, 'props');
-  const props = { ...baseProps, ...variantProps, ...customProps };
+  // Live editor props are complete values: do not recursively restore keys a
+  // user intentionally removed from a nested object in the JSON editor.
+  const props = {
+    ...mergeVariantProps(baseProps, variantProps),
+    ...customProps,
+  };
   const element = createTemplateElement(component, props);
   const renderer = options.renderer ?? chakraEmailRenderer;
   const [output, source, subject, from] = await Promise.all([
