@@ -225,8 +225,14 @@ are acknowledged after a short immediate-error window, not when the editor
 closes; failures reported later by a GUI editor cannot be reflected in that
 completed request.
 
-⌘K / Ctrl K opens the command palette for templates, views, panel toggles, and
-interface theme settings. The interface follows the OS unless overridden;
+⌘K / Ctrl K opens the command palette, grouped into Templates, View, Preview,
+Workspace, and Actions. Search includes template groups and source paths. Use
+Up/Down or Home/End to select a command, Enter to run it, and Escape to return
+focus to the opener. Preview offers explicit viewport, email color, and remote
+image settings. Actions includes available link checks and editor controls,
+HTML copy, `.eml` download, and Send test. Send test opens and focuses its recipient
+popover; it never sends automatically. Disabled or unavailable actions cannot run.
+The interface follows the OS unless overridden;
 email Light/Dark remains a separate preview setting. Outside text fields, use
 `/` to filter, `1`–`5` for views, `d` / `m` for viewports, `l` for email color,
 and `[` / `]` for panels. On narrow screens the panels become overlay sheets.

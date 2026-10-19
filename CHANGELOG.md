@@ -4,6 +4,8 @@
 
 ### Added
 
+- Grouped, keyboard-operable palette commands include explicit preview modes,
+  `.eml` download, capability-aware actions, and a focused Send test handoff.
 - Per-link check results retain actual HTTP status codes and distinguish redirects,
   broken, skipped, and unverified URLs without implying unchecked links succeeded.
 - Background default-template lint summaries update every sidebar row over SSE,

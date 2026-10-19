@@ -157,7 +157,8 @@ export function createEmailLinkChecker(
         const node = pending.pop();
         if (!node) continue;
         // A stack needs reversed children to preserve the browser's document order.
-        if ('childNodes' in node) pending.push(...[...node.childNodes].reverse());
+        if ('childNodes' in node)
+          pending.push(...[...node.childNodes].reverse());
         if (!('tagName' in node) || node.tagName !== 'a') continue;
         const raw = node.attrs.find((attr) => attr.name === 'href')?.value;
         if (raw === undefined) continue;

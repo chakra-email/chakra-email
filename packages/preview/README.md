@@ -189,8 +189,10 @@ and a tabbed **Props · Info · Checks** inspector. It fills the dynamic viewpor
   **Export** offers HTML/plain-text copy and download, plus a local
   multipart `.eml` export for opening in a mail client. The export uses
   `previewFrom` as sender when supplied, otherwise `preview@localhost`.
-- ⌘K / Ctrl K opens the command palette, including panel toggles and interface
-  theme choices. The interface follows the OS by default; explicit Light or
+- ⌘K / Ctrl K opens a grouped, searchable command palette for templates, views,
+  preview modes, workspace settings, and available actions. Up/Down and Home/End
+  navigate; Enter runs a command; Escape restores opener focus. Send test opens
+  its recipient popover without sending. The interface follows the OS by default; explicit Light or
   Dark choices persist. The sidebar becomes an overlay below 760px; the
   inspector becomes an overlay below 1100px.
 - Outside text fields, `/` focuses the template filter; `1`–`5` select views;

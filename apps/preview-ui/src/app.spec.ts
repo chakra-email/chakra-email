@@ -395,7 +395,8 @@ describe('PreviewApplication', () => {
 
   it('labels individual links with actual results and clears them on a fresh render', async () => {
     const harness = createHarness();
-    const original = harness.fetcher.getMockImplementation();
+    const original =
+      harness.fetcher.getMockImplementation() as PreviewApplicationOptions['fetch'];
     if (!original) throw new Error('Missing mock fetch implementation.');
     const html =
       '<body><a href="https://example.org/a">First</a><a href="https://example.org/a">Duplicate</a><a href="https://example.org/go">Redirect</a><a href="https://example.org/gone">Broken</a><a href="">Empty</a><a href="https://example.org/limited">Limited</a></body>';
@@ -569,12 +570,18 @@ describe('PreviewApplication', () => {
       await vi.waitFor(() =>
         expect(
           [...document.querySelectorAll('[role="option"]')].some(
-            (b) => b.textContent === label,
+            (b) =>
+              b.getAttribute('aria-label') === label ||
+              b.getAttribute('aria-label')?.startsWith(label + ','),
           ),
         ).toBe(true),
       );
       [...document.querySelectorAll<HTMLButtonElement>('[role="option"]')]
-        .find((b) => b.textContent === label)
+        .find(
+          (b) =>
+            b.getAttribute('aria-label') === label ||
+            b.getAttribute('aria-label')?.startsWith(label + ','),
+        )
         ?.click();
     };
     await command('Toggle inspector');
@@ -2588,6 +2595,66 @@ describe('PreviewApplication', () => {
       window.localStorage.getItem('chakra-email.preview.email-color-mode'),
     ).toBeNull();
     harness.application.destroy();
+  });
+
+  it('returns palette focus to the keyboard opener and hands Send test focus to its recipient', async () => {
+    vi.spyOn(HTMLElement.prototype, 'getClientRects').mockReturnValue([
+      { width: 1, height: 1 },
+    ] as unknown as DOMRectList);
+    const harness = createHarness();
+    await harness.application.start();
+    const editor = getElement<HTMLTextAreaElement>('#preview-props');
+    editor.focus();
+    editor.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(document.activeElement?.getAttribute('aria-label')).toBe(
+        'Find a command',
+      ),
+    );
+    getElement<HTMLInputElement>('[aria-label="Find a command"]').dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Escape',
+        code: 'Escape',
+        bubbles: true,
+      }),
+    );
+    await vi.waitFor(() => expect(document.activeElement).toBe(editor));
+    getElement<HTMLButtonElement>('[data-action="palette"]').click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[aria-label="Find a command"]'),
+      ).not.toBeNull(),
+    );
+    const closePalette = getElement<HTMLButtonElement>(
+      '[aria-label="Close command palette"]',
+    );
+    closePalette.focus();
+    for (const key of ['2', 'm', 'l', '[', ']'])
+      closePalette.dispatchEvent(
+        new KeyboardEvent('keydown', { key, bubbles: true }),
+      );
+    expect(document.querySelector('.compare-frames')).toBeNull();
+    expect(getElement<HTMLElement>('#preview-templates').hidden).toBe(false);
+    expect(getElement<HTMLElement>('#preview-inspector').hidden).toBe(false);
+    const query = getElement<HTMLInputElement>('[aria-label="Find a command"]');
+    query.value = 'Send test';
+    query.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('[role="option"]')).toHaveLength(1),
+    );
+    query.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(document.activeElement).toBe(
+        document.getElementById('test-send-to'),
+      ),
+    );
+    expect(document.getElementById('test-send-to')).not.toBeNull();
+    expect(harness.sendRequests).toHaveLength(0);
+    expect(document.querySelector('[aria-label="Find a command"]')).toBeNull();
   });
 
   it('exports a local MIME message without sending mail', async () => {

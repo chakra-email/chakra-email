@@ -39,6 +39,7 @@ import {
 } from './app';
 import { clientSupportReviewed, previewClients } from './client-support';
 import { formatLinkStatus } from './link-status';
+import { PreviewPalette } from './palette';
 import type {
   ApplicationState,
   LintFinding,
@@ -153,6 +154,8 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
   const viewerStyles = viewerRecipe();
   const [screenWidth, setScreenWidth] = useState(() => window.innerWidth);
   const paletteTrigger = useRef<HTMLButtonElement>(null);
+  const paletteReturnFocus = useRef<HTMLElement | null>(null);
+  const [sendOpen, setSendOpen] = useState(false);
   const filterRef = useRef<HTMLInputElement>(null);
   const selected = state.templates.find(
     (template) => template.id === state.selectedId,
@@ -168,15 +171,22 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
   }, []);
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
+      if (event.isComposing) return;
       const target = event.target as HTMLElement;
       const editing =
         target instanceof HTMLElement &&
         target.closest('input, textarea, select, [contenteditable="true"]');
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
+        if (!state.paletteOpen)
+          paletteReturnFocus.current =
+            document.activeElement instanceof HTMLElement
+              ? document.activeElement
+              : paletteTrigger.current;
         props.onPanelChange('paletteOpen', !state.paletteOpen);
         return;
       }
+      if (state.paletteOpen) return;
       if (event.key === 'Escape') props.onSelectFinding(null);
       if (editing || event.metaKey || event.ctrlKey || event.altKey) return;
       const view = tabs[Number(event.key) - 1];
@@ -437,13 +447,21 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                 aria-label="Open command palette"
                 data-action="palette"
                 variant="outline"
-                onClick={() => props.onPanelChange('paletteOpen', true)}
+                onClick={(event) => {
+                  paletteReturnFocus.current = event.currentTarget;
+                  props.onPanelChange('paletteOpen', true);
+                }}
               >
                 <ActionIcon name="search" />
               </PreviewIconButton>
             </PreviewTooltip>
             {state.canTestSend ? (
-              <Popover.Root positioning={{ placement: 'bottom-end' }}>
+              <Popover.Root
+                open={sendOpen}
+                onOpenChange={({ open }) => setSendOpen(open)}
+                initialFocusEl={() => document.getElementById('test-send-to')}
+                positioning={{ placement: 'bottom-end' }}
+              >
                 <Popover.Trigger asChild>
                   <Button
                     size="sm"
@@ -546,7 +564,16 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
             <Inspector {...props} />
           </PanelSheet>
         ) : null}
-        <Palette {...props} returnFocusRef={paletteTrigger} />
+        <PreviewPalette
+          {...props}
+          returnFocusRef={paletteReturnFocus}
+          onOpenSendTest={() => {
+            setSendOpen(true);
+            window.requestAnimationFrame(() =>
+              document.getElementById('test-send-to')?.focus(),
+            );
+          }}
+        />
       </Grid>
     </Tabs.Root>
   );
@@ -850,148 +877,6 @@ function ExportMenu(props: PreviewWorkspaceProps) {
         </Menu.Positioner>
       </Portal>
     </Menu.Root>
-  );
-}
-
-function Palette(
-  props: PreviewWorkspaceProps & {
-    returnFocusRef: React.RefObject<HTMLButtonElement | null>;
-  },
-) {
-  const [query, setQuery] = useState('');
-  const queryRef = useRef<HTMLInputElement>(null);
-  const commands = [
-    ...props.state.templates.map((t) => ({
-      label: t.name,
-      run: () => props.onSelectTemplate(t.id),
-    })),
-    ...tabs.map((tab) => ({
-      label: 'View: ' + tab.label,
-      run: () => props.onTabChange(tab.id),
-    })),
-    ...viewports.map((v) => ({
-      label: v.label + ' preview',
-      run: () => props.onViewportChange(v.id),
-    })),
-    { label: 'Toggle email light/dark', run: props.onToggleEmailColorMode },
-    {
-      label: 'Toggle remote images',
-      run: () => props.onRemoteImagesChange(!props.state.remoteImages),
-    },
-    {
-      label: 'Toggle sidebar',
-      run: () =>
-        props.onPanelChange('templatesOpen', !props.state.templatesOpen),
-    },
-    {
-      label: 'Toggle inspector',
-      run: () =>
-        props.onPanelChange('inspectorOpen', !props.state.inspectorOpen),
-    },
-    ...(['system', 'light', 'dark'] as const).map((mode) => ({
-      label: 'Interface theme: ' + mode,
-      run: () => props.onPreferenceChange('workspaceColorMode', mode),
-    })),
-    { label: 'Copy HTML', run: () => props.onCopy('html') },
-    ...(props.state.canOpenInEditor && props.state.selectedId
-      ? [{ label: 'Open in editor', run: props.onOpenInEditor }]
-      : []),
-    ...(props.state.canCheckLinks
-      ? [{ label: 'Check links', run: props.onCheckLinks }]
-      : []),
-  ].filter((c) => c.label.toLowerCase().includes(query.toLowerCase()));
-  const [active, setActive] = useState(0);
-  const run = (index: number) => {
-    commands[index]?.run();
-    props.onPanelChange('paletteOpen', false);
-    setQuery('');
-    setActive(0);
-  };
-  return (
-    <Dialog.Root
-      open={props.state.paletteOpen}
-      onOpenChange={({ open }) => props.onPanelChange('paletteOpen', open)}
-      finalFocusEl={() => props.returnFocusRef.current}
-      initialFocusEl={() => queryRef.current}
-    >
-      <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content
-            bg="preview.panel"
-            color="preview.text"
-            borderColor="preview.border"
-          >
-            <Dialog.Header>
-              <Dialog.Title>Command palette</Dialog.Title>
-            </Dialog.Header>
-            <Dialog.Body pb="4">
-              <Input
-                ref={queryRef}
-                aria-label="Find a command"
-                placeholder="Find a template or command…"
-                value={query}
-                role="combobox"
-                aria-expanded="true"
-                aria-controls="preview-commands"
-                aria-activedescendant={
-                  commands[active] ? 'command-' + active : undefined
-                }
-                onInput={(e) => {
-                  setQuery(e.currentTarget.value);
-                  setActive(0);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setActive(
-                      (i) =>
-                        (i +
-                          (e.key === 'ArrowDown' ? 1 : -1) +
-                          commands.length) %
-                        Math.max(commands.length, 1),
-                    );
-                  } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    run(active);
-                  }
-                }}
-              />
-              <Stack
-                id="preview-commands"
-                role="listbox"
-                aria-label="Commands"
-                mt="3"
-                maxH="50dvh"
-                overflowY="auto"
-                gap="1"
-              >
-                {commands.map((c, i) => (
-                  <Button
-                    key={c.label}
-                    id={'command-' + i}
-                    role="option"
-                    aria-selected={i === active}
-                    tabIndex={-1}
-                    justifyContent="start"
-                    variant="ghost"
-                    bg={i === active ? 'preview.soft' : 'transparent'}
-                    onClick={() => run(i)}
-                  >
-                    {c.label}
-                  </Button>
-                ))}
-                {!commands.length ? (
-                  <Text p="3" color="preview.textMuted">
-                    No matching commands
-                  </Text>
-                ) : null}
-              </Stack>
-            </Dialog.Body>
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
-    </Dialog.Root>
   );
 }
 
