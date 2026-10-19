@@ -42,6 +42,8 @@
 
 ### Changed
 
+- Copy as variant rejects reserved names and fixture-key deletions that cannot
+  round-trip through nested merges; edits also cancel pending clipboard writes.
 - Props fields retain their types across invalid number drafts and null edits;
   unsupported field shapes use JSON, and reset/variant changes cancel pending edits.
 - Nested variant objects preserve unchanged fixture fields, so copied deep-diff

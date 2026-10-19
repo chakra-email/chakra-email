@@ -183,6 +183,12 @@ differ from the template's base `previewProps` are included, with a deep diff fo
 objects and whole values for changed arrays. Wait for props to finish rendering
 before copying. The action reads the current base fixture without switching the
 visible preview, and never writes to your template files.
+Variants merge nested objects with the base fixture. Removed fixture keys and
+empty-object replacements that would restore deleted keys cannot be copied;
+keep those keys or update `previewProps` in your source. Arrays are replaced as
+whole values, so removing array items is supported. Variant names cannot be
+`__proto__`, `constructor`, or `prototype`. Editing props or the name while the
+base fixture loads cancels the pending copy rather than writing stale clipboard data.
 
 The status bar reports frame dimensions, UTF-8 message size, links, images, and
 findings. Its findings tally opens Checks, which includes passed rules from the

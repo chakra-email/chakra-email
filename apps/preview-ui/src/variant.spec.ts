@@ -48,4 +48,51 @@ describe('buildVariantSnippet', () => {
     );
     expect(() => buildVariantSnippet('  ', {}, {})).toThrow('Enter a name');
   });
+
+  it.each(['__proto__', 'constructor', 'prototype'])(
+    'rejects reserved variant name %s',
+    (name) => {
+      expect(() => buildVariantSnippet(` ${name} `, {}, {})).toThrow(
+        'is reserved',
+      );
+    },
+  );
+
+  it('rejects omitted fixture keys and empty-object replacements that cannot round-trip', () => {
+    const base = { values: { code: '1', name: 'Ada' } };
+    expect(() =>
+      buildVariantSnippet('Removed', base, { values: { code: '2' } }),
+    ).toThrow('cannot remove fixture keys (values.name)');
+    expect(() => buildVariantSnippet('Empty', base, { values: {} })).toThrow(
+      'cannot remove fixture keys (values.code)',
+    );
+    expect(() =>
+      buildVariantSnippet('Root removal', { optional: true }, {}),
+    ).toThrow('cannot remove fixture keys (optional)');
+  });
+
+  it('allows atomic array replacements and object/null type changes without mistaking them for removed keys', () => {
+    expect(
+      buildVariantSnippet(
+        'Array replacement',
+        { values: [{ code: '1', name: 'Ada' }] },
+        { values: [{ code: '2' }] },
+      ),
+    ).toBe(
+      "'Array replacement': {\n  values: [\n    {\n      code: '2',\n    },\n  ],\n},\n",
+    );
+    expect(
+      buildVariantSnippet('Empty array', { values: ['1'] }, { values: [] }),
+    ).toBe("'Empty array': {\n  values: [],\n},\n");
+    expect(
+      buildVariantSnippet(
+        'Null',
+        { values: { name: 'Ada' } },
+        { values: null },
+      ),
+    ).toBe("'Null': {\n  values: null,\n},\n");
+    expect(
+      buildVariantSnippet('New empty object', { values: null }, { values: {} }),
+    ).toBe("'New empty object': {\n  values: {},\n},\n");
+  });
 });

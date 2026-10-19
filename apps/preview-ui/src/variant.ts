@@ -23,7 +23,19 @@ function equal(left: unknown, right: unknown): boolean {
   return left === right;
 }
 
-function changedProps(base: JsonObject, props: JsonObject): JsonObject {
+function changedProps(
+  base: JsonObject,
+  props: JsonObject,
+  path: string[] = [],
+): JsonObject {
+  const removedKey = Object.keys(base).find(
+    (key) => !Object.hasOwn(props, key),
+  );
+  if (removedKey !== undefined) {
+    throw new Error(
+      `Copied variants cannot remove fixture keys (${[...path, removedKey].join('.')}). Keep the key, or update previewProps in your source.`,
+    );
+  }
   return Object.fromEntries(
     Object.entries(props).flatMap(([key, value]) => {
       if (Object.hasOwn(base, key) && equal(base[key], value)) return [];
@@ -31,7 +43,7 @@ function changedProps(base: JsonObject, props: JsonObject): JsonObject {
         [
           key,
           isObject(base[key]) && isObject(value)
-            ? changedProps(base[key], value)
+            ? changedProps(base[key], value, [...path, key])
             : value,
         ],
       ];
@@ -95,6 +107,10 @@ export function buildVariantSnippet(
 ): string {
   const trimmedName = name.trim();
   if (!trimmedName) throw new Error('Enter a name for the variant.');
+  if (['__proto__', 'constructor', 'prototype'].includes(trimmedName))
+    throw new Error(
+      `The variant name '${trimmedName}' is reserved. Choose another name.`,
+    );
   return (
     quote(trimmedName) +
     ': ' +

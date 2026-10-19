@@ -2747,6 +2747,84 @@ describe('PreviewApplication', () => {
     expect(result.violations).toEqual([]);
     harness.application.destroy();
   }, 60_000);
+  describe('Copy as variant safety', () => {
+    it('explains reserved names and unrepresentable nested deletions without copying misleading fixtures', async () => {
+      const harness = createHarness({}, { values: { code: '1', name: 'Ada' } });
+      await harness.application.start();
+      vi.useFakeTimers();
+      const editor = getElement<HTMLTextAreaElement>('#preview-props');
+      editor.value = '{"values":{"code":"2"}}';
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+      await vi.advanceTimersByTimeAsync(300);
+      vi.useRealTimers();
+      getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+      await vi.waitFor(() =>
+        expect(document.querySelector('#preview-variant-name')).not.toBeNull(),
+      );
+      const name = getElement<HTMLInputElement>('#preview-variant-name');
+      name.value = 'constructor';
+      name.dispatchEvent(new Event('input', { bubbles: true }));
+      getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+      await vi.waitFor(() =>
+        expect(document.body.textContent).toContain('is reserved'),
+      );
+      name.value = 'Missing sibling';
+      name.dispatchEvent(new Event('input', { bubbles: true }));
+      getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+      await vi.waitFor(() =>
+        expect(document.body.textContent).toContain(
+          'cannot remove fixture keys (values.name)',
+        ),
+      );
+      expect(harness.copyText).not.toHaveBeenCalled();
+      harness.application.destroy();
+    });
+
+    it.each(['invalid number', 'renamed variant'])(
+      'does not write a stale clipboard result when a pending copy is cancelled by %s',
+      async (change) => {
+        window.localStorage.removeItem('chakra-email.preview.props-mode');
+        const harness = createHarness({}, { count: 2 });
+        await harness.application.start();
+        const request = harness.fetcher as PreviewApplicationOptions['fetch'];
+        if (!request) throw new Error('Missing mock fetch implementation.');
+        const baseline = await request('/api/render', {
+          body: JSON.stringify({ id: 'welcome' }),
+        });
+        let finish: (response: Response) => void = () => undefined;
+        harness.fetcher.mockImplementationOnce(
+          () =>
+            new Promise<Response>((resolve) => {
+              finish = resolve;
+            }),
+        );
+        getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+        await vi.waitFor(() =>
+          expect(
+            document.querySelector('#preview-variant-name'),
+          ).not.toBeNull(),
+        );
+        getElement<HTMLButtonElement>('[data-action="copy-variant"]').click();
+        if (change === 'invalid number') {
+          const field = getElement<HTMLInputElement>('#prop-field-0');
+          field.value = '';
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          const name = getElement<HTMLInputElement>('#preview-variant-name');
+          name.value = 'Renamed';
+          name.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        finish(baseline);
+        await flush();
+        await flush();
+        expect(harness.copyText).not.toHaveBeenCalled();
+        expect(getElement('[data-action="copy-variant"]').textContent).not.toBe(
+          'Copied',
+        );
+        harness.application.destroy();
+      },
+    );
+  });
 });
 
 describe('withPreviewContentSecurityPolicy', () => {

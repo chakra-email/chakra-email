@@ -166,7 +166,11 @@ and a tabbed **Props · Info · Checks** inspector. It fills the dynamic viewpor
   Clearing an originally null field restores `null`. Valid edits render after
   300ms of inactivity, and **Reset props** restores the selected fixture/variant.
 - **Copy as variant** copies a named entry to paste into `previewVariants`, with
-  only keys that differ from the base fixture. It never writes source files.
+  only keys that differ from the base fixture. Nested fixture keys cannot be
+  removed by a merged variant; unsupported deletions show an error instead of
+  copying an entry that restores them. Arrays remain whole-value replacements.
+  Reserved names (`__proto__`, `constructor`, `prototype`) are rejected, and edits
+  cancel a pending copy. It never writes source files.
 - Info shows the current envelope, message sizes, link/image counts, and source.
   Checks shows severity totals, on-demand link checks, and passed rules from
   the server's effective catalog and `rulesRun`. Network requests remain opt-in.

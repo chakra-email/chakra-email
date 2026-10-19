@@ -1269,6 +1269,7 @@ export class PreviewApplication {
   }
 
   private async copyAsVariant(name: string): Promise<void> {
+    const sequence = this.variantCopySequence;
     const id = this.state.selectedId;
     const result = this.state.result;
     const propsText = this.state.propsText;
@@ -1299,6 +1300,10 @@ export class PreviewApplication {
     const baseline = parseRenderResult(await response.json());
     if (
       !this.started ||
+      sequence !== this.variantCopySequence ||
+      this.state.propsDirty ||
+      this.state.propsError ||
+      this.state.rendering ||
       this.state.selectedId !== id ||
       this.state.result !== result ||
       this.state.propsText !== propsText ||
