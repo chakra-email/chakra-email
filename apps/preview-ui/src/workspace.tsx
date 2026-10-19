@@ -38,6 +38,7 @@ import {
   withPreviewHighlight,
 } from './app';
 import { clientSupportReviewed, previewClients } from './client-support';
+import { formatLinkStatus } from './link-status';
 import type {
   ApplicationState,
   LintFinding,
@@ -1662,12 +1663,35 @@ function Inspector(props: PreviewWorkspaceProps) {
               ).map((a, i) => (
                 <Stack
                   key={i}
+                  data-link-index={i}
                   gap="0"
                   borderTopWidth="1px"
                   borderColor="preview.border"
                   py="2"
                 >
-                  <Text fontSize="xs">{a.textContent || 'Link'}</Text>
+                  <Flex justify="space-between" align="start" gap="2">
+                    <Text fontSize="xs">{a.textContent || 'Link'}</Text>
+                    <Badge
+                      size="sm"
+                      bg="preview.soft"
+                      color="preview.textMuted"
+                      flexShrink="0"
+                      aria-label={
+                        'Link status: ' +
+                        formatLinkStatus(
+                          state.result?.linkCheck?.links?.find(
+                            (entry) => entry.index === i,
+                          ),
+                        )
+                      }
+                    >
+                      {formatLinkStatus(
+                        state.result?.linkCheck?.links?.find(
+                          (entry) => entry.index === i,
+                        ),
+                      )}
+                    </Badge>
+                  </Flex>
                   <Text
                     fontFamily="previewMono"
                     fontSize="11px"

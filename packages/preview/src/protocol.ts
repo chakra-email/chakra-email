@@ -69,12 +69,29 @@ export interface PreviewLintFinding {
   suggestion: string;
 }
 
+export interface PreviewLinkCheckEntry {
+  /** Document-order index among all a[href] elements, including empty hrefs. */
+  index: number;
+  line?: number;
+  column?: number;
+  status: 'ok' | 'redirect' | 'broken' | 'skipped' | 'unverified';
+  /** Actual HEAD response code; absent when no HTTP response was received. */
+  statusCode?: number;
+}
+
+export interface PreviewLinkCheckSummary {
+  checked: number;
+  skipped: number;
+  /** Optional for compatibility with older preview servers. */
+  links?: PreviewLinkCheckEntry[];
+}
+
 export interface PreviewRenderResponse {
   from?: PreviewSender;
   previewText?: string;
   rulesRun?: string[];
   renderMs?: number;
-  linkCheck?: { checked: number; skipped: number };
+  linkCheck?: PreviewLinkCheckSummary;
   html: string;
   id: string;
   lint: PreviewLintFinding[];

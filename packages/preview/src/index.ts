@@ -68,6 +68,8 @@ export type {
   PreviewServerAddress,
 } from './server.js';
 export type {
+  PreviewLinkCheckEntry,
+  PreviewLinkCheckSummary,
   PreviewLintCategory,
   PreviewLintFinding,
   PreviewLintSummary,

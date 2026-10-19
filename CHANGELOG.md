@@ -4,6 +4,8 @@
 
 ### Added
 
+- Per-link check results retain actual HTTP status codes and distinguish redirects,
+  broken, skipped, and unverified URLs without implying unchecked links succeeded.
 - Background default-template lint summaries update every sidebar row over SSE,
   including unvisited templates, with debounced, bounded work, stale-generation
   cancellation, late-client replay, and priority for explicit renders.

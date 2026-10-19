@@ -6,6 +6,7 @@ import { buildPreviewMessage } from './message';
 import { buildVariantSnippet } from './variant';
 import { previewClients } from './client-support';
 import { parseLintSummary, type TemplateLintCounts } from './lint-summary';
+import { parseLinkCheckEntries, type LinkCheckEntry } from './link-status';
 import {
   createPropsFields,
   updatePropsField,
@@ -46,7 +47,7 @@ export type RenderResult = {
   previewText?: string;
   rulesRun?: string[];
   renderMs?: number;
-  linkCheck?: { checked: number; skipped: number };
+  linkCheck?: { checked: number; skipped: number; links?: LinkCheckEntry[] };
   id: string;
   name: string;
   html: string;
@@ -373,6 +374,9 @@ function parseRenderResult(value: unknown): RenderResult {
   ) {
     throw new Error('The preview server returned invalid link-check results.');
   }
+  const links = parseLinkCheckEntries(
+    isRecord(linkCheck) ? linkCheck['links'] : undefined,
+  );
 
   return {
     from:
@@ -392,7 +396,13 @@ function parseRenderResult(value: unknown): RenderResult {
       Number.isInteger(value['renderMs']) && Number(value['renderMs']) >= 0
         ? Number(value['renderMs'])
         : undefined,
-    linkCheck: linkCheck as RenderResult['linkCheck'],
+    linkCheck: isRecord(linkCheck)
+      ? {
+          checked: Number(linkCheck['checked']),
+          skipped: Number(linkCheck['skipped']),
+          links,
+        }
+      : undefined,
     id: value['id'],
     name: value['name'],
     html: value['html'],

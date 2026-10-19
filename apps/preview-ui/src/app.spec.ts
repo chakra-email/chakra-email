@@ -393,6 +393,93 @@ describe('PreviewApplication', () => {
     harness.application.destroy();
   });
 
+  it('labels individual links with actual results and clears them on a fresh render', async () => {
+    const harness = createHarness();
+    const original = harness.fetcher.getMockImplementation();
+    if (!original) throw new Error('Missing mock fetch implementation.');
+    const html =
+      '<body><a href="https://example.org/a">First</a><a href="https://example.org/a">Duplicate</a><a href="https://example.org/go">Redirect</a><a href="https://example.org/gone">Broken</a><a href="">Empty</a><a href="https://example.org/limited">Limited</a></body>';
+    harness.fetcher.mockImplementation(async (url, init) => {
+      const response = await original(url, init);
+      if (url !== '/api/render' && url !== '/api/check-links') return response;
+      return jsonResponse({
+        ...(await response.json()),
+        html,
+        ...(url === '/api/check-links'
+          ? {
+              linkCheck: {
+                checked: 4,
+                skipped: 1,
+                links: [
+                  { index: 0, status: 'ok', statusCode: 204 },
+                  { index: 1, status: 'ok', statusCode: 204 },
+                  { index: 2, status: 'redirect', statusCode: 307 },
+                  { index: 3, status: 'broken', statusCode: 410 },
+                  { index: 4, status: 'skipped' },
+                  { index: 5, status: 'unverified', statusCode: 429 },
+                ],
+              },
+            }
+          : {}),
+      });
+    });
+    await harness.application.start();
+    const labels = () =>
+      Array.from(
+        document.querySelectorAll(
+          '[data-link-index] [aria-label^="Link status:"]',
+        ),
+        (el) => el.textContent,
+      );
+    expect(labels()).toEqual(Array(6).fill('not checked'));
+    getElement<HTMLButtonElement>('[data-action="check-links"]').click();
+    await vi.waitFor(() =>
+      expect(labels()).toEqual([
+        '204',
+        '204',
+        '→ 307',
+        'broken',
+        'skipped',
+        'unverified (429)',
+      ]),
+    );
+    getElement<HTMLButtonElement>('[data-action="reset-props"]').click();
+    await vi.waitFor(() =>
+      expect(labels()).toEqual(Array(6).fill('not checked')),
+    );
+  });
+
+  it('rejects malformed per-link metadata and preserves the previous preview', async () => {
+    const harness = createHarness();
+    await harness.application.start();
+    const frame = getElement<HTMLIFrameElement>('#email-preview-frame').srcdoc;
+    harness.fetcher.mockResolvedValueOnce(
+      jsonResponse({
+        id: 'welcome',
+        name: 'Welcome',
+        html: '<body>Invalid result</body>',
+        text: 'Invalid result',
+        source: '',
+        subject: 'Welcome',
+        props: {},
+        variants: [],
+        lint: [],
+        linkCheck: {
+          checked: 1,
+          skipped: 0,
+          links: [{ index: 0, status: 'ok', statusCode: 404 }],
+        },
+      }),
+    );
+    getElement<HTMLButtonElement>('[data-action="check-links"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain('invalid per-link results'),
+    );
+    expect(getElement<HTMLIFrameElement>('#email-preview-frame').srcdoc).toBe(
+      frame,
+    );
+  });
+
   it('hides network actions when the server has not enabled checks', async () => {
     const harness = createHarness();
     const original =

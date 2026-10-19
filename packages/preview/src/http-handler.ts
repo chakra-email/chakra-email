@@ -566,13 +566,13 @@ export function createPreviewHttpHandler(
           try {
             const rendered = await dependencies.render(renderRequest);
             if (isLinkCheck && checkLinks) {
-              const { findings, checked, skipped } = await checkLinks(
+              const { findings, checked, skipped, links } = await checkLinks(
                 rendered.html,
               );
               sendJson(response, 200, {
                 ...rendered,
                 lint: [...rendered.lint, ...findings],
-                linkCheck: { checked, skipped },
+                linkCheck: { checked, skipped, links },
               });
             } else {
               sendJson(response, 200, rendered);

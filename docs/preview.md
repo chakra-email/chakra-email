@@ -583,6 +583,13 @@ apply to every template and variant, including the explicit **Check links**
 action. They do not enable network access or change rendered email output.
 Rules set to `off` produce no findings.
 
+The Checks link list starts at **not checked**. Explicit link checks show the
+actual successful HTTP code, redirect code, or a broken, skipped, or unverified
+status for each occurrence, including duplicate URLs. Redirects are not followed;
+HEAD responses do not certify that a destination works in a browser. A fresh
+render clears these statuses, and older servers without per-link metadata never
+imply success. Network access remains opt-in and allowlisted.
+
 For programmatic consumers, the shared catalog and evaluated rule IDs are
 available without starting a server:
 
