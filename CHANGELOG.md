@@ -4,6 +4,8 @@
 
 ### Added
 
+- Read-only HTML-view formatting with a saved 2-, 4-, or 8-space indentation
+  preference and Original mode, plus source-mapped lint links and highlights.
 - Grouped, keyboard-operable palette commands include explicit preview modes,
   `.eml` download, capability-aware actions, and a focused Send test handoff.
 - Per-link check results retain actual HTTP status codes and distinguish redirects,

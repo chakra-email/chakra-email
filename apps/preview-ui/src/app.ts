@@ -7,6 +7,7 @@ import { buildVariantSnippet } from './variant';
 import { previewClients } from './client-support';
 import { parseLintSummary, type TemplateLintCounts } from './lint-summary';
 import { parseLinkCheckEntries, type LinkCheckEntry } from './link-status';
+import { parseHtmlIndent, type HtmlIndent } from './html-display';
 import {
   createPropsFields,
   updatePropsField,
@@ -120,6 +121,7 @@ export type ApplicationState = {
   selectedId: string | null;
   result: RenderResult | null;
   activeTab: PreviewTab;
+  htmlIndent: HtmlIndent;
   viewport: Viewport;
   emailColorMode: EmailColorMode;
   selectedVariant: string;
@@ -657,6 +659,9 @@ export class PreviewApplication {
     selectedId: null,
     result: null,
     activeTab: 'preview',
+    htmlIndent: parseHtmlIndent(
+      readStoredValue('chakra-email.preview.html-indent'),
+    ),
     viewport:
       readStoredValue('chakra-email.preview.viewport') === 'mobile'
         ? 'mobile'
@@ -851,9 +856,23 @@ export class PreviewApplication {
   };
 
   private readonly changePreference = (
-    key: 'inspectorTab' | 'propsMode' | 'workspaceColorMode' | 'templateFilter',
+    key:
+      | 'inspectorTab'
+      | 'propsMode'
+      | 'workspaceColorMode'
+      | 'templateFilter'
+      | 'htmlIndent',
     value: string,
   ): void => {
+    if (key === 'htmlIndent') {
+      this.state.htmlIndent = parseHtmlIndent(value);
+      storeValue(
+        'chakra-email.preview.html-indent',
+        String(this.state.htmlIndent),
+      );
+      this.render();
+      return;
+    }
     const storage = {
       inspectorTab: 'inspector-tab',
       propsMode: 'props-mode',

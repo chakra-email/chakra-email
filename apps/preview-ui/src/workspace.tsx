@@ -40,6 +40,11 @@ import {
 import { clientSupportReviewed, previewClients } from './client-support';
 import { formatLinkStatus } from './link-status';
 import { PreviewPalette } from './palette';
+import {
+  formatHtmlForDisplay,
+  htmlIndentOptions,
+  type HtmlDisplay,
+} from './html-display';
 import type {
   ApplicationState,
   LintFinding,
@@ -111,7 +116,12 @@ export type PreviewWorkspaceProps = {
   onRetry(): void;
   onDismissError(): void;
   onPreferenceChange(
-    key: 'inspectorTab' | 'propsMode' | 'workspaceColorMode' | 'templateFilter',
+    key:
+      | 'inspectorTab'
+      | 'propsMode'
+      | 'workspaceColorMode'
+      | 'templateFilter'
+      | 'htmlIndent',
     value: string,
   ): void;
   onFilterTextChange(value: string): void;
@@ -139,6 +149,10 @@ export function PreviewRoot(props: PreviewWorkspaceProps) {
 
 function PreviewWorkspace(props: PreviewWorkspaceProps) {
   const { state } = props;
+  const htmlDisplay = useMemo(
+    () => formatHtmlForDisplay(state.result?.html ?? '', state.htmlIndent),
+    [state.result?.html, state.htmlIndent],
+  );
   const recipe = usePreviewSlotRecipe(
     previewSlotRecipeKeys.workspace,
     previewWorkspaceSlotRecipe,
@@ -523,7 +537,7 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                       tabIndex={0}
                     >
                       {state.activeTab === tab.id ? (
-                        <Viewer {...props} />
+                        <Viewer {...props} htmlDisplay={htmlDisplay} />
                       ) : null}
                     </Tabs.Content>
                   ))}
@@ -536,7 +550,7 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
                   hidden={!state.inspectorOpen}
                   css={styles.inspectorPanel}
                 >
-                  <Inspector {...props} />
+                  <Inspector {...props} htmlDisplay={htmlDisplay} />
                 </Box>
               ) : null}
             </Grid>
@@ -561,7 +575,7 @@ function PreviewWorkspace(props: PreviewWorkspaceProps) {
             open={state.inspectorOpen}
             onOpenChange={(open) => props.onPanelChange('inspectorOpen', open)}
           >
-            <Inspector {...props} />
+            <Inspector {...props} htmlDisplay={htmlDisplay} />
           </PanelSheet>
         ) : null}
         <PreviewPalette
@@ -1070,7 +1084,9 @@ function TemplateList(props: PreviewWorkspaceProps) {
   );
 }
 
-function Inspector(props: PreviewWorkspaceProps) {
+function Inspector(
+  props: PreviewWorkspaceProps & { htmlDisplay: HtmlDisplay },
+) {
   const { state } = props;
   const recipe = usePreviewSlotRecipe(
     previewSlotRecipeKeys.inspector,
@@ -1761,7 +1777,12 @@ function SendPanel(props: PreviewWorkspaceProps) {
   );
 }
 
-function LintPanel(props: PreviewWorkspaceProps & { passedCount: number }) {
+function LintPanel(
+  props: PreviewWorkspaceProps & {
+    passedCount: number;
+    htmlDisplay: HtmlDisplay;
+  },
+) {
   const { state } = props;
   const findings = state.result?.lint ?? null;
   const client = state.selectedClient;
@@ -1888,13 +1909,28 @@ function LintPanel(props: PreviewWorkspaceProps & { passedCount: number }) {
                     {finding.line ? (
                       <Link asChild fontSize="xs" alignSelf="start">
                         <a
-                          href={'#html-line-' + finding.line}
+                          href={
+                            '#html-line-' +
+                            (props.htmlDisplay.lineForSourcePosition(
+                              finding.line,
+                              finding.column,
+                            ) ?? finding.line)
+                          }
+                          title={
+                            'Original HTML line ' +
+                            finding.line +
+                            (finding.column ? ', column ' + finding.column : '')
+                          }
                           onClick={(event) => {
                             event.preventDefault();
                             props.onTabChange('html');
                           }}
                         >
-                          HTML line {finding.line}
+                          HTML line{' '}
+                          {props.htmlDisplay.lineForSourcePosition(
+                            finding.line,
+                            finding.column,
+                          ) ?? finding.line}
                         </a>
                       </Link>
                     ) : null}
@@ -2021,7 +2057,7 @@ function lintSeverityBackground(severity: LintSeverity): string {
   return 'preview.infoSoft';
 }
 
-function Viewer(props: PreviewWorkspaceProps) {
+function Viewer(props: PreviewWorkspaceProps & { htmlDisplay: HtmlDisplay }) {
   const { state, securedHtml } = props;
   const recipe = usePreviewSlotRecipe(
     previewSlotRecipeKeys.viewer,
@@ -2033,13 +2069,24 @@ function Viewer(props: PreviewWorkspaceProps) {
     (finding) => findingKey(finding) === state.selectedFindingKey,
   );
   const selectedLineRef = useRef<HTMLSpanElement>(null);
+  const selectedDisplayLine = selectedFinding?.line
+    ? props.htmlDisplay.lineForSourcePosition(
+        selectedFinding.line,
+        selectedFinding.column,
+      )
+    : undefined;
   useEffect(() => {
     if (state.activeTab === 'html')
       selectedLineRef.current?.scrollIntoView?.({
         block: 'center',
         inline: 'nearest',
       });
-  }, [state.activeTab, state.selectedFindingKey, state.result]);
+  }, [
+    state.activeTab,
+    state.selectedFindingKey,
+    state.result,
+    state.htmlIndent,
+  ]);
   useEffect(() => {
     const element = frameRef.current;
     if (!element || typeof ResizeObserver === 'undefined') return;
@@ -2307,8 +2354,13 @@ function Viewer(props: PreviewWorkspaceProps) {
       data-language={state.activeTab}
       css={styles.codeRoot}
     >
-      <Flex className="code-heading" css={styles.codeHeader}>
-        <Text>
+      <Flex className="code-heading" css={styles.codeHeader} flexWrap="wrap">
+        <Text
+          flex="1"
+          flexBasis={{ base: '100%', md: 'auto' }}
+          minW="0"
+          overflowWrap="anywhere"
+        >
           {state.activeTab === 'text'
             ? 'text/plain'
             : state.activeTab === 'source'
@@ -2316,6 +2368,33 @@ function Viewer(props: PreviewWorkspaceProps) {
               : state.result.name + '.html'}{' '}
           · {formatBytes(new TextEncoder().encode(output).length)}
         </Text>
+        {state.activeTab === 'html' ? (
+          <Flex align="center" gap="2">
+            <chakra.label htmlFor="html-indent" fontSize="xs">
+              Indentation
+            </chakra.label>
+            <NativeSelect.Root size="sm" w="110px">
+              <NativeSelect.Field
+                id="html-indent"
+                aria-label="HTML indentation"
+                value={state.htmlIndent}
+                onChange={(event) =>
+                  props.onPreferenceChange(
+                    'htmlIndent',
+                    event.currentTarget.value,
+                  )
+                }
+              >
+                {htmlIndentOptions.map((width) => (
+                  <option key={width} value={width}>
+                    {width ? width + ' spaces' : 'Original'}
+                  </option>
+                ))}
+              </NativeSelect.Field>
+              <NativeSelect.Indicator />
+            </NativeSelect.Root>
+          </Flex>
+        ) : null}
         <Button
           size="xs"
           variant="ghost"
@@ -2335,35 +2414,35 @@ function Viewer(props: PreviewWorkspaceProps) {
       <Box as="pre" css={styles.code}>
         <code>
           {state.activeTab === 'html'
-            ? output.split('\n').map((line, index) => (
+            ? props.htmlDisplay.lines.map((line, index) => (
                 <Box
                   as="span"
                   display="block"
                   key={index}
                   id={'html-line-' + (index + 1)}
                   ref={
-                    selectedFinding?.line === index + 1
+                    selectedDisplayLine === index + 1
                       ? selectedLineRef
                       : undefined
                   }
                   data-selected-finding={
-                    selectedFinding?.line === index + 1
+                    selectedDisplayLine === index + 1 && selectedFinding
                       ? selectedFinding.severity
                       : undefined
                   }
                   bg={
-                    selectedFinding?.line === index + 1
+                    selectedDisplayLine === index + 1
                       ? 'preview.warningSoft'
                       : undefined
                   }
                   borderLeftWidth="2px"
                   borderLeftColor={
-                    selectedFinding?.line === index + 1
+                    selectedDisplayLine === index + 1 && selectedFinding
                       ? lintSeverityColor(selectedFinding.severity)
                       : 'transparent'
                   }
                   aria-label={
-                    selectedFinding?.line === index + 1
+                    selectedDisplayLine === index + 1 && selectedFinding
                       ? 'HTML line ' +
                         (index + 1) +
                         ', ' +

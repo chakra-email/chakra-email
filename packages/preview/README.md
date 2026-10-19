@@ -156,6 +156,10 @@ and a tabbed **Props · Info · Checks** inspector. It fills the dynamic viewpor
   controls remain independent of the interface theme.
 - Compare shows desktop/light, mobile/light, and mobile/dark sandboxed frames.
   Click a frame to open its settings in Preview. HTML includes line numbers.
+  The HTML toolbar offers saved 2-, 4-, or 8-space indentation and an Original
+  view. Lint links follow the formatted lines, while copy/download, test sending,
+  and message sizes continue to use the original HTML. Formatting preserves
+  inline content, conditional comments, attributes, and raw text sections.
 - Filter templates by name or path. Folder groups come from the configured
   templates directory. Background summaries update all rows, including unvisited
   templates, after discovery and changes. Counts describe default fixtures, not

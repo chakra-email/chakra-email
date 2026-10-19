@@ -166,6 +166,17 @@ Source views, a filterable template sidebar, and a Props / Info / Checks
 inspector. Desktop and Mobile presets use 600px and 375px; Compare shows
 desktop/light, mobile/light, and mobile/dark together.
 
+The HTML view formats nested markup with 2-space indentation by default. Its
+**Indentation** selector offers 2, 4, or 8 spaces, or **Original** to show the
+unformatted response. The choice is saved in this browser. Formatting changes
+only the display: copy/download, test sending, linting, and message-size totals
+still use the original rendered HTML. Lint links and highlights map original
+line/column positions to the displayed line numbers; a link's tooltip retains
+the original location. Inline text, attributes, comments (including Outlook
+conditional markup), and raw sections such as `pre`, `textarea`, `script`, and
+`style` are preserved. Complex parser repairs, extreme nesting, and unusually
+large inputs fall back to the original view rather than risk altering markup.
+
 Props supports generated fields or JSON. Fields retain their fixture types while
 you edit: invalid or empty number drafts show an inline error rather than becoming
 strings, and clearing an originally `null` field restores `null`. Arrays, empty

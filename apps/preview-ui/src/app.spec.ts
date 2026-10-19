@@ -895,6 +895,156 @@ describe('PreviewApplication', () => {
       .scrollIntoView;
   });
 
+  it('formats HTML with a saved indentation width without changing copied or downloaded output', async () => {
+    const html =
+      '<body><table><tr><td>Hello &amp; welcome</td></tr></table></body>';
+    const harness = createHarness();
+    const original = harness.fetcher.getMockImplementation() as NonNullable<
+      PreviewApplicationOptions['fetch']
+    >;
+    harness.fetcher.mockImplementation(async (url, init) => {
+      const response = await original(url, init);
+      return url === '/api/render'
+        ? jsonResponse({ ...(await response.json()), html })
+        : response;
+    });
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-tab="html"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('#html-indent')).not.toBeNull(),
+    );
+    const indentation = getElement<HTMLSelectElement>(
+      '[aria-label="HTML indentation"]',
+    );
+    expect(indentation.value).toBe('2');
+    const row = () => getElement<HTMLElement>('#html-line-4');
+    expect(row().textContent).toMatch(/ {6}<td>Hello &amp; welcome<\/td>$/u);
+    const size =
+      (new TextEncoder().encode(html).length / 1024).toFixed(1) + ' KB';
+    expect(document.querySelector('.code-heading')?.textContent).toContain(
+      size,
+    );
+    indentation.value = '4';
+    indentation.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(row().textContent).toMatch(/ {12}<td>Hello &amp; welcome<\/td>$/u);
+    expect(
+      window.localStorage.getItem('chakra-email.preview.html-indent'),
+    ).toBe('4');
+    getElement<HTMLButtonElement>('[data-action="copy-output"]').click();
+    await vi.waitFor(() => expect(harness.copyText).toHaveBeenCalledWith(html));
+    await clickExport('download');
+    expect(harness.downloadText).toHaveBeenCalledWith(
+      html,
+      'welcome-email.html',
+      'text/html;charset=utf-8',
+    );
+    expect(document.querySelector('.code-heading')?.textContent).toContain(
+      size,
+    );
+    expect(harness.renderRequests).toHaveLength(1);
+    indentation.value = '0';
+    indentation.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(document.querySelectorAll('.code-view code > span')).toHaveLength(1);
+    expect(getElement('#html-line-1').textContent).toContain(html);
+    harness.application.destroy();
+    const next = createHarness();
+    await next.application.start();
+    getElement<HTMLButtonElement>('[data-tab="html"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('#html-indent')).not.toBeNull(),
+    );
+    expect(
+      getElement<HTMLSelectElement>('[aria-label="HTML indentation"]').value,
+    ).toBe('0');
+  });
+
+  it('maps lint links and selected lines to formatted HTML using original columns', async () => {
+    const html =
+      '<body><table><tr><td><img src="first"></td><td><img src="second"></td></tr></table></body>';
+    const harness = createHarness();
+    const original = harness.fetcher.getMockImplementation() as NonNullable<
+      PreviewApplicationOptions['fetch']
+    >;
+    harness.fetcher.mockImplementation(async (url, init) => {
+      const response = await original(url, init);
+      return url === '/api/render'
+        ? jsonResponse({
+            ...(await response.json()),
+            html,
+            lint: [
+              {
+                category: 'accessibility',
+                ruleId: 'image-alt',
+                line: 1,
+                column: html.indexOf('<img src="second"') + 1,
+                severity: 'error',
+                message: 'Second image has no alt.',
+                suggestion: 'Add alternative text.',
+              },
+            ],
+          })
+        : response;
+    });
+    const scroll = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scroll,
+    });
+    await harness.application.start();
+    getElement<HTMLButtonElement>('[data-inspector-tab="checks"]').click();
+    getElement<HTMLButtonElement>(
+      '[data-lint-rule="image-alt"] button',
+    ).click();
+    const link = getElement<HTMLAnchorElement>(
+      '[data-lint-rule="image-alt"] a',
+    );
+    expect(link.textContent).toBe('HTML line 5');
+    expect(link.getAttribute('href')).toBe('#html-line-5');
+    expect(link.title).toContain('Original HTML line 1, column');
+    link.click();
+    expect(getElement('#html-line-5').textContent).toContain(
+      '<img src="second">',
+    );
+    expect(getElement('[data-selected-finding]').id).toBe('html-line-5');
+    expect(document.querySelectorAll('[data-selected-finding]')).toHaveLength(
+      1,
+    );
+    const indentation = getElement<HTMLSelectElement>('#html-indent');
+    indentation.value = '0';
+    indentation.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(getElement('[data-selected-finding]').id).toBe('html-line-1');
+    expect(link.getAttribute('href')).toBe('#html-line-1');
+    indentation.value = '8';
+    indentation.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(getElement('[data-selected-finding]').id).toBe('html-line-5');
+    await vi.waitFor(() =>
+      expect(scroll).toHaveBeenCalledWith({
+        block: 'center',
+        inline: 'nearest',
+      }),
+    );
+    delete (HTMLElement.prototype as { scrollIntoView?: unknown })
+      .scrollIntoView;
+  });
+
+  it.each(['bad', '3', '1024', '-4'])(
+    'falls back to 2 spaces for an invalid stored HTML indentation (%s)',
+    async (value) => {
+      window.localStorage.setItem('chakra-email.preview.html-indent', value);
+      const harness = createHarness();
+      await harness.application.start();
+      getElement<HTMLButtonElement>('[data-tab="html"]').click();
+      await vi.waitFor(() =>
+        expect(document.querySelector('#html-indent')).not.toBeNull(),
+      );
+      expect(getElement<HTMLSelectElement>('#html-indent').value).toBe('2');
+      getElement<HTMLButtonElement>('[data-tab="text"]').click();
+      await vi.waitFor(() =>
+        expect(document.querySelector('#html-indent')).toBeNull(),
+      );
+    },
+  );
+
   it('selects only one same-rule finding when multiple attributes share a source location', async () => {
     const harness = createHarness();
     const original = harness.fetcher.getMockImplementation() as NonNullable<
