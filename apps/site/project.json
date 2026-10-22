@@ -16,6 +16,9 @@
         "default",
         "^production",
         "{workspaceRoot}/docs/**/*.md",
+        "{workspaceRoot}/README.md",
+        "{workspaceRoot}/packages/*/README.md",
+        "{workspaceRoot}/packages/*/package.json",
         { "externalDependencies": ["vitest"] }
       ]
     },

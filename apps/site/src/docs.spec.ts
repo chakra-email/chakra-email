@@ -1,4 +1,8 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import ReactMarkdown from 'react-markdown';
+import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 import { getRecommendedSearchResults } from './search-recommendations';
 
@@ -11,6 +15,51 @@ import { docsManifest } from './test/content';
 import { resolveSitePage } from './server/pages';
 
 describe('documentation manifest', () => {
+  it('keeps published README links on real documentation routes and anchors', () => {
+    const root = new URL('../../../', import.meta.url);
+    const readmes = [
+      new URL('README.md', root),
+      ...readdirSync(new URL('packages/', root), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => new URL(`packages/${entry.name}/README.md`, root)),
+    ];
+    for (const readme of readmes) {
+      const markdown = readFileSync(readme, 'utf8');
+      const dom = new JSDOM(
+        renderToStaticMarkup(
+          createElement(ReactMarkdown, { children: markdown }),
+        ),
+      );
+      try {
+        let documentationLinks = 0;
+        for (const link of dom.window.document.querySelectorAll('a[href]')) {
+          const href = link.getAttribute('href') ?? '';
+          if (href.startsWith('#')) continue;
+          if (!/^[a-z][a-z\d+.-]*:/i.test(href)) {
+            expect(existsSync(new URL(href.split('#')[0], readme)), href).toBe(
+              true,
+            );
+            continue;
+          }
+          const url = new URL(href);
+          if (url.origin !== 'https://chakra.email') continue;
+          documentationLinks++;
+          const page = resolveSitePage(url.pathname, docsManifest);
+          expect(page, `${readme.pathname}: ${href}`).toBeDefined();
+          if (url.hash) {
+            expect(
+              page?.headings?.map(({ id }) => `#${id}`),
+              href,
+            ).toContain(url.hash);
+          }
+        }
+        expect(documentationLinks, readme.pathname).toBeGreaterThan(0);
+      } finally {
+        dom.window.close();
+      }
+    }
+  });
+
   it('gives every public package a valid canonical homepage and documentation anchor', () => {
     const packages = new URL('../../../packages/', import.meta.url);
     for (const directory of readdirSync(packages, { withFileTypes: true })) {
