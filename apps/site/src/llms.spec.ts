@@ -63,32 +63,28 @@ describe('LLM documentation files', () => {
     );
   });
 
-  it('serves text for GET/HEAD under the dev base, rejects writes, and passes other routes through', async () => {
-    const plugin = discoveryFilesPlugin();
-    if (
-      typeof plugin.configResolved !== 'function' ||
-      typeof plugin.configureServer !== 'function'
-    ) {
-      throw new Error('Expected development hooks');
-    }
-    let middleware: Connect.NextHandleFunction | undefined;
-    plugin.configResolved({ base: '/email/' } as ResolvedConfig);
-    plugin.configureServer({
-      watcher: { add: vi.fn() },
-      middlewares: {
-        use: (handler: Connect.NextHandleFunction) => {
-          middleware = handler;
+  it.each(['llms.txt', 'llms-full.txt', 'sitemap.xml', 'robots.txt'] as const)(
+    'serves %s for GET/HEAD under the dev base, rejects writes, and passes other routes through',
+    async (route) => {
+      const plugin = discoveryFilesPlugin();
+      if (
+        typeof plugin.configResolved !== 'function' ||
+        typeof plugin.configureServer !== 'function'
+      ) {
+        throw new Error('Expected development hooks');
+      }
+      let middleware: Connect.NextHandleFunction | undefined;
+      plugin.configResolved({ base: '/email/' } as ResolvedConfig);
+      plugin.configureServer({
+        watcher: { add: vi.fn() },
+        middlewares: {
+          use: (handler: Connect.NextHandleFunction) => {
+            middleware = handler;
+          },
         },
-      },
-    } as unknown as ViteDevServer);
-    if (!middleware) throw new Error('Expected LLM middleware');
-    const files = await createDiscoveryFiles('/email/');
-    for (const route of [
-      'llms.txt',
-      'llms-full.txt',
-      'sitemap.xml',
-      'robots.txt',
-    ] as const) {
+      } as unknown as ViteDevServer);
+      if (!middleware) throw new Error('Expected LLM middleware');
+      const files = await createDiscoveryFiles('/email/');
       for (const method of ['GET', 'HEAD', 'POST']) {
         const response = { setHeader: vi.fn(), end: vi.fn(), statusCode: 200 };
         const next = vi.fn();
@@ -115,15 +111,15 @@ describe('LLM documentation files', () => {
         if (method === 'POST')
           expect(response.setHeader).toHaveBeenCalledWith('Allow', 'GET, HEAD');
       }
-    }
-    const next = vi.fn();
-    const response = { setHeader: vi.fn(), end: vi.fn() };
-    await middleware(
-      { url: '/email/docs/components', method: 'GET' } as IncomingMessage,
-      response as unknown as ServerResponse,
-      next,
-    );
-    expect(next).toHaveBeenCalledOnce();
-    expect(response.end).not.toHaveBeenCalled();
-  });
+      const next = vi.fn();
+      const response = { setHeader: vi.fn(), end: vi.fn() };
+      await middleware(
+        { url: '/email/docs/components', method: 'GET' } as IncomingMessage,
+        response as unknown as ServerResponse,
+        next,
+      );
+      expect(next).toHaveBeenCalledOnce();
+      expect(response.end).not.toHaveBeenCalled();
+    },
+  );
 });
