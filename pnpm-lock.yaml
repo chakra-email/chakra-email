@@ -208,7 +208,7 @@ importers:
   packages/chakra-email:
     dependencies:
       '@chakra-email/core':
-        specifier: ^0.2.0
+        specifier: ^0.3.0
         version: link:../core
       tslib:
         specifier: ^2.3.0
@@ -217,7 +217,7 @@ importers:
   packages/chakra-email-v2:
     dependencies:
       '@chakra-email/core':
-        specifier: ^0.2.0
+        specifier: ^0.3.0
         version: link:../core
       tslib:
         specifier: ^2.3.0
@@ -226,7 +226,7 @@ importers:
   packages/code-block:
     dependencies:
       '@chakra-email/core':
-        specifier: ^0.2.0
+        specifier: ^0.3.0
         version: link:../core
       tslib:
         specifier: ^2.3.0
@@ -247,10 +247,10 @@ importers:
   packages/markdown:
     dependencies:
       '@chakra-email/code-block':
-        specifier: ^0.2.0
+        specifier: ^0.3.0
         version: link:../code-block
       '@chakra-email/core':
-        specifier: ^0.2.0
+        specifier: ^0.3.0
         version: link:../core
       react-markdown:
         specifier: ^10.1.0
@@ -268,7 +268,7 @@ importers:
   packages/preview:
     dependencies:
       '@chakra-email/core':
-        specifier: ^0.2.0
+        specifier: ^0.3.0
         version: link:../core
       jiti:
         specifier: ^2.4.2
@@ -292,7 +292,7 @@ importers:
   packages/react-email:
     dependencies:
       '@chakra-email/core':
-        specifier: ^0.2.0
+        specifier: ^0.3.0
         version: link:../core
       tslib:
         specifier: ^2.3.0

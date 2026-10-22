@@ -57,6 +57,33 @@ const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
 });
 const committedVersion = publicPackages[0]?.manifest.version;
 
+test('public dependency ranges and the site version match the committed release', () => {
+  const names = new Set(publicPackages.map(({ manifest }) => manifest.name));
+  for (const { manifest } of publicPackages) {
+    assert.equal(manifest.version, committedVersion, manifest.name);
+    for (const field of [
+      'dependencies',
+      'peerDependencies',
+      'optionalDependencies',
+    ]) {
+      for (const [name, range] of Object.entries(manifest[field] ?? {})) {
+        if (names.has(name)) {
+          assert.equal(
+            range,
+            `^${committedVersion}`,
+            `${manifest.name}: ${name}`,
+          );
+        }
+      }
+    }
+  }
+  const shell = readFileSync(
+    new URL('../apps/site/src/components/site-shell.tsx', import.meta.url),
+    'utf8',
+  );
+  assert.ok(shell.includes(`v${committedVersion}`));
+});
+
 test('site Chakra Docs dependencies resolve from public releases without yalc', () => {
   const manifest = JSON.parse(
     readFileSync(new URL('../apps/site/package.json', import.meta.url), 'utf8'),
