@@ -57,6 +57,82 @@ const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
 });
 const committedVersion = publicPackages[0]?.manifest.version;
 
+test('public packages retain discoverable, package-specific npm metadata', () => {
+  const descriptions = new Set();
+  for (const { directory, manifest } of publicPackages) {
+    assert.equal(typeof manifest.description, 'string', manifest.name);
+    assert.match(manifest.description, /email/i, manifest.name);
+    assert.notEqual(manifest.description.trim(), manifest.name);
+    assert.ok(!descriptions.has(manifest.description), manifest.name);
+    descriptions.add(manifest.description);
+
+    assert.ok(Array.isArray(manifest.keywords), manifest.name);
+    for (const keyword of [
+      'chakra-email',
+      'react',
+      'typescript',
+      'html-email',
+    ]) {
+      assert.ok(
+        manifest.keywords.includes(keyword),
+        `${manifest.name}: ${keyword}`,
+      );
+    }
+    assert.equal(
+      new Set(manifest.keywords).size,
+      manifest.keywords.length,
+      manifest.name,
+    );
+    for (const keyword of manifest.keywords) {
+      assert.match(keyword, /^[a-z0-9]+(?:-[a-z0-9]+)*$/, manifest.name);
+    }
+
+    const homepage = new URL(manifest.homepage);
+    assert.equal(homepage.origin, 'https://chakra.email', manifest.name);
+    if (manifest.name !== 'chakra-email') {
+      assert.ok(homepage.pathname.startsWith('/docs/'), manifest.name);
+    }
+    assert.deepEqual(manifest.bugs, packageManifest.bugs, manifest.name);
+    assert.equal(
+      manifest.repository.type,
+      packageManifest.repository.type,
+      manifest.name,
+    );
+    assert.equal(
+      manifest.repository.url,
+      packageManifest.repository.url,
+      manifest.name,
+    );
+    assert.equal(
+      manifest.repository.directory,
+      `packages/${directory}`,
+      manifest.name,
+    );
+    assert.equal(manifest.license, packageManifest.license, manifest.name);
+    assert.deepEqual(manifest.author, packageManifest.author, manifest.name);
+    assert.deepEqual(
+      manifest.contributors,
+      packageManifest.contributors,
+      manifest.name,
+    );
+    assert.deepEqual(manifest.funding, packageManifest.funding, manifest.name);
+
+    for (const filename of ['README.md', 'LICENSE']) {
+      assert.ok(
+        manifest.files.includes(filename),
+        `${manifest.name}: ${filename} is packed`,
+      );
+      assert.ok(
+        readFileSync(
+          new URL(`../packages/${directory}/${filename}`, import.meta.url),
+          'utf8',
+        ).trim(),
+        `${manifest.name}: ${filename} is not empty`,
+      );
+    }
+  }
+});
+
 test('public dependency ranges and the site version match the committed release', () => {
   const names = new Set(publicPackages.map(({ manifest }) => manifest.name));
   for (const { manifest } of publicPackages) {

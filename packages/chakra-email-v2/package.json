@@ -1,7 +1,7 @@
 {
   "name": "@chakra-email/chakra-v2",
   "version": "0.3.0",
-  "description": "React email components and theme adapter for Chakra UI v2.",
+  "description": "Build React emails using existing Chakra UI v2 themes, with email-safe HTML and plain-text rendering.",
   "license": "MIT",
   "author": {
     "name": "Ryan Hefner",
@@ -72,20 +72,16 @@
     "!**/*.tsbuildinfo"
   ],
   "keywords": [
-    "chakra",
+    "chakra-email",
     "chakra-ui",
     "chakra-v2",
     "chakra-theme",
-    "email",
     "email-components",
     "email-renderer",
     "email-templates",
     "html-email",
-    "jsx-email",
-    "markdown-email",
     "react",
     "react-email",
-    "server-rendered",
     "typescript",
     "transactional-email"
   ],

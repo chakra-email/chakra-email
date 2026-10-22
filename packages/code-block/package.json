@@ -1,7 +1,7 @@
 {
   "name": "@chakra-email/code-block",
   "version": "0.3.0",
-  "description": "Themeable, email-safe code blocks for Chakra Email.",
+  "description": "Add themeable code blocks to React emails with email-safe HTML and optional syntax highlighting for Chakra Email.",
   "license": "MIT",
   "author": {
     "name": "Ryan Hefner",
@@ -22,6 +22,9 @@
     "type": "git",
     "url": "git+https://github.com/chakra-email/chakra-email.git",
     "directory": "packages/code-block"
+  },
+  "bugs": {
+    "url": "https://github.com/chakra-email/chakra-email/issues"
   },
   "homepage": "https://chakra.email/docs/code-block",
   "type": "module",
@@ -45,10 +48,11 @@
   ],
   "keywords": [
     "chakra-email",
-    "email",
+    "html-email",
     "react",
     "code-block",
-    "syntax-highlighting"
+    "syntax-highlighting",
+    "typescript"
   ],
   "engines": {
     "node": ">=20.19.0"

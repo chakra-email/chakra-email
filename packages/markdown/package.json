@@ -1,7 +1,7 @@
 {
   "name": "@chakra-email/markdown",
   "version": "0.3.0",
-  "description": "Email-safe, themeable Markdown rendering for Chakra Email.",
+  "description": "Render Markdown in React emails with themeable, email-safe components, GitHub Flavored Markdown, and code blocks.",
   "license": "MIT",
   "author": {
     "name": "Ryan Hefner",
@@ -22,6 +22,9 @@
     "type": "git",
     "url": "git+https://github.com/chakra-email/chakra-email.git",
     "directory": "packages/markdown"
+  },
+  "bugs": {
+    "url": "https://github.com/chakra-email/chakra-email/issues"
   },
   "homepage": "https://chakra.email/docs/markdown",
   "type": "module",
@@ -45,10 +48,12 @@
   ],
   "keywords": [
     "chakra-email",
-    "email",
+    "html-email",
     "react",
     "markdown",
-    "gfm"
+    "gfm",
+    "markdown-email",
+    "typescript"
   ],
   "engines": {
     "node": ">=20.19.0"
