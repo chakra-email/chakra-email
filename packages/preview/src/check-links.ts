@@ -1,6 +1,12 @@
 import { parse, type DefaultTreeAdapterTypes } from 'parse5';
 import { requestLinkHead } from './link-network.js';
-import type { PreviewLintFinding } from './protocol.js';
+import type { PreviewLinkCheckEntry, PreviewLintFinding } from './protocol.js';
+import {
+  normalizeLintRules,
+  resolveLintFinding,
+  type PreviewLintOverrides,
+  type PreviewLintRuleId,
+} from './lint-rules.js';
 
 export interface PreviewLinkCheckConfig {
   /** Exact HTTP(S) hostnames that may receive explicit link-check requests. */
@@ -19,6 +25,7 @@ export interface PreviewLinkCheckResult {
   findings: PreviewLintFinding[];
   checked: number;
   skipped: number;
+  links: PreviewLinkCheckEntry[];
 }
 
 export function normalizeLinkCheck(
@@ -121,13 +128,16 @@ function skipReason(
 /** Creates a bounded, server-only checker with an instance-local cache. */
 export function createEmailLinkChecker(
   options: PreviewLinkCheckConfig,
+  lintRules?: PreviewLintOverrides,
 ): (html: string) => Promise<PreviewLinkCheckResult> {
   const config = normalizeLinkCheck(options);
-  type Outcome = Pick<
-    PreviewLintFinding,
-    'message' | 'ruleId' | 'severity' | 'suggestion'
-  >;
-  const cache = new Map<string, { expires: number; outcome: Outcome | null }>();
+  const overrides = normalizeLintRules(lintRules);
+  type Outcome = Pick<PreviewLinkCheckEntry, 'status' | 'statusCode'> & {
+    finding?: Pick<PreviewLintFinding, 'message' | 'suggestion'> & {
+      ruleId: PreviewLintRuleId;
+    };
+  };
+  const cache = new Map<string, { expires: number; outcome: Outcome }>();
   let running = false;
   return async (html) => {
     if (running) throw new Error('A link check is already running.');
@@ -135,20 +145,27 @@ export function createEmailLinkChecker(
       throw new Error('HTML is too large for link checking.');
     running = true;
     try {
-      const links = new Map<string, { line?: number; column?: number }[]>();
+      const links = new Map<
+        string,
+        { index: number; line?: number; column?: number }[]
+      >();
+      let index = 0;
       const pending: DefaultTreeAdapterTypes.Node[] = [
-        parse(html, { sourceCodeLocationInfo: true }),
+        parse(html, { sourceCodeLocationInfo: true, scriptingEnabled: false }),
       ];
       while (pending.length) {
         const node = pending.pop();
         if (!node) continue;
-        if ('childNodes' in node) pending.push(...node.childNodes);
+        // A stack needs reversed children to preserve the browser's document order.
+        if ('childNodes' in node)
+          pending.push(...[...node.childNodes].reverse());
         if (!('tagName' in node) || node.tagName !== 'a') continue;
         const raw = node.attrs.find((attr) => attr.name === 'href')?.value;
-        if (!raw) continue;
+        if (raw === undefined) continue;
         const location = node.sourceCodeLocation?.attrs?.['href'];
         const occurrences = links.get(raw) ?? [];
         occurrences.push({
+          index: index++,
           line: location?.startLine,
           column: location?.startCol,
         });
@@ -158,18 +175,21 @@ export function createEmailLinkChecker(
         findings: [],
         checked: 0,
         skipped: 0,
+        links: [],
       };
       const queue = [...links.entries()];
       let admitted = 0;
-      const check = async (raw: string): Promise<Outcome | null> => {
+      const check = async (raw: string): Promise<Outcome> => {
         const reason = skipReason(raw, config);
         if (reason || admitted >= config.maxUrls) {
           result.skipped++;
           return {
-            ruleId: 'link-skipped',
-            severity: 'info',
-            message: 'Link not checked.',
-            suggestion: reason ?? 'Per-check URL limit reached.',
+            status: 'skipped',
+            finding: {
+              ruleId: 'link-skipped',
+              message: 'Link not checked.',
+              suggestion: reason ?? 'Per-check URL limit reached.',
+            },
           };
         }
         admitted++;
@@ -178,11 +198,16 @@ export function createEmailLinkChecker(
         url.hash = '';
         const cached = cache.get(url.href);
         if (cached && cached.expires > Date.now()) return cached.outcome;
-        let outcome: Outcome | null;
+        let outcome: Outcome;
         try {
           const response = await requestLinkHead(url, config.timeoutMs);
           const status = response.status;
-          if (status >= 200 && status < 300) outcome = null;
+          const statusCode =
+            Number.isInteger(status) && status >= 100 && status <= 599
+              ? status
+              : undefined;
+          if (status >= 200 && status < 300)
+            outcome = { status: 'ok', statusCode };
           else if (status >= 300 && status < 400) {
             // Location is display-only: never follow it or turn it into an active link.
             let destination = 'No destination provided.';
@@ -195,28 +220,36 @@ export function createEmailLinkChecker(
               }
             }
             outcome = {
-              ruleId: 'link-redirect',
-              severity: 'info',
-              message: `HTTP ${status}: link redirects.`,
-              suggestion: `${destination} Redirect was not followed; verify before changing the URL.`,
+              status: 'redirect',
+              statusCode,
+              finding: {
+                ruleId: 'link-redirect',
+                message: `HTTP ${status}: link redirects.`,
+                suggestion: `${destination} Redirect was not followed; verify before changing the URL.`,
+              },
             };
           } else {
             const broken = status === 404 || status === 410;
             outcome = {
-              ruleId: broken ? 'link-broken' : 'link-unverified',
-              severity: broken ? 'error' : 'warning',
-              message: `HTTP ${status}: ${broken ? 'link appears broken' : 'link could not be verified'}.`,
-              suggestion:
-                'Verify in a browser with test data. Some servers handle HEAD differently from GET.',
+              status: broken ? 'broken' : 'unverified',
+              statusCode,
+              finding: {
+                ruleId: broken ? 'link-broken' : 'link-unverified',
+                message: `HTTP ${status}: ${broken ? 'link appears broken' : 'link could not be verified'}.`,
+                suggestion:
+                  'Verify in a browser with test data. Some servers handle HEAD differently from GET.',
+              },
             };
           }
         } catch {
           outcome = {
-            ruleId: 'link-unverified',
-            severity: 'warning',
-            message: 'Link could not be verified.',
-            suggestion:
-              'DNS, TLS, timeout, or public-network restrictions prevented checking. Verify manually.',
+            status: 'unverified',
+            finding: {
+              ruleId: 'link-unverified',
+              message: 'Link could not be verified.',
+              suggestion:
+                'DNS, TLS, timeout, or public-network restrictions prevented checking. Verify manually.',
+            },
           };
         }
         if (cache.size >= 500) cache.clear();
@@ -233,20 +266,36 @@ export function createEmailLinkChecker(
             if (!entry) break;
             const [raw, occurrences] = entry;
             const outcome = await check(raw);
-            if (outcome)
-              for (const location of occurrences)
-                result.findings.push({
-                  ...outcome,
-                  ...location,
-                  category: 'links',
-                  element: `a[href="${raw.split(/[?#]/u)[0].slice(0, 500)}"]`,
-                });
+            for (const { index, ...location } of occurrences) {
+              result.links.push({
+                index,
+                ...location,
+                status: outcome.status,
+                ...(outcome.statusCode !== undefined
+                  ? { statusCode: outcome.statusCode }
+                  : {}),
+              });
+              if (outcome.finding) {
+                const finding = resolveLintFinding(
+                  {
+                    ...outcome.finding,
+                    ...location,
+                    element: `a[href="${raw.split(/[?#]/u)[0].slice(0, 500)}"]`,
+                  },
+                  overrides,
+                );
+                if (finding) result.findings.push(finding);
+              }
+            }
           }
         }),
       );
+      result.links.sort((a, b) => a.index - b.index);
       result.findings.sort(
         (a, b) =>
-          (a.line ?? 0) - (b.line ?? 0) || a.ruleId.localeCompare(b.ruleId),
+          (a.line ?? 0) - (b.line ?? 0) ||
+          (a.column ?? 0) - (b.column ?? 0) ||
+          a.ruleId.localeCompare(b.ruleId),
       );
       return result;
     } finally {

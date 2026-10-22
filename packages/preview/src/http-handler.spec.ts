@@ -6,7 +6,10 @@ import { normalizeConfig } from './config.js';
 import type { RegisteredTemplate, TemplateRegistry } from './discovery.js';
 import { EventHub } from './event-hub.js';
 import { createPreviewHttpHandler } from './http-handler.js';
+import { requestLinkHead } from './link-network.js';
 import type { PreviewRenderResponse } from './protocol.js';
+
+vi.mock('./link-network.js', () => ({ requestLinkHead: vi.fn() }));
 
 describe('preview HTTP handler', () => {
   let baseUrl: string;
@@ -15,6 +18,9 @@ describe('preview HTTP handler', () => {
   let server: Server;
   const token = 'test-preview-token';
   const send = vi.fn(async () => ({ id: 'sent-id', message: 'Delivered.' }));
+  const openInEditor = vi.fn<(path: string) => Promise<void>>();
+  const render = vi.fn<() => Promise<PreviewRenderResponse>>();
+  const head = vi.mocked(requestLinkHead);
 
   beforeEach(async () => {
     directory = await mkdtemp(join(tmpdir(), 'chakra-email-http-'));
@@ -69,13 +75,17 @@ describe('preview HTTP handler', () => {
     };
     events = new EventHub();
     send.mockClear();
+    openInEditor.mockReset();
+    render.mockReset().mockResolvedValue(rendered);
+    head.mockReset();
     const handler = createPreviewHttpHandler({
       allowRemote: false,
       config,
       events,
       getRegistry: () => registry,
-      render: async () => rendered,
+      render,
       send,
+      openInEditor,
       token,
       uiRoot: join(directory, 'ui'),
     });
@@ -134,7 +144,13 @@ describe('preview HTTP handler', () => {
       headers: { 'x-chakra-email-preview-token': token },
     });
     await expect(templates.json()).resolves.toEqual({
-      capabilities: { testSend: true, linkCheck: true },
+      lintRules: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'document-title',
+          title: expect.any(String),
+        }),
+      ]),
+      capabilities: { testSend: true, linkCheck: true, openInEditor: true },
       templates: [
         { id: 'template-id', name: 'Welcome', path: 'emails/welcome.tsx' },
       ],
@@ -150,6 +166,34 @@ describe('preview HTTP handler', () => {
     });
     expect(rendered.status).toBe(200);
     await expect(rendered.json()).resolves.toMatchObject({ text: 'Hello' });
+  });
+
+  it('opens only discovered template paths with a valid token', async () => {
+    const request = (body: unknown, authenticated = true) =>
+      fetch(`${baseUrl}/api/open`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(authenticated ? { 'x-chakra-email-preview-token': token } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+    expect((await request({ id: 'template-id' }, false)).status).toBe(401);
+    expect((await request({ id: '../../secret.tsx' })).status).toBe(404);
+    expect((await request({ path: '/etc/passwd' })).status).toBe(400);
+    expect(openInEditor).not.toHaveBeenCalled();
+    const opened = await request({ id: 'template-id', path: '/etc/passwd' });
+    expect(opened.status).toBe(204);
+    expect(await opened.text()).toBe('');
+    expect(openInEditor).toHaveBeenCalledExactlyOnceWith(
+      join(directory, 'emails', 'welcome.tsx'),
+    );
+    openInEditor.mockRejectedValueOnce(new Error('Editor could not start.'));
+    const failed = await request({ id: 'template-id' });
+    expect(failed.status).toBe(500);
+    await expect(failed.json()).resolves.toMatchObject({
+      error: { message: 'Editor could not start.' },
+    });
   });
 
   it('validates and delegates authenticated test sends', async () => {
@@ -276,7 +320,7 @@ describe('preview HTTP handler', () => {
     expect(await checked.json()).toMatchObject({
       html: '<p>Hello</p>',
       lint: [],
-      linkCheck: { checked: 0, skipped: 0 },
+      linkCheck: { checked: 0, skipped: 0, links: [] },
     });
     const normal = await fetch(`${baseUrl}/api/render`, {
       method: 'POST',
@@ -313,6 +357,46 @@ describe('preview HTTP handler', () => {
         status,
       );
     }
+  });
+
+  it('returns per-anchor results only after an explicit protected link check', async () => {
+    const rendered = await render();
+    render.mockResolvedValue({
+      ...rendered,
+      html: '<a href="https://example.org/page">A</a><a href="https://example.org/page">B</a><a href="mailto:hello@example.org">Mail</a>',
+    });
+    head.mockResolvedValue({ status: 204 });
+    const init = {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-chakra-email-preview-token': token,
+      },
+      body: JSON.stringify({ id: 'template-id' }),
+    };
+    const normal = await fetch(`${baseUrl}/api/render`, init);
+    expect(await normal.json()).not.toHaveProperty('linkCheck');
+    expect(head).not.toHaveBeenCalled();
+    const denied = await fetch(`${baseUrl}/api/check-links`, {
+      ...init,
+      headers: { 'content-type': 'application/json' },
+    });
+    expect(denied.status).toBe(401);
+    expect(head).not.toHaveBeenCalled();
+    const checked = await fetch(`${baseUrl}/api/check-links`, init);
+    expect(checked.status).toBe(200);
+    expect(await checked.json()).toMatchObject({
+      linkCheck: {
+        checked: 1,
+        skipped: 1,
+        links: [
+          { index: 0, status: 'ok', statusCode: 204 },
+          { index: 1, status: 'ok', statusCode: 204 },
+          { index: 2, status: 'skipped' },
+        ],
+      },
+    });
+    expect(head).toHaveBeenCalledTimes(1);
   });
 
   it.each([

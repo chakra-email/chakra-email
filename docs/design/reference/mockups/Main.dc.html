@@ -1,0 +1,2300 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chakra Email preview</title>
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap"
+        />
+        <style>
+          body {
+            margin: 0;
+            background: #0e0e0e;
+          }
+          a {
+            color: #ededed;
+          }
+          a:hover {
+            color: #ffffff;
+          }
+          button {
+            font: inherit;
+            cursor: pointer;
+          }
+          input,
+          select,
+          textarea {
+            font: inherit;
+          }
+          .hov:hover {
+            background: #1c1c1c !important;
+          }
+          input::placeholder {
+            color: #7e7e7e;
+          }
+          ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+          }
+          ::-webkit-scrollbar-thumb {
+            background: #2a2a2a;
+            border-radius: 8px;
+            border: 2px solid #121212;
+          }
+          ::-webkit-scrollbar-track {
+            background: transparent;
+          }
+        </style>
+      </helmet>
+      <div
+        style="
+          font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+          background: #0e0e0e;
+          color: #ededed;
+          height: 900px;
+          display: flex;
+          flex-direction: column;
+          font-size: 13px;
+          -webkit-font-smoothing: antialiased;
+        "
+      >
+        <header
+          style="
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 16px;
+            padding: 10px 16px;
+            border-bottom: 1px solid #222222;
+            background: #0e0e0e;
+          "
+        >
+          <div
+            style="
+              flex: 1 1 300px;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              min-width: 0;
+            "
+          >
+            <div
+              style="
+                width: 26px;
+                height: 26px;
+                border-radius: 6px;
+                background: #ededed;
+                color: #0e0e0e;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                font-size: 12px;
+                letter-spacing: -0.02em;
+              "
+            >
+              ce
+            </div>
+            <span style="font-weight: 600; font-size: 14px">Chakra Email</span>
+            <span style="color: #4a4a4a">/</span>
+            <span style="color: #9a9a9a">Account</span>
+            <span style="color: #4a4a4a">/</span>
+            <span style="font-weight: 500">Confirm</span>
+            <span
+              style="
+                font-family: 'Geist Mono', ui-monospace, monospace;
+                font-size: 11px;
+                color: #8a8a8a;
+                padding: 3px 7px;
+                border: 1px solid #262626;
+                border-radius: 5px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              "
+              >emails/account/confirm.tsx</span
+            >
+          </div>
+
+          <nav
+            aria-label="View"
+            style="
+              flex: 0 0 auto;
+              display: flex;
+              gap: 2px;
+              padding: 3px;
+              background: #161616;
+              border: 1px solid #262626;
+              border-radius: 8px;
+            "
+          >
+            <sc-for list="{{views}}" as="item" hint-placeholder-count="4">
+              <button
+                type="button"
+                aria-pressed="{{item.pressed}}"
+                onClick="{{item.pick}}"
+                style="border: 0; padding: 6px 12px; border-radius: 6px; background: {{item.bg}}; color: {{item.fg}}; font-weight: 500"
+              >
+                {{item.label}}
+              </button>
+            </sc-for>
+          </nav>
+
+          <div
+            style="
+              flex: 1 1 300px;
+              display: flex;
+              align-items: center;
+              justify-content: flex-end;
+              gap: 8px;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                gap: 2px;
+                padding: 3px;
+                background: #161616;
+                border: 1px solid #262626;
+                border-radius: 8px;
+              "
+            >
+              <button
+                type="button"
+                aria-label="Desktop, 600 px"
+                aria-pressed="{{vpD.pressed}}"
+                onClick="{{vpD.pick}}"
+                style="border: 0; width: 32px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: {{vpD.bg}}; color: {{vpD.fg}}"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="4" width="18" height="12" rx="2"></rect>
+                  <path d="M8 20h8M12 16v4"></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                aria-label="Mobile, 375 px"
+                aria-pressed="{{vpM.pressed}}"
+                onClick="{{vpM.pick}}"
+                style="border: 0; width: 32px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: {{vpM.bg}}; color: {{vpM.fg}}"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="7" y="3" width="10" height="18" rx="2"></rect>
+                  <path d="M11 18h2"></path>
+                </svg>
+              </button>
+            </div>
+            <div
+              style="
+                display: flex;
+                gap: 2px;
+                padding: 3px;
+                background: #161616;
+                border: 1px solid #262626;
+                border-radius: 8px;
+              "
+            >
+              <button
+                type="button"
+                aria-label="Light email client"
+                aria-pressed="{{scL.pressed}}"
+                onClick="{{scL.pick}}"
+                style="border: 0; width: 32px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: {{scL.bg}}; color: {{scL.fg}}"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <path
+                    d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                  ></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                aria-label="Dark email client"
+                aria-pressed="{{scD.pressed}}"
+                onClick="{{scD.pick}}"
+                style="border: 0; width: 32px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: {{scD.bg}}; color: {{scD.fg}}"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+            <div
+              style="
+                width: 1px;
+                height: 22px;
+                background: #262626;
+                margin: 0 2px;
+              "
+            ></div>
+            <button
+              type="button"
+              class="hov"
+              aria-label="Search templates and commands"
+              style="
+                height: 34px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 0 10px;
+                border: 1px solid #262626;
+                border-radius: 8px;
+                background: #121212;
+                color: #9a9a9a;
+              "
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.5-3.5"></path>
+              </svg>
+              <span
+                style="
+                  font-family: 'Geist Mono', ui-monospace, monospace;
+                  font-size: 11px;
+                "
+                >⌘K</span
+              >
+            </button>
+            <div style="position: relative">
+              <button
+                type="button"
+                aria-expanded="{{sendExpanded}}"
+                onClick="{{toggleSend}}"
+                style="
+                  height: 34px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  padding: 0 14px;
+                  border: 0;
+                  border-radius: 8px;
+                  background: #ededed;
+                  color: #0e0e0e;
+                  font-weight: 600;
+                "
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 12l16-8-6 16-2.5-6.5L4 12z"></path>
+                </svg>
+                Send test
+              </button>
+              <sc-if value="{{sendOpen}}" hint-placeholder-val="{{ false }}">
+                <div
+                  style="
+                    position: absolute;
+                    top: 42px;
+                    right: 0;
+                    width: 300px;
+                    z-index: 20;
+                    background: #161616;
+                    border: 1px solid #2e2e2e;
+                    border-radius: 12px;
+                    padding: 14px;
+                    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                  "
+                >
+                  <label for="send-to" style="font-size: 12px; color: #9a9a9a"
+                    >Send this render to</label
+                  >
+                  <input
+                    id="send-to"
+                    type="email"
+                    placeholder="you@example.com"
+                    style="
+                      height: 36px;
+                      box-sizing: border-box;
+                      padding: 0 10px;
+                      border-radius: 8px;
+                      border: 1px solid #2e2e2e;
+                      background: #0e0e0e;
+                      color: #ededed;
+                    "
+                  />
+                  <div
+                    style="font-size: 12px; line-height: 1.5; color: #8a8a8a"
+                  >
+                    Sends the current props and variant through the transport in
+                    chakra-email.config.ts.
+                  </div>
+                  <button
+                    type="button"
+                    style="
+                      height: 36px;
+                      border: 0;
+                      border-radius: 8px;
+                      background: #ededed;
+                      color: #0e0e0e;
+                      font-weight: 600;
+                    "
+                  >
+                    Send
+                  </button>
+                </div>
+              </sc-if>
+            </div>
+            <button
+              type="button"
+              class="hov"
+              aria-label="Export"
+              style="
+                width: 34px;
+                height: 34px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid #262626;
+                border-radius: 8px;
+                background: #121212;
+                color: #b4b4b4;
+              "
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap">
+          <aside
+            aria-label="Templates"
+            style="
+              flex: 0 0 248px;
+              height: 100%;
+              box-sizing: border-box;
+              display: flex;
+              flex-direction: column;
+              border-right: 1px solid #222222;
+              background: #0e0e0e;
+            "
+          >
+            <div
+              style="
+                padding: 12px 12px 8px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+              "
+            >
+              <div style="position: relative">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#7E7E7E"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                  style="position: absolute; left: 10px; top: 10px"
+                >
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="M20 20l-3.5-3.5"></path>
+                </svg>
+                <input
+                  type="search"
+                  aria-label="Filter templates"
+                  placeholder="Filter templates"
+                  value="{{q}}"
+                  onChange="{{setQ}}"
+                  style="
+                    width: 100%;
+                    height: 34px;
+                    box-sizing: border-box;
+                    padding: 0 30px 0 32px;
+                    border-radius: 8px;
+                    border: 1px solid #262626;
+                    background: #121212;
+                    color: #ededed;
+                  "
+                />
+                <span
+                  style="
+                    position: absolute;
+                    right: 8px;
+                    top: 8px;
+                    font-family: 'Geist Mono', ui-monospace, monospace;
+                    font-size: 11px;
+                    color: #7e7e7e;
+                    border: 1px solid #2a2a2a;
+                    border-radius: 4px;
+                    padding: 0 5px;
+                  "
+                  >/</span
+                >
+              </div>
+              <div
+                style="
+                  display: flex;
+                  gap: 2px;
+                  padding: 3px;
+                  background: #121212;
+                  border: 1px solid #222222;
+                  border-radius: 8px;
+                "
+              >
+                <button
+                  type="button"
+                  aria-pressed="{{fAll.pressed}}"
+                  onClick="{{fAll.pick}}"
+                  style="flex: 1; border: 0; height: 26px; border-radius: 6px; background: {{fAll.bg}}; color: {{fAll.fg}}; font-size: 12px; font-weight: 500"
+                >
+                  All
+                  <span
+                    style="
+                      font-family: 'Geist Mono', ui-monospace, monospace;
+                      color: #7e7e7e;
+                    "
+                    >22</span
+                  >
+                </button>
+                <button
+                  type="button"
+                  aria-pressed="{{fIss.pressed}}"
+                  onClick="{{fIss.pick}}"
+                  style="flex: 1; border: 0; height: 26px; border-radius: 6px; background: {{fIss.bg}}; color: {{fIss.fg}}; font-size: 12px; font-weight: 500"
+                >
+                  With issues
+                  <span
+                    style="
+                      font-family: 'Geist Mono', ui-monospace, monospace;
+                      color: #7e7e7e;
+                    "
+                    >5</span
+                  >
+                </button>
+              </div>
+            </div>
+            <nav
+              aria-label="Template list"
+              style="flex: 1; overflow-y: auto; padding: 4px 8px 12px"
+            >
+              <sc-for list="{{groups}}" as="g" hint-placeholder-count="5">
+                <div
+                  style="
+                    padding: 12px 8px 6px;
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 11px;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    color: #7e7e7e;
+                    font-weight: 500;
+                  "
+                >
+                  <span>{{g.label}}</span>
+                  <span
+                    style="
+                      font-family: 'Geist Mono', ui-monospace, monospace;
+                      letter-spacing: 0;
+                    "
+                    >{{g.count}}</span
+                  >
+                </div>
+                <sc-for list="{{g.items}}" as="t" hint-placeholder-count="4">
+                  <button
+                    type="button"
+                    class="hov"
+                    aria-current="{{t.current}}"
+                    onClick="{{t.pick}}"
+                    style="width: 100%; display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 32px; border: 0; border-radius: 6px; background: {{t.bg}}; color: {{t.fg}}; text-align: left; font-size: 13px"
+                  >
+                    <span
+                      style="
+                        flex: 1;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                      "
+                      >{{t.name}}</span
+                    >
+                    <sc-if
+                      value="{{t.hasIssue}}"
+                      hint-placeholder-val="{{ false }}"
+                    >
+                      <span
+                        style="
+                          display: flex;
+                          align-items: center;
+                          gap: 5px;
+                          font-family: 'Geist Mono', ui-monospace, monospace;
+                          font-size: 11px;
+                          color: #9a9a9a;
+                        "
+                        ><span
+                          style="width: 6px; height: 6px; border-radius: 3px; background: {{t.dot}}"
+                        ></span
+                        >{{t.n}}</span
+                      >
+                    </sc-if>
+                  </button>
+                </sc-for>
+              </sc-for>
+            </nav>
+            <div
+              style="
+                padding: 10px 16px;
+                border-top: 1px solid #222222;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 12px;
+                color: #8a8a8a;
+              "
+            >
+              <span
+                style="
+                  width: 6px;
+                  height: 6px;
+                  border-radius: 3px;
+                  background: #4cc38a;
+                "
+              ></span>
+              Watching · rebuilt 0.4s ago
+            </div>
+          </aside>
+
+          <main
+            style="
+              flex: 999 1 560px;
+              min-width: 0;
+              height: 100%;
+              display: flex;
+              flex-direction: column;
+              background: #141414;
+            "
+          >
+            <section aria-label="Inbox preview" style="padding: 16px 24px 0">
+              <div style="max-width: 640px; margin: 0 auto">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                    margin-bottom: 8px;
+                  "
+                >
+                  <span
+                    style="
+                      font-size: 11px;
+                      letter-spacing: 0.08em;
+                      text-transform: uppercase;
+                      color: #7e7e7e;
+                      font-weight: 500;
+                    "
+                    >Inbox preview</span
+                  >
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <label for="variant" style="font-size: 12px; color: #8a8a8a"
+                      >Variant</label
+                    >
+                    <select
+                      id="variant"
+                      value="{{variant}}"
+                      onChange="{{setVariant}}"
+                      style="
+                        height: 28px;
+                        padding: 0 8px;
+                        border-radius: 6px;
+                        border: 1px solid #2a2a2a;
+                        background: #121212;
+                        color: #ededed;
+                        font-size: 12px;
+                      "
+                    >
+                      <option>Default</option>
+                      <option>Returning user</option>
+                      <option>Expired code</option>
+                    </select>
+                  </div>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    gap: 12px;
+                    align-items: flex-start;
+                    padding: 12px 14px;
+                    background: #1a1a1a;
+                    border: 1px solid #262626;
+                    border-radius: 10px;
+                  "
+                >
+                  <div
+                    style="
+                      flex: 0 0 32px;
+                      height: 32px;
+                      border-radius: 16px;
+                      background: #2a1a15;
+                      color: #ff7a52;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-weight: 600;
+                    "
+                  >
+                    F
+                  </div>
+                  <div
+                    style="
+                      flex: 1;
+                      min-width: 0;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 2px;
+                    "
+                  >
+                    <div style="display: flex; gap: 8px; align-items: baseline">
+                      <span style="font-weight: 600">Forward</span>
+                      <span
+                        style="
+                          color: #8a8a8a;
+                          font-size: 12px;
+                          white-space: nowrap;
+                          overflow: hidden;
+                          text-overflow: ellipsis;
+                        "
+                        >hello@forward.domains → {{email}}</span
+                      >
+                      <span
+                        style="
+                          margin-left: auto;
+                          color: #8a8a8a;
+                          font-size: 12px;
+                          white-space: nowrap;
+                        "
+                        >9:41 AM</span
+                      >
+                    </div>
+                    <div
+                      style="
+                        font-weight: 500;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                      "
+                    >
+                      {{subject}}
+                    </div>
+                    <div
+                      style="
+                        color: #9a9a9a;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                      "
+                    >
+                      Enter this code to finish creating your Forward account.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div
+              style="
+                flex: 1;
+                min-height: 0;
+                overflow: auto;
+                padding: 20px 24px 32px;
+              "
+            >
+              <sc-if value="{{isPreview}}" hint-placeholder-val="{{ true }}">
+                <div
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 10px;
+                  "
+                >
+                  <div
+                    style="
+                      font-family: 'Geist Mono', ui-monospace, monospace;
+                      font-size: 11px;
+                      color: #7e7e7e;
+                    "
+                  >
+                    {{frameLabel}}
+                  </div>
+                  <div
+                    style="
+                      border-radius: 6px;
+                      overflow: hidden;
+                      box-shadow:
+                        0 0 0 1px #262626,
+                        0 24px 60px rgba(0, 0, 0, 0.45);
+                    "
+                  >
+                    <sc-if
+                      value="{{isDesktop}}"
+                      hint-placeholder-val="{{ true }}"
+                    >
+                      <dc-import
+                        name="Email"
+                        frame-width="{{ 600 }}"
+                        is-dark="{{isDark}}"
+                        highlight="{{hl}}"
+                        code="{{code}}"
+                        hint-size="600px,840px"
+                      ></dc-import>
+                    </sc-if>
+                    <sc-if
+                      value="{{isMobile}}"
+                      hint-placeholder-val="{{ false }}"
+                    >
+                      <dc-import
+                        name="Email"
+                        frame-width="{{ 375 }}"
+                        is-dark="{{isDark}}"
+                        highlight="{{hl}}"
+                        code="{{code}}"
+                        hint-size="375px,1000px"
+                      ></dc-import>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{isCompare}}" hint-placeholder-val="{{ false }}">
+                <div
+                  style="
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 24px;
+                    justify-content: center;
+                    align-items: flex-start;
+                  "
+                >
+                  <figure
+                    style="
+                      margin: 0;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 8px;
+                    "
+                  >
+                    <figcaption
+                      style="
+                        font-family: 'Geist Mono', ui-monospace, monospace;
+                        font-size: 11px;
+                        color: #7e7e7e;
+                      "
+                    >
+                      Desktop · Light · 600
+                    </figcaption>
+                    <div
+                      style="
+                        width: 300px;
+                        height: 420px;
+                        overflow: hidden;
+                        border-radius: 6px;
+                        box-shadow: 0 0 0 1px #262626;
+                        background: #f4f3f1;
+                      "
+                    >
+                      <div
+                        style="
+                          width: 600px;
+                          transform: scale(0.5);
+                          transform-origin: top left;
+                        "
+                      >
+                        <dc-import
+                          name="Email"
+                          frame-width="{{ 600 }}"
+                          is-dark="{{ false }}"
+                          highlight="{{hl}}"
+                          code="{{code}}"
+                          hint-size="600px,840px"
+                        ></dc-import>
+                      </div>
+                    </div>
+                  </figure>
+                  <figure
+                    style="
+                      margin: 0;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 8px;
+                    "
+                  >
+                    <figcaption
+                      style="
+                        font-family: 'Geist Mono', ui-monospace, monospace;
+                        font-size: 11px;
+                        color: #7e7e7e;
+                      "
+                    >
+                      Mobile · Light · 375
+                    </figcaption>
+                    <div
+                      style="
+                        width: 188px;
+                        height: 500px;
+                        overflow: hidden;
+                        border-radius: 6px;
+                        box-shadow: 0 0 0 1px #262626;
+                        background: #f4f3f1;
+                      "
+                    >
+                      <div
+                        style="
+                          width: 375px;
+                          transform: scale(0.5);
+                          transform-origin: top left;
+                        "
+                      >
+                        <dc-import
+                          name="Email"
+                          frame-width="{{ 375 }}"
+                          is-dark="{{ false }}"
+                          highlight="{{hl}}"
+                          code="{{code}}"
+                          hint-size="375px,1000px"
+                        ></dc-import>
+                      </div>
+                    </div>
+                  </figure>
+                  <figure
+                    style="
+                      margin: 0;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 8px;
+                    "
+                  >
+                    <figcaption
+                      style="
+                        font-family: 'Geist Mono', ui-monospace, monospace;
+                        font-size: 11px;
+                        color: #7e7e7e;
+                      "
+                    >
+                      Mobile · Dark · 375
+                    </figcaption>
+                    <div
+                      style="
+                        width: 188px;
+                        height: 500px;
+                        overflow: hidden;
+                        border-radius: 6px;
+                        box-shadow: 0 0 0 1px #262626;
+                        background: #111111;
+                      "
+                    >
+                      <div
+                        style="
+                          width: 375px;
+                          transform: scale(0.5);
+                          transform-origin: top left;
+                        "
+                      >
+                        <dc-import
+                          name="Email"
+                          frame-width="{{ 375 }}"
+                          is-dark="{{ true }}"
+                          highlight="{{hl}}"
+                          code="{{code}}"
+                          hint-size="375px,1000px"
+                        ></dc-import>
+                      </div>
+                    </div>
+                  </figure>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{isHtml}}" hint-placeholder-val="{{ false }}">
+                <div
+                  style="
+                    max-width: 760px;
+                    margin: 0 auto;
+                    background: #101010;
+                    border: 1px solid #262626;
+                    border-radius: 10px;
+                    overflow: hidden;
+                  "
+                >
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      padding: 8px 12px;
+                      border-bottom: 1px solid #222222;
+                    "
+                  >
+                    <span
+                      style="
+                        font-family: 'Geist Mono', ui-monospace, monospace;
+                        font-size: 11px;
+                        color: #8a8a8a;
+                      "
+                      >confirm.html · 18.4 KB</span
+                    >
+                    <button
+                      type="button"
+                      class="hov"
+                      style="
+                        height: 28px;
+                        padding: 0 10px;
+                        border: 1px solid #2a2a2a;
+                        border-radius: 6px;
+                        background: #161616;
+                        color: #d4d4d4;
+                        font-size: 12px;
+                      "
+                    >
+                      Copy HTML
+                    </button>
+                  </div>
+                  <div
+                    style="
+                      padding: 10px 0;
+                      overflow-x: auto;
+                      font-family: 'Geist Mono', ui-monospace, monospace;
+                      font-size: 12px;
+                      line-height: 1.75;
+                    "
+                  >
+                    <sc-for
+                      list="{{htmlLines}}"
+                      as="l"
+                      hint-placeholder-count="20"
+                    >
+                      <div
+                        style="display: flex; background: {{l.bg}}; box-shadow: inset 2px 0 0 {{l.mark}}"
+                      >
+                        <span
+                          style="
+                            flex: 0 0 44px;
+                            text-align: right;
+                            padding-right: 14px;
+                            color: #5a5a5a;
+                            user-select: none;
+                          "
+                          >{{l.n}}</span
+                        >
+                        <span
+                          style="padding-left: {{l.pad}}px; padding-right: 16px; color: {{l.fg}}; white-space: pre"
+                          >{{l.text}}</span
+                        >
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{isText}}" hint-placeholder-val="{{ false }}">
+                <div
+                  style="
+                    max-width: 640px;
+                    margin: 0 auto;
+                    background: #101010;
+                    border: 1px solid #262626;
+                    border-radius: 10px;
+                    overflow: hidden;
+                  "
+                >
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      padding: 8px 12px;
+                      border-bottom: 1px solid #222222;
+                    "
+                  >
+                    <span
+                      style="
+                        font-family: 'Geist Mono', ui-monospace, monospace;
+                        font-size: 11px;
+                        color: #8a8a8a;
+                      "
+                      >text/plain · generated · 1.1 KB</span
+                    >
+                    <button
+                      type="button"
+                      class="hov"
+                      style="
+                        height: 28px;
+                        padding: 0 10px;
+                        border: 1px solid #2a2a2a;
+                        border-radius: 6px;
+                        background: #161616;
+                        color: #d4d4d4;
+                        font-size: 12px;
+                      "
+                    >
+                      Copy text
+                    </button>
+                  </div>
+                  <div
+                    style="
+                      padding: 20px 24px;
+                      font-family: 'Geist Mono', ui-monospace, monospace;
+                      font-size: 13px;
+                      line-height: 1.7;
+                      color: #d4d4d4;
+                      white-space: pre-wrap;
+                    "
+                  >
+                    {{plainText}}
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+
+            <footer
+              style="
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px 16px;
+                padding: 8px 16px;
+                border-top: 1px solid #222222;
+                font-size: 12px;
+                color: #9a9a9a;
+                background: #0e0e0e;
+              "
+            >
+              <span style="font-family: 'Geist Mono', ui-monospace, monospace"
+                >{{dims}}</span
+              >
+              <span
+                style="width: 1px; height: 14px; background: #262626"
+              ></span>
+              <span style="display: flex; align-items: center; gap: 8px">
+                <span
+                  style="
+                    font-family: 'Geist Mono', ui-monospace, monospace;
+                    color: #d4d4d4;
+                  "
+                  >18.4 KB</span
+                >
+                <span
+                  style="
+                    width: 72px;
+                    height: 4px;
+                    border-radius: 2px;
+                    background: #262626;
+                    overflow: hidden;
+                  "
+                  ><span
+                    style="
+                      display: block;
+                      width: 18%;
+                      height: 4px;
+                      background: #4cc38a;
+                    "
+                  ></span
+                ></span>
+                <span>of 102 KB before Gmail clips</span>
+              </span>
+              <span
+                style="width: 1px; height: 14px; background: #262626"
+              ></span>
+              <span>4 links · 0 images</span>
+              <span
+                style="width: 1px; height: 14px; background: #262626"
+              ></span>
+              <button
+                type="button"
+                class="hov"
+                aria-label="2 warnings, 1 info. Open checks"
+                onClick="{{openChecks}}"
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  height: 24px;
+                  padding: 0 8px;
+                  margin: 0 -8px;
+                  border: 0;
+                  border-radius: 6px;
+                  background: transparent;
+                  color: #d4d4d4;
+                  font-size: 12px;
+                "
+              >
+                <span style="display: flex; align-items: center; gap: 6px"
+                  ><span
+                    style="
+                      width: 6px;
+                      height: 6px;
+                      border-radius: 3px;
+                      background: #f5a524;
+                    "
+                  ></span
+                  >2 warnings</span
+                >
+                <span style="display: flex; align-items: center; gap: 6px"
+                  ><span
+                    style="
+                      width: 6px;
+                      height: 6px;
+                      border-radius: 3px;
+                      background: #8ab4ff;
+                    "
+                  ></span
+                  >1 info</span
+                >
+              </button>
+              <span
+                style="
+                  margin-left: auto;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                "
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                  <circle cx="9" cy="10" r="2"></circle>
+                  <path d="M21 16l-5-5-9 9"></path>
+                </svg>
+                <span id="remote-label">Remote images</span>
+                <button
+                  type="button"
+                  aria-labelledby="remote-label"
+                  aria-pressed="{{remotePressed}}"
+                  onClick="{{toggleRemote}}"
+                  style="width: 32px; height: 18px; border: 0; padding: 2px; border-radius: 9px; background: {{remoteTrack}}; display: flex; justify-content: {{remoteJustify}}"
+                >
+                  <span
+                    style="
+                      width: 14px;
+                      height: 14px;
+                      border-radius: 7px;
+                      background: #ededed;
+                    "
+                  ></span>
+                </button>
+              </span>
+            </footer>
+          </main>
+
+          <aside
+            aria-label="Inspector"
+            style="
+              flex: 1 1 340px;
+              min-width: 0;
+              height: 100%;
+              box-sizing: border-box;
+              display: flex;
+              flex-direction: column;
+              border-left: 1px solid #222222;
+              background: #111111;
+            "
+          >
+            <div
+              role="tablist"
+              aria-label="Inspector"
+              style="
+                display: flex;
+                gap: 4px;
+                padding: 0 12px;
+                border-bottom: 1px solid #222222;
+              "
+            >
+              <sc-for list="{{tabs}}" as="item" hint-placeholder-count="3">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="{{item.pressed}}"
+                  onClick="{{item.pick}}"
+                  style="height: 44px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 0; border-bottom: 2px solid {{item.line}}; background: transparent; color: {{item.fg}}; font-weight: 500"
+                >
+                  {{item.label}}
+                  <sc-if
+                    value="{{item.hasBadge}}"
+                    hint-placeholder-val="{{ false }}"
+                  >
+                    <span
+                      style="
+                        font-family: 'Geist Mono', ui-monospace, monospace;
+                        font-size: 11px;
+                        padding: 1px 6px;
+                        border-radius: 9px;
+                        background: #3a2a0e;
+                        color: #f5a524;
+                      "
+                      >{{item.badge}}</span
+                    >
+                  </sc-if>
+                </button>
+              </sc-for>
+            </div>
+
+            <div
+              style="flex: 1; min-height: 0; overflow-y: auto; padding: 16px"
+            >
+              <sc-if value="{{isChecks}}" hint-placeholder-val="{{ true }}">
+                <div
+                  style="
+                    display: flex;
+                    align-items: stretch;
+                    gap: 8px;
+                    margin-bottom: 6px;
+                  "
+                >
+                  <div
+                    style="
+                      flex: 1;
+                      padding: 10px 12px;
+                      border: 1px solid #262626;
+                      border-radius: 8px;
+                    "
+                  >
+                    <div
+                      style="font-size: 20px; font-weight: 600; color: #f5a524"
+                    >
+                      2
+                    </div>
+                    <div style="font-size: 12px; color: #9a9a9a">Warnings</div>
+                  </div>
+                  <div
+                    style="
+                      flex: 1;
+                      padding: 10px 12px;
+                      border: 1px solid #262626;
+                      border-radius: 8px;
+                    "
+                  >
+                    <div
+                      style="font-size: 20px; font-weight: 600; color: #8ab4ff"
+                    >
+                      1
+                    </div>
+                    <div style="font-size: 12px; color: #9a9a9a">Info</div>
+                  </div>
+                  <div
+                    style="
+                      flex: 1;
+                      padding: 10px 12px;
+                      border: 1px solid #262626;
+                      border-radius: 8px;
+                    "
+                  >
+                    <div
+                      style="font-size: 20px; font-weight: 600; color: #4cc38a"
+                    >
+                      11
+                    </div>
+                    <div style="font-size: 12px; color: #9a9a9a">Passed</div>
+                  </div>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    font-size: 12px;
+                    color: #8a8a8a;
+                    margin-bottom: 18px;
+                  "
+                >
+                  <span>Ran on save · 38 ms</span>
+                  <button
+                    type="button"
+                    class="hov"
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                      height: 26px;
+                      padding: 0 8px;
+                      border: 1px solid #262626;
+                      border-radius: 6px;
+                      background: transparent;
+                      color: #b4b4b4;
+                      font-size: 12px;
+                    "
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"></path>
+                    </svg>
+                    Re-run
+                  </button>
+                </div>
+
+                <div
+                  style="
+                    font-size: 11px;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    color: #7e7e7e;
+                    font-weight: 500;
+                    margin-bottom: 8px;
+                  "
+                >
+                  Issues
+                </div>
+                <sc-for list="{{issues}}" as="i" hint-placeholder-count="3">
+                  <button
+                    type="button"
+                    aria-expanded="{{i.ariaExpanded}}"
+                    onClick="{{i.pick}}"
+                    style="width: 100%; display: block; text-align: left; padding: 12px; margin-bottom: 8px; border: 1px solid {{i.border}}; border-radius: 8px; background: {{i.bg}}; color: #EDEDED"
+                  >
+                    <span
+                      style="display: flex; align-items: flex-start; gap: 10px"
+                    >
+                      <sc-if
+                        value="{{i.isWarn}}"
+                        hint-placeholder-val="{{ true }}"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#F5A524"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          role="img"
+                          aria-label="Warning"
+                          style="flex: 0 0 16px; margin-top: 1px"
+                        >
+                          <path d="M12 3.5l9.5 16.5h-19L12 3.5z"></path>
+                          <path d="M12 10v4.5M12 17.5v.5"></path>
+                        </svg>
+                      </sc-if>
+                      <sc-if
+                        value="{{i.isInfo}}"
+                        hint-placeholder-val="{{ false }}"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#8AB4FF"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          role="img"
+                          aria-label="Info"
+                          style="flex: 0 0 16px; margin-top: 1px"
+                        >
+                          <circle cx="12" cy="12" r="9"></circle>
+                          <path d="M12 11v5M12 8v.5"></path>
+                        </svg>
+                      </sc-if>
+                      <span style="flex: 1; min-width: 0; display: block">
+                        <span
+                          style="
+                            display: block;
+                            font-weight: 500;
+                            line-height: 1.4;
+                          "
+                          >{{i.title}}</span
+                        >
+                        <span
+                          style="
+                            display: block;
+                            margin-top: 3px;
+                            font-family: 'Geist Mono', ui-monospace, monospace;
+                            font-size: 11px;
+                            color: #7e7e7e;
+                          "
+                          >{{i.group}}</span
+                        >
+                        <sc-if
+                          value="{{i.expanded}}"
+                          hint-placeholder-val="{{ false }}"
+                        >
+                          <span
+                            style="
+                              display: block;
+                              margin-top: 10px;
+                              font-size: 12px;
+                              line-height: 1.55;
+                              color: #b4b4b4;
+                            "
+                            >{{i.detail}}</span
+                          >
+                          <span
+                            style="
+                              display: flex;
+                              align-items: center;
+                              justify-content: space-between;
+                              gap: 8px;
+                              margin-top: 10px;
+                              font-size: 12px;
+                            "
+                          >
+                            <span
+                              style="
+                                font-family:
+                                  'Geist Mono', ui-monospace, monospace;
+                                color: #d4d4d4;
+                                text-decoration: underline;
+                                text-decoration-color: #4a4a4a;
+                                text-underline-offset: 3px;
+                              "
+                              >{{i.source}}</span
+                            >
+                            <span style="color: #8a8a8a">{{i.where}}</span>
+                          </span>
+                        </sc-if>
+                      </span>
+                    </span>
+                  </button>
+                </sc-for>
+
+                <div
+                  style="
+                    font-size: 11px;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    color: #7e7e7e;
+                    font-weight: 500;
+                    margin: 18px 0 8px;
+                  "
+                >
+                  Client support
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 6px;
+                  "
+                >
+                  <sc-for list="{{clients}}" as="c" hint-placeholder-count="6">
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        height: 32px;
+                        padding: 0 10px;
+                        border: 1px solid #222222;
+                        border-radius: 6px;
+                        font-size: 12px;
+                      "
+                    >
+                      <span style="color: #d4d4d4">{{c.name}}</span>
+                      <span
+                        style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; color: {{c.color}}"
+                        >{{c.status}}</span
+                      >
+                    </div>
+                  </sc-for>
+                </div>
+
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin: 18px 0 8px;
+                  "
+                >
+                  <span
+                    style="
+                      font-size: 11px;
+                      letter-spacing: 0.08em;
+                      text-transform: uppercase;
+                      color: #7e7e7e;
+                      font-weight: 500;
+                    "
+                    >Links · 4</span
+                  >
+                  <button
+                    type="button"
+                    class="hov"
+                    onClick="{{checkLinks}}"
+                    style="
+                      height: 26px;
+                      padding: 0 8px;
+                      border: 1px solid #262626;
+                      border-radius: 6px;
+                      background: transparent;
+                      color: #b4b4b4;
+                      font-size: 12px;
+                    "
+                  >
+                    {{checkLabel}}
+                  </button>
+                </div>
+                <div
+                  style="
+                    border: 1px solid #222222;
+                    border-radius: 8px;
+                    overflow: hidden;
+                  "
+                >
+                  <sc-for list="{{links}}" as="k" hint-placeholder-count="4">
+                    <div
+                      style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-top: 1px solid {{k.sep}}"
+                    >
+                      <span
+                        style="
+                          flex: 1;
+                          min-width: 0;
+                          display: flex;
+                          flex-direction: column;
+                        "
+                      >
+                        <span style="font-size: 12px; color: #d4d4d4"
+                          >{{k.text}}</span
+                        >
+                        <span
+                          style="
+                            font-family: 'Geist Mono', ui-monospace, monospace;
+                            font-size: 11px;
+                            color: #7e7e7e;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                          "
+                          >{{k.href}}</span
+                        >
+                      </span>
+                      <span
+                        style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; color: {{k.color}}; white-space: nowrap"
+                        >{{k.status}}</span
+                      >
+                    </div>
+                  </sc-for>
+                </div>
+
+                <button
+                  type="button"
+                  aria-expanded="{{passedExpanded}}"
+                  onClick="{{togglePassed}}"
+                  style="
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin: 18px 0 8px;
+                    padding: 0;
+                    border: 0;
+                    background: transparent;
+                    color: #7e7e7e;
+                    font-size: 11px;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    font-weight: 500;
+                  "
+                >
+                  <span>Passed · 11</span>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    style="transform: rotate({{passedRot}}deg)"
+                  >
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </button>
+                <sc-if
+                  value="{{passedOpen}}"
+                  hint-placeholder-val="{{ false }}"
+                >
+                  <sc-for list="{{passed}}" as="p" hint-placeholder-count="11">
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 5px 2px;
+                        font-size: 12px;
+                        color: #b4b4b4;
+                      "
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#4CC38A"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+                      </svg>
+                      {{p.label}}
+                    </div>
+                  </sc-for>
+                </sc-if>
+              </sc-if>
+
+              <sc-if value="{{isProps}}" hint-placeholder-val="{{ false }}">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 14px;
+                  "
+                >
+                  <div
+                    style="
+                      display: flex;
+                      gap: 2px;
+                      padding: 3px;
+                      background: #161616;
+                      border: 1px solid #262626;
+                      border-radius: 8px;
+                    "
+                  >
+                    <sc-for
+                      list="{{propModes}}"
+                      as="item"
+                      hint-placeholder-count="2"
+                    >
+                      <button
+                        type="button"
+                        aria-pressed="{{item.pressed}}"
+                        onClick="{{item.pick}}"
+                        style="border: 0; padding: 4px 12px; border-radius: 6px; background: {{item.bg}}; color: {{item.fg}}; font-size: 12px; font-weight: 500"
+                      >
+                        {{item.label}}
+                      </button>
+                    </sc-for>
+                  </div>
+                  <button
+                    type="button"
+                    onClick="{{resetProps}}"
+                    style="
+                      border: 0;
+                      background: transparent;
+                      color: #9a9a9a;
+                      font-size: 12px;
+                      text-decoration: underline;
+                      text-underline-offset: 3px;
+                    "
+                  >
+                    Reset to fixture
+                  </button>
+                </div>
+
+                <sc-if value="{{isForm}}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; flex-direction: column; gap: 12px">
+                    <sc-for list="{{fields}}" as="f" hint-placeholder-count="6">
+                      <div
+                        style="display: flex; flex-direction: column; gap: 6px"
+                      >
+                        <label
+                          for="{{f.id}}"
+                          style="
+                            display: flex;
+                            justify-content: space-between;
+                            font-size: 12px;
+                            color: #9a9a9a;
+                          "
+                        >
+                          <span>{{f.label}}</span>
+                          <span
+                            style="
+                              font-family:
+                                'Geist Mono', ui-monospace, monospace;
+                              font-size: 11px;
+                              color: #6e6e6e;
+                            "
+                            >{{f.type}}</span
+                          >
+                        </label>
+                        <input
+                          id="{{f.id}}"
+                          type="text"
+                          value="{{f.value}}"
+                          onChange="{{f.change}}"
+                          style="
+                            height: 34px;
+                            box-sizing: border-box;
+                            padding: 0 10px;
+                            border-radius: 8px;
+                            border: 1px solid #262626;
+                            background: #0e0e0e;
+                            color: #ededed;
+                            font-size: 13px;
+                          "
+                        />
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{isJson}}" hint-placeholder-val="{{ false }}">
+                  <label
+                    for="props-json"
+                    style="
+                      display: block;
+                      font-size: 12px;
+                      color: #9a9a9a;
+                      margin-bottom: 6px;
+                    "
+                    >Props as JSON</label
+                  >
+                  <textarea
+                    id="props-json"
+                    value="{{json}}"
+                    readonly="{{ true }}"
+                    spellcheck="false"
+                    style="
+                      width: 100%;
+                      height: 300px;
+                      box-sizing: border-box;
+                      padding: 12px;
+                      border-radius: 8px;
+                      border: 1px solid #262626;
+                      background: #0e0e0e;
+                      color: #d4d4d4;
+                      font-family: 'Geist Mono', ui-monospace, monospace;
+                      font-size: 12px;
+                      line-height: 1.6;
+                      resize: vertical;
+                    "
+                  ></textarea>
+                </sc-if>
+
+                <div
+                  style="
+                    margin-top: 16px;
+                    padding: 12px;
+                    border: 1px solid #222222;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    line-height: 1.55;
+                    color: #9a9a9a;
+                  "
+                >
+                  Updates the preview as you type. Your source file isn’t
+                  changed until you save these props as a fixture.
+                </div>
+                <button
+                  type="button"
+                  class="hov"
+                  style="
+                    width: 100%;
+                    margin-top: 10px;
+                    height: 36px;
+                    border: 1px solid #2e2e2e;
+                    border-radius: 8px;
+                    background: #161616;
+                    color: #ededed;
+                    font-weight: 500;
+                  "
+                >
+                  Save as fixture…
+                </button>
+              </sc-if>
+
+              <sc-if value="{{isInfo}}" hint-placeholder-val="{{ false }}">
+                <sc-for
+                  list="{{infoSections}}"
+                  as="sec"
+                  hint-placeholder-count="3"
+                >
+                  <div
+                    style="
+                      font-size: 11px;
+                      letter-spacing: 0.08em;
+                      text-transform: uppercase;
+                      color: #7e7e7e;
+                      font-weight: 500;
+                      margin: 4px 0 8px;
+                    "
+                  >
+                    {{sec.title}}
+                  </div>
+                  <dl
+                    style="
+                      margin: 0 0 18px;
+                      border: 1px solid #222222;
+                      border-radius: 8px;
+                      overflow: hidden;
+                    "
+                  >
+                    <sc-for
+                      list="{{sec.rows}}"
+                      as="r"
+                      hint-placeholder-count="5"
+                    >
+                      <div
+                        style="display: flex; gap: 12px; padding: 8px 10px; border-top: 1px solid {{r.sep}}; font-size: 12px"
+                      >
+                        <dt style="flex: 0 0 84px; color: #8a8a8a">{{r.k}}</dt>
+                        <dd
+                          style="
+                            margin: 0;
+                            flex: 1;
+                            min-width: 0;
+                            color: #d4d4d4;
+                            overflow-wrap: anywhere;
+                          "
+                        >
+                          {{r.v}}
+                        </dd>
+                      </div>
+                    </sc-for>
+                  </dl>
+                </sc-for>
+                <button
+                  type="button"
+                  class="hov"
+                  style="
+                    width: 100%;
+                    height: 36px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    border: 1px solid #2e2e2e;
+                    border-radius: 8px;
+                    background: #161616;
+                    color: #ededed;
+                    font-weight: 500;
+                    margin-bottom: 18px;
+                  "
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"
+                    ></path>
+                  </svg>
+                  Open confirm.tsx in editor
+                </button>
+                <div
+                  style="
+                    font-size: 11px;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    color: #7e7e7e;
+                    font-weight: 500;
+                    margin-bottom: 8px;
+                  "
+                >
+                  Export
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 6px;
+                  "
+                >
+                  <button
+                    type="button"
+                    class="hov"
+                    style="
+                      height: 34px;
+                      border: 1px solid #262626;
+                      border-radius: 8px;
+                      background: transparent;
+                      color: #d4d4d4;
+                      font-size: 12px;
+                    "
+                  >
+                    Copy HTML
+                  </button>
+                  <button
+                    type="button"
+                    class="hov"
+                    style="
+                      height: 34px;
+                      border: 1px solid #262626;
+                      border-radius: 8px;
+                      background: transparent;
+                      color: #d4d4d4;
+                      font-size: 12px;
+                    "
+                  >
+                    Copy plain text
+                  </button>
+                  <button
+                    type="button"
+                    class="hov"
+                    style="
+                      height: 34px;
+                      border: 1px solid #262626;
+                      border-radius: 8px;
+                      background: transparent;
+                      color: #d4d4d4;
+                      font-size: 12px;
+                    "
+                  >
+                    Download .html
+                  </button>
+                  <button
+                    type="button"
+                    class="hov"
+                    style="
+                      height: 34px;
+                      border: 1px solid #262626;
+                      border-radius: 8px;
+                      background: transparent;
+                      color: #d4d4d4;
+                      font-size: 12px;
+                    "
+                  >
+                    Download .eml
+                  </button>
+                </div>
+              </sc-if>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </x-dc>
+    <script
+      type="text/x-dc"
+      data-dc-script
+      data-props='{"$preview":{"width":1440,"height":900}}'
+    >
+      class Component extends DCLogic {
+        constructor(props) {
+          super(props);
+          this.state = {
+            view: 'preview', viewport: 'desktop', scheme: 'light', tab: 'props',
+            issue: null, remote: false, propMode: 'form', sendOpen: false,
+            passedOpen: false, linksChecked: false, filter: 'all', q: '',
+            variant: 'Default', current: 'Confirm',
+            firstName: 'Ada', email: 'ada@example.com', code: '482 913',
+            dateTime: 'October 14, 2026 at 9:41 AM UTC', client: 'Safari on macOS', approxLocation: 'Brooklyn, New York'
+          };
+        }
+
+        renderVals() {
+          const s = this.state;
+          const ON = '#2A2A2A', OFF = 'transparent', ONF = '#FFFFFF', OFFF = '#9A9A9A';
+          const one = (key, id) => {
+            const a = s[key] === id;
+            return { bg: a ? ON : OFF, fg: a ? ONF : OFFF, pressed: a ? 'true' : 'false', pick: () => this.setState({ [key]: id }) };
+          };
+          const segs = (list, key) => list.map((x) => Object.assign({}, x, one(key, x.id)));
+
+          const views = segs([
+            { id: 'preview', label: 'Preview' },
+            { id: 'compare', label: 'Compare' },
+            { id: 'html', label: 'HTML' },
+            { id: 'text', label: 'Plain text' }
+          ], 'view');
+
+          const tabs = segs([
+            { id: 'props', label: 'Props', hasBadge: false },
+            { id: 'info', label: 'Info', hasBadge: false },
+            { id: 'checks', label: 'Checks', hasBadge: true, badge: '3' }
+          ], 'tab').map((t) => Object.assign({}, t, { line: s.tab === t.id ? '#EDEDED' : 'transparent', fg: s.tab === t.id ? '#FFFFFF' : '#9A9A9A' }));
+
+          const propModes = segs([{ id: 'form', label: 'Fields' }, { id: 'json', label: 'JSON' }], 'propMode');
+
+          // Sidebar
+          const T = (name, sev, n) => ({ name: name, sev: sev || null, n: n || 0 });
+          const groupsRaw = [
+            { label: 'Account', items: [T('Confirm', 'warn', 3), T('Invite'), T('New sign in'), T('Passkey added'), T('Password changed'), T('Password reset'), T('Sign in')] },
+            { label: 'Billing', items: [T('New offer', 'info', 1), T('Payment failed'), T('Plan limit'), T('Receipt', 'warn', 1)] },
+            { label: 'Domains', items: [T('Domain problem'), T('Domains live'), T('Onboarding dns'), T('Onboarding pages'), T('Redirect paused')] },
+            { label: 'Lists', items: [T('List confirm'), T('List welcome'), T('Newsletter', 'error', 1), T('Weekly', 'warn', 2)] },
+            { label: 'Lifecycle', items: [T('Early access'), T('Welcome')] }
+          ];
+          const dotFor = { warn: '#F5A524', info: '#8AB4FF', error: '#FF6B6B' };
+          const q = (s.q || '').toLowerCase();
+          const groups = groupsRaw.map((g) => {
+            const items = g.items
+              .filter((t) => (s.filter === 'issues' ? !!t.sev : true))
+              .filter((t) => (q ? t.name.toLowerCase().indexOf(q) !== -1 : true))
+              .map((t) => {
+                const a = s.current === t.name;
+                return Object.assign({}, t, {
+                  hasIssue: !!t.sev, dot: dotFor[t.sev] || 'transparent',
+                  bg: a ? '#1F1F1F' : 'transparent', fg: a ? '#FFFFFF' : '#B4B4B4',
+                  current: a ? 'page' : 'false',
+                  pick: () => this.setState({ current: t.name })
+                });
+              });
+            return { label: g.label, items: items, count: String(items.length) };
+          }).filter((g) => g.items.length > 0);
+
+          const fAll = one('filter', 'all');
+          const fIss = one('filter', 'issues');
+
+          // Preview state
+          const desktop = s.viewport === 'desktop';
+          const dark = s.scheme === 'dark';
+          const vpD = one('viewport', 'desktop'), vpM = one('viewport', 'mobile');
+          const scL = one('scheme', 'light'), scD = one('scheme', 'dark');
+          const hl = s.issue === 'footer' || s.issue === 'button' ? s.issue : 'none';
+          const subject = 'Your Forward code: ' + s.code;
+
+          // Checks
+          const issuesRaw = [
+            { id: 'footer', sev: 'warn', group: 'Content · placeholder-text', title: 'Placeholder text will ship to recipients', detail: 'The footer still reads “[Mailing address — owner approval required]”. Replace it before sending, or fail the build when bracketed placeholders remain.', source: 'layout/footer.tsx:24', where: 'Outlined in preview' },
+            { id: 'button', sev: 'warn', group: 'Compatibility · border-radius', title: 'Button renders square in Outlook for Windows', detail: 'Classic Outlook on Windows ignores border-radius, so the pill becomes a rectangle. The link still works; add a VML fallback if the shape matters.', source: 'components/button.tsx:12', where: 'Outlined in preview' },
+            { id: 'title', sev: 'info', group: 'Accessibility · document-title', title: 'No document title', detail: 'Add a title inside Head so screen readers and view-in-browser pages announce the email.', source: 'emails/account/confirm.tsx:9', where: 'Not visible in preview' }
+          ];
+          const issues = issuesRaw.map((i) => {
+            const a = s.issue === i.id;
+            return Object.assign({}, i, {
+              isWarn: i.sev === 'warn', isInfo: i.sev === 'info', expanded: a, ariaExpanded: a ? 'true' : 'false',
+              bg: a ? '#1A1A1A' : 'transparent', border: a ? '#3A3A3A' : '#232323',
+              pick: () => this.setState({ issue: a ? null : i.id })
+            });
+          });
+
+          const clients = [
+            { name: 'Apple Mail', status: 'OK' }, { name: 'iOS Mail', status: 'OK' },
+            { name: 'Gmail', status: 'OK' }, { name: 'Outlook.com', status: 'OK' },
+            { name: 'Outlook (Win)', status: '1 issue', warn: true }, { name: 'Yahoo Mail', status: 'OK' }
+          ].map((c) => Object.assign({}, c, { color: c.warn ? '#F5A524' : '#4CC38A' }));
+
+          const linksRaw = [
+            { text: 'Confirm with one click', href: 'app.forward.domains/confirm?token=…', ok: '302 → /done' },
+            { text: 'Help', href: 'forward.domains/help', ok: '200' },
+            { text: 'Privacy', href: 'forward.domains/privacy', ok: '200' },
+            { text: 'forward.domains', href: 'forward.domains', ok: '200' }
+          ];
+          const links = linksRaw.map((k, idx) => ({
+            text: k.text, href: k.href, sep: idx === 0 ? 'transparent' : '#222222',
+            status: s.linksChecked ? k.ok : 'not checked', color: s.linksChecked ? '#4CC38A' : '#7E7E7E'
+          }));
+
+          const passed = [
+            'lang attribute set on html', 'Text contrast at least 4.5:1', 'Descriptive link text',
+            'All links use HTTPS', 'Under Gmail clip limit (18.4 of 102 KB)', 'Preheader set (56 characters)',
+            'Subject under 60 characters (' + subject.length + ')', 'Plain-text part generated',
+            'No unresolved template variables', 'No scripts or forms', 'Dark mode: color-scheme declared'
+          ].map((label) => ({ label: label }));
+
+          // Props
+          const fieldDefs = [
+            ['firstName', 'firstName', 'string'], ['email', 'email', 'string'], ['code', 'code', 'string'],
+            ['dateTime', 'dateTime', 'string'], ['client', 'client', 'string'], ['approxLocation', 'approxLocation', 'string']
+          ];
+          const fields = fieldDefs.map((f) => ({
+            id: 'prop-' + f[0], label: f[1], type: f[2], value: s[f[0]],
+            change: (e) => this.setState({ [f[0]]: e.target.value })
+          }));
+          const json = JSON.stringify({ values: { email: s.email, firstName: s.firstName, code: s.code, dateTime: s.dateTime, client: s.client, approxLocation: s.approxLocation } }, null, 2);
+
+          // Info
+          const R = (rows) => rows.map((r, idx) => ({ k: r[0], v: r[1], sep: idx === 0 ? 'transparent' : '#222222' }));
+          const infoSections = [
+            { title: 'Envelope', rows: R([['From', 'Forward <hello@forward.domains>'], ['To', s.email], ['Subject', subject], ['Preheader', 'Enter this code to finish creating your Forward account.'], ['Category', 'Transactional']]) },
+            { title: 'Message', rows: R([['HTML', '18.4 KB'], ['Plain text', '1.1 KB'], ['Images', '0'], ['Links', '4'], ['Render', '38 ms']]) },
+            { title: 'Source', rows: R([['Template', 'emails/account/confirm.tsx'], ['Fixture', 'confirm.fixtures.ts · ' + s.variant]]) }
+          ];
+
+          // HTML source view
+          const H = [
+            [0, '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN">', ''],
+            [0, '<html lang="en" dir="ltr">', ''],
+            [1, '<head>', ''],
+            [2, '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">', ''],
+            [2, '<meta name="color-scheme" content="light dark">', ''],
+            [2, '<meta name="supported-color-schemes" content="light dark">', ''],
+            [1, '</head>', 'title'],
+            [1, '<body style="background-color:#f4f3f1;margin:0">', ''],
+            [2, '<div style="display:none;max-height:0;overflow:hidden">Enter this code to finish creating your Forward account.</div>', ''],
+            [2, '<table role="presentation" align="center" width="100%" style="max-width:600px">', ''],
+            [3, '<tr><td style="padding:48px">', ''],
+            [4, '<table role="presentation" width="100%" style="background:#ffffff;border:1px solid #e6e4e0;border-radius:16px">', ''],
+            [5, '<tr><td style="padding:48px">', ''],
+            [6, '<p style="color:#d9431f;font-size:24px;font-weight:700">→ Forward</p>', ''],
+            [6, '<h1 style="font-size:36px;line-height:1.15;margin:0 0 20px">Confirm your email</h1>', ''],
+            [6, '<p style="font-size:17px;line-height:1.55">Enter this code to finish creating your Forward account.</p>', ''],
+            [6, '<p style="font-family:monospace;font-size:38px;letter-spacing:0.14em">' + s.code + '</p>', ''],
+            [6, '<a href="https://app.forward.domains/confirm?token=…" style="background:#111111;border-radius:999px;color:#ffffff;padding:16px 30px">Confirm with one click</a>', 'button'],
+            [6, '<p style="color:#5e5e5e;font-size:15px">The code expires in 10 minutes. …</p>', ''],
+            [5, '</td></tr>', ''],
+            [4, '</table>', ''],
+            [4, '<p style="color:#5e5e5e;font-size:14px">Forward is a Commune Software product · Commune Software LLC · [Mailing address — owner approval required]</p>', 'footer'],
+            [3, '</td></tr>', ''],
+            [2, '</table>', ''],
+            [1, '</body>', ''],
+            [0, '</html>', '']
+          ];
+          const htmlLines = H.map((l, idx) => {
+            const hit = l[2] && s.issue === l[2];
+            return {
+              n: String(idx + 1), pad: l[0] * 16, text: l[1],
+              bg: hit ? 'rgba(245,165,36,0.10)' : 'transparent',
+              mark: hit ? '#F5A524' : 'transparent',
+              fg: l[1].charAt(0) === '<' ? '#C9C9C9' : '#9A9A9A'
+            };
+          });
+
+          const plainText = [
+            'FORWARD — CONFIRM',
+            '',
+            'Confirm your email',
+            '',
+            'Enter this code to finish creating your Forward account.',
+            '',
+            s.code,
+            '',
+            'Confirm with one click:',
+            'https://app.forward.domains/confirm?token=…',
+            '',
+            'The code expires in 10 minutes. If you didn’t try to sign up, ignore this email. No account is created without it.',
+            '',
+            '—',
+            'You’re receiving this because you have a Forward account. It’s about your account or your domains, so it’s sent even if you’ve turned off other emails.',
+            '',
+            'Help: https://forward.domains/help',
+            'Privacy: https://forward.domains/privacy',
+            '',
+            'Forward is a Commune Software product · Commune Software LLC · [Mailing address — owner approval required]'
+          ].join('\n');
+
+          return {
+            views: views, tabs: tabs, propModes: propModes,
+            vpD: vpD, vpM: vpM, scL: scL, scD: scD, fAll: fAll, fIss: fIss,
+            groups: groups, q: s.q,
+            setQ: (e) => this.setState({ q: e.target.value }),
+            variant: s.variant,
+            setVariant: (e) => this.setState({ variant: e.target.value }),
+            sendOpen: s.sendOpen, sendExpanded: s.sendOpen ? 'true' : 'false',
+            toggleSend: () => this.setState({ sendOpen: !s.sendOpen }),
+            email: s.email, subject: subject, code: s.code,
+            isPreview: s.view === 'preview', isCompare: s.view === 'compare', isHtml: s.view === 'html', isText: s.view === 'text',
+            isDesktop: desktop, isMobile: !desktop, isDark: dark, hl: hl,
+            frameLabel: (desktop ? '600 px' : '375 px') + ' · ' + (dark ? 'Dark client' : 'Light client'),
+            dims: desktop ? '600 × 842' : '375 × 1,018',
+            remotePressed: s.remote ? 'true' : 'false',
+            remoteTrack: s.remote ? '#4CC38A' : '#3A3A3A',
+            remoteJustify: s.remote ? 'flex-end' : 'flex-start',
+            toggleRemote: () => this.setState({ remote: !s.remote }),
+            openChecks: () => this.setState({ tab: 'checks' }),
+            isChecks: s.tab === 'checks', isProps: s.tab === 'props', isInfo: s.tab === 'info',
+            issues: issues, clients: clients, links: links,
+            checkLinks: () => this.setState({ linksChecked: true }),
+            checkLabel: s.linksChecked ? 'Checked just now' : 'Check links',
+            passed: passed, passedOpen: s.passedOpen, passedExpanded: s.passedOpen ? 'true' : 'false',
+            passedRot: s.passedOpen ? 180 : 0,
+            togglePassed: () => this.setState({ passedOpen: !s.passedOpen }),
+            isForm: s.propMode === 'form', isJson: s.propMode === 'json',
+            fields: fields, json: json,
+            resetProps: () => this.setState({ firstName: 'Ada', email: 'ada@example.com', code: '482 913', dateTime: 'October 14, 2026 at 9:41 AM UTC', client: 'Safari on macOS', approxLocation: 'Brooklyn, New York' }),
+            infoSections: infoSections,
+            htmlLines: htmlLines, plainText: plainText
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

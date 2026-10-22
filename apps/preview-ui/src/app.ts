@@ -2,11 +2,23 @@ import { createElement } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import { PreviewRoot } from './workspace';
+import { buildPreviewMessage } from './message';
+import { buildVariantSnippet } from './variant';
+import { previewClients } from './client-support';
+import { parseLintSummary, type TemplateLintCounts } from './lint-summary';
+import { parseLinkCheckEntries, type LinkCheckEntry } from './link-status';
+import { parseHtmlIndent, type HtmlIndent } from './html-display';
+import {
+  createPropsFields,
+  updatePropsField,
+  type PropsField,
+} from './props-fields';
 
 type JsonRecord = Record<string, unknown>;
 
-export type PreviewTab = 'preview' | 'html' | 'text' | 'source';
-export type Viewport = 'desktop' | 'mobile' | 'fluid';
+export type PreviewTab = 'preview' | 'compare' | 'html' | 'text' | 'source';
+export type Viewport = 'desktop' | 'mobile';
+export type InspectorTab = 'props' | 'info' | 'checks';
 export type EmailColorMode = 'light' | 'dark';
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting';
 export type LintSeverity = 'error' | 'warning' | 'info';
@@ -25,13 +37,18 @@ export type CompatibilityReference = {
 };
 
 export type TemplateSummary = {
+  group?: string;
   id: string;
   name: string;
   path?: string;
 };
 
 export type RenderResult = {
-  linkCheck?: { checked: number; skipped: number };
+  from?: { address: string; name?: string };
+  previewText?: string;
+  rulesRun?: string[];
+  renderMs?: number;
+  linkCheck?: { checked: number; skipped: number; links?: LinkCheckEntry[] };
   id: string;
   name: string;
   html: string;
@@ -44,6 +61,7 @@ export type RenderResult = {
 };
 
 export type LintFinding = {
+  clients?: string[];
   category: LintCategory;
   column?: number;
   compatibility?: CompatibilityReference;
@@ -51,9 +69,22 @@ export type LintFinding = {
   line?: number;
   message: string;
   ruleId: string;
+  selector?: string;
   severity: LintSeverity;
   suggestion: string;
 };
+
+export function findingKey(finding: LintFinding): string {
+  // Multiple attributes on one element can fire the same rule at one location.
+  // Keep their identities distinct without tying selection to severity overrides.
+  return JSON.stringify([
+    finding.ruleId,
+    finding.line ?? null,
+    finding.column ?? null,
+    finding.selector ?? null,
+    finding.message,
+  ]);
+}
 
 type Fetcher = (
   input: RequestInfo | URL,
@@ -78,19 +109,31 @@ export type PreviewApplicationOptions = {
 };
 
 export type ApplicationState = {
+  canOpenInEditor: boolean;
+  openingEditor: boolean;
+  editorError: string | null;
+  selectedClient: string | null;
+  selectedFindingKey: string | null;
+  lintRules: Array<{ id: string; title: string }>;
   canCheckLinks: boolean;
   checkingLinks: boolean;
   templates: TemplateSummary[];
   selectedId: string | null;
   result: RenderResult | null;
   activeTab: PreviewTab;
+  htmlIndent: HtmlIndent;
   viewport: Viewport;
   emailColorMode: EmailColorMode;
   selectedVariant: string;
   propsText: string;
+  propsFields: PropsField[] | null;
   appliedProps: JsonRecord | null;
   propsDirty: boolean;
   propsError: string | null;
+  variantCopyOpen: boolean;
+  variantCopyName: string;
+  variantCopyStatus: 'idle' | 'copying' | 'copied';
+  variantCopyError: string | null;
   remoteImages: boolean;
   loadingTemplates: boolean;
   rendering: boolean;
@@ -104,6 +147,19 @@ export type ApplicationState = {
   sending: boolean;
   sendError: string | null;
   sendMessage: string | null;
+  inspectorTab: InspectorTab;
+  propsMode: 'fields' | 'json';
+  workspaceColorMode: 'system' | 'light' | 'dark';
+  templateFilter: 'all' | 'issues';
+  filterText: string;
+  templatesOpen: boolean;
+  inspectorOpen: boolean;
+  paletteOpen: boolean;
+  lastRenderedAt: number | null;
+  frameWidth: number;
+  frameHeight: number | null;
+  frameRevision: number;
+  templateSummaries: Record<string, TemplateLintCounts>;
 };
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -158,6 +214,8 @@ function initialEmailColorMode(): EmailColorMode {
 }
 
 function parseTemplates(value: unknown): {
+  canOpenInEditor: boolean;
+  lintRules: ApplicationState['lintRules'];
   canCheckLinks: boolean;
   canTestSend: boolean;
   templates: TemplateSummary[];
@@ -184,7 +242,17 @@ function parseTemplates(value: unknown): {
     const path =
       typeof candidate['path'] === 'string' ? candidate['path'] : undefined;
 
-    return [{ id: candidate['id'], name: candidate['name'], path }];
+    return [
+      {
+        id: candidate['id'],
+        name: candidate['name'],
+        path,
+        group:
+          typeof candidate['group'] === 'string'
+            ? candidate['group']
+            : undefined,
+      },
+    ];
   });
 
   const capabilities = isRecord(value) ? value['capabilities'] : undefined;
@@ -192,7 +260,19 @@ function parseTemplates(value: unknown): {
     isRecord(capabilities) && capabilities['testSend'] === true;
 
   return {
+    lintRules:
+      isRecord(value) && Array.isArray(value['lintRules'])
+        ? value['lintRules'].flatMap((rule) =>
+            isRecord(rule) &&
+            typeof rule['id'] === 'string' &&
+            typeof rule['title'] === 'string'
+              ? [{ id: rule['id'], title: rule['title'] }]
+              : [],
+          )
+        : [],
     canCheckLinks: isRecord(capabilities) && capabilities['linkCheck'] === true,
+    canOpenInEditor:
+      isRecord(capabilities) && capabilities['openInEditor'] === true,
     canTestSend,
     templates,
   };
@@ -237,6 +317,11 @@ function parseRenderResult(value: unknown): RenderResult {
         typeof candidate['column'] !== 'number') ||
       (candidate['element'] !== undefined &&
         typeof candidate['element'] !== 'string') ||
+      (candidate['selector'] !== undefined &&
+        typeof candidate['selector'] !== 'string') ||
+      (candidate['clients'] !== undefined &&
+        (!Array.isArray(candidate['clients']) ||
+          !candidate['clients'].every((id) => typeof id === 'string'))) ||
       compatibility === null
     ) {
       return [];
@@ -245,17 +330,36 @@ function parseRenderResult(value: unknown): RenderResult {
     return [
       {
         category: candidate['category'] as LintCategory,
+        clients: candidate['clients'] as string[] | undefined,
         column: candidate['column'] as number | undefined,
         compatibility,
         element: candidate['element'] as string | undefined,
         line: candidate['line'] as number | undefined,
         message: candidate['message'],
         ruleId: candidate['ruleId'],
+        selector: candidate['selector'] as string | undefined,
         severity: candidate['severity'] as LintSeverity,
         suggestion: candidate['suggestion'],
       },
     ];
   });
+
+  const from = value['from'];
+  if (
+    (from !== undefined &&
+      (!isRecord(from) ||
+        typeof from['address'] !== 'string' ||
+        !/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+$/u.test(
+          from['address'],
+        ) ||
+        (from['name'] !== undefined &&
+          (typeof from['name'] !== 'string' ||
+            /[\r\n]/u.test(from['name']))))) ||
+    (value['previewText'] !== undefined &&
+      typeof value['previewText'] !== 'string')
+  ) {
+    throw new Error('The preview server returned invalid envelope metadata.');
+  }
 
   if (lint.length !== value['lint'].length) {
     throw new Error('The preview server returned invalid lint results.');
@@ -272,9 +376,35 @@ function parseRenderResult(value: unknown): RenderResult {
   ) {
     throw new Error('The preview server returned invalid link-check results.');
   }
+  const links = parseLinkCheckEntries(
+    isRecord(linkCheck) ? linkCheck['links'] : undefined,
+  );
 
   return {
-    linkCheck: linkCheck as RenderResult['linkCheck'],
+    from:
+      from === undefined
+        ? undefined
+        : {
+            address: (from as JsonRecord)['address'] as string,
+            name: (from as JsonRecord)['name'] as string | undefined,
+          },
+    previewText: value['previewText'] as string | undefined,
+    rulesRun:
+      Array.isArray(value['rulesRun']) &&
+      value['rulesRun'].every((id) => typeof id === 'string')
+        ? value['rulesRun']
+        : undefined,
+    renderMs:
+      Number.isInteger(value['renderMs']) && Number(value['renderMs']) >= 0
+        ? Number(value['renderMs'])
+        : undefined,
+    linkCheck: isRecord(linkCheck)
+      ? {
+          checked: Number(linkCheck['checked']),
+          skipped: Number(linkCheck['skipped']),
+          links,
+        }
+      : undefined,
     id: value['id'],
     name: value['name'],
     html: value['html'],
@@ -429,6 +559,66 @@ export function withPreviewContentSecurityPolicy(
   return `<!doctype html><html><head>${meta}</head><body>${html}</body></html>`;
 }
 
+/** Resolve an untrusted selector as DOM, never interpolate it into CSS or HTML. */
+export function withPreviewHighlight(
+  html: string,
+  selector?: string,
+  highlightColor?: string,
+): string {
+  if (!selector || selector.length > 4096) return html;
+  const document = new DOMParser().parseFromString(html, 'text/html');
+  document
+    .querySelectorAll('[data-chakra-email-preview-highlight-style]')
+    .forEach((element) => element.remove());
+  // Resolve against the linter's original element positions, not the extra
+  // color-mode style that the preceding preview rewrite prepends to <head>.
+  const colorStyles = Array.from(
+    document.querySelectorAll('style[data-chakra-email-preview-color-mode]'),
+    (element) => ({
+      element,
+      parent: element.parentNode,
+      next: element.nextSibling,
+    }),
+  );
+  colorStyles.forEach(({ element }) => element.remove());
+  let matches: NodeListOf<Element>;
+  try {
+    matches = document.querySelectorAll(selector);
+  } catch {
+    return html;
+  }
+  // The linter emits unique selectors. Do not turn an ambiguous selector into a
+  // document-wide highlight or accept CSS declarations supplied as selectors.
+  if (matches.length !== 1) return html;
+  colorStyles
+    .reverse()
+    .forEach(({ element, parent, next }) =>
+      parent?.insertBefore(element, next),
+    );
+  const attribute = 'data-chakra-email-preview-highlight';
+  document.querySelectorAll(`[${attribute}]`).forEach((element) => {
+    element.removeAttribute(attribute);
+  });
+  matches[0]?.setAttribute(attribute, 'selected');
+  // Parse as a single color declaration, then reject context-sensitive variables
+  // and markup delimiters before serializing into the standalone email document.
+  const colorDeclaration = document.createElement('span').style;
+  if (highlightColor) colorDeclaration.color = highlightColor;
+  const normalizedColor = colorDeclaration.color;
+  const color =
+    normalizedColor && !/[<>{};@\\]|(?:var|url)\s*\(/iu.test(normalizedColor)
+      ? normalizedColor
+      : '#f5a524';
+  const style = document.createElement('style');
+  style.setAttribute('data-chakra-email-preview-highlight-style', '');
+  style.textContent = `[${attribute}="selected"]{outline:2px dashed ${color} !important;outline-offset:3px !important}`;
+  document.head.append(style);
+  const doctype = document.doctype
+    ? new XMLSerializer().serializeToString(document.doctype) + '\n'
+    : '';
+  return doctype + document.documentElement.outerHTML;
+}
+
 export class PreviewApplication {
   private readonly root: HTMLElement;
   private readonly token: string;
@@ -445,24 +635,48 @@ export class PreviewApplication {
   private eventSource: EventSourceLike | null = null;
   private renderSequence = 0;
   private refreshScheduled = false;
+  private summaryGeneration = 0;
   private copyTimer: number | null = null;
   private copySequence = 0;
+  private editorSequence = 0;
+  private variantCopySequence = 0;
+  private variantCopyTimer: number | null = null;
   private started = false;
+  private propsTimer: number | null = null;
+  private clockTimer: number | null = null;
+  private mediaQuery: MediaQueryList | null = null;
 
   private readonly state: ApplicationState = {
+    canOpenInEditor: false,
+    openingEditor: false,
+    editorError: null,
+    selectedClient: null,
+    selectedFindingKey: null,
+    lintRules: [],
     canCheckLinks: false,
     checkingLinks: false,
     templates: [],
     selectedId: null,
     result: null,
     activeTab: 'preview',
-    viewport: 'desktop',
+    htmlIndent: parseHtmlIndent(
+      readStoredValue('chakra-email.preview.html-indent'),
+    ),
+    viewport:
+      readStoredValue('chakra-email.preview.viewport') === 'mobile'
+        ? 'mobile'
+        : 'desktop',
     emailColorMode: initialEmailColorMode(),
     selectedVariant: '',
     propsText: '{}',
+    propsFields: null,
     appliedProps: null,
     propsDirty: false,
     propsError: null,
+    variantCopyOpen: false,
+    variantCopyName: '',
+    variantCopyStatus: 'idle',
+    variantCopyError: null,
     remoteImages: false,
     loadingTemplates: true,
     rendering: false,
@@ -476,6 +690,37 @@ export class PreviewApplication {
     sending: false,
     sendError: null,
     sendMessage: null,
+    inspectorTab: (['props', 'info', 'checks'].includes(
+      readStoredValue('chakra-email.preview.inspector-tab') ?? '',
+    )
+      ? readStoredValue('chakra-email.preview.inspector-tab')
+      : 'props') as InspectorTab,
+    propsMode:
+      readStoredValue('chakra-email.preview.props-mode') === 'json'
+        ? 'json'
+        : 'fields',
+    workspaceColorMode: (['light', 'dark'].includes(
+      readStoredValue('chakra-email.preview.workspace-color-mode') ?? '',
+    )
+      ? readStoredValue('chakra-email.preview.workspace-color-mode')
+      : 'system') as 'system' | 'light' | 'dark',
+    templateFilter:
+      readStoredValue('chakra-email.preview.template-filter') === 'issues'
+        ? 'issues'
+        : 'all',
+    filterText: '',
+    templatesOpen: window.innerWidth >= 760,
+    inspectorOpen: window.innerWidth >= 1100,
+    paletteOpen: false,
+    lastRenderedAt: null,
+    frameWidth:
+      readStoredValue('chakra-email.preview.viewport') === 'mobile' ? 375 : 600,
+    frameHeight: null,
+    frameRevision: 0,
+    templateSummaries: Object.create(null) as Record<
+      string,
+      TemplateLintCounts
+    >,
   };
 
   public constructor(options: PreviewApplicationOptions) {
@@ -496,6 +741,9 @@ export class PreviewApplication {
     }
 
     this.started = true;
+    this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    this.mediaQuery.addEventListener('change', this.handleSystemTheme);
+    this.clockTimer = window.setInterval(() => this.render(), 10_000);
     this.reactRoot = createRoot(this.root);
     this.render();
     this.connectEvents();
@@ -504,6 +752,11 @@ export class PreviewApplication {
 
   public destroy(): void {
     this.started = false;
+    this.resetEditorRequest();
+    this.resetVariantCopy(true);
+    this.cancelPropsApply();
+    if (this.clockTimer !== null) window.clearInterval(this.clockTimer);
+    this.mediaQuery?.removeEventListener('change', this.handleSystemTheme);
     this.resetCopyFeedback();
     this.renderSequence += 1;
     this.eventSource?.close();
@@ -521,6 +774,10 @@ export class PreviewApplication {
 
   private readonly changeViewport = (viewport: Viewport): void => {
     this.state.viewport = viewport;
+    storeValue('chakra-email.preview.viewport', viewport);
+    this.state.frameWidth = viewport === 'mobile' ? 375 : 600;
+    this.state.frameHeight = null;
+    this.state.frameRevision += 1;
     this.render();
   };
 
@@ -537,16 +794,93 @@ export class PreviewApplication {
   };
 
   private readonly changeVariant = (variant: string): void => {
+    this.resetVariantCopy(true);
+    this.cancelPropsApply();
     this.state.selectedVariant = variant;
     this.state.propsDirty = false;
     this.state.propsError = null;
+    this.state.propsFields = null;
     void this.renderCurrent({ replaceEditor: true });
   };
 
   private readonly changePropsText = (value: string): void => {
+    this.resetVariantCopy();
+    this.cancelPropsApply();
     this.state.propsText = value;
+    this.state.propsFields = createPropsFields(value);
     this.state.propsDirty = true;
     this.state.propsError = null;
+    this.render();
+    this.propsTimer = window.setTimeout(() => {
+      this.propsTimer = null;
+      void this.applyProps();
+    }, 300);
+  };
+
+  private readonly changePropsField = (
+    index: number,
+    value: string | boolean,
+  ): void => {
+    const field = this.state.propsFields?.[index];
+    if (!field || !this.state.propsFields) return;
+    this.resetVariantCopy();
+    this.cancelPropsApply();
+    this.state.propsDirty = true;
+    try {
+      const updated = updatePropsField(this.state.propsText, field, value);
+      this.state.propsFields[index] = updated.field;
+      this.state.propsText = updated.text;
+      const invalid = this.state.propsFields.find((item) => item.error);
+      this.state.propsError = invalid
+        ? `${invalid.path.join('.')}: ${invalid.error}`
+        : null;
+      if (!invalid)
+        this.propsTimer = window.setTimeout(() => {
+          this.propsTimer = null;
+          void this.applyProps();
+        }, 300);
+    } catch (error) {
+      this.state.propsError =
+        error instanceof Error ? error.message : 'Edit props in JSON.';
+    }
+    this.render();
+  };
+
+  private cancelPropsApply(): void {
+    if (this.propsTimer !== null) window.clearTimeout(this.propsTimer);
+    this.propsTimer = null;
+  }
+
+  private readonly handleSystemTheme = (): void => {
+    this.render();
+  };
+
+  private readonly changePreference = (
+    key:
+      | 'inspectorTab'
+      | 'propsMode'
+      | 'workspaceColorMode'
+      | 'templateFilter'
+      | 'htmlIndent',
+    value: string,
+  ): void => {
+    if (key === 'htmlIndent') {
+      this.state.htmlIndent = parseHtmlIndent(value);
+      storeValue(
+        'chakra-email.preview.html-indent',
+        String(this.state.htmlIndent),
+      );
+      this.render();
+      return;
+    }
+    const storage = {
+      inspectorTab: 'inspector-tab',
+      propsMode: 'props-mode',
+      workspaceColorMode: 'workspace-color-mode',
+      templateFilter: 'template-filter',
+    };
+    Object.assign(this.state, { [key]: value });
+    storeValue(`chakra-email.preview.${storage[key]}`, value);
     this.render();
   };
 
@@ -587,10 +921,17 @@ export class PreviewApplication {
       return;
     }
 
+    this.cancelPropsApply();
+    this.resetEditorRequest();
+
     this.state.selectedId = templateId;
+    this.state.selectedClient = null;
+    this.state.selectedFindingKey = null;
+    this.resetVariantCopy(true);
     this.state.result = null;
     this.state.selectedVariant = '';
     this.state.propsText = '{}';
+    this.state.propsFields = null;
     this.state.appliedProps = null;
     this.state.propsDirty = false;
     this.state.propsError = null;
@@ -623,11 +964,16 @@ export class PreviewApplication {
       const parsed = parseTemplates(await response.json());
       const { templates } = parsed;
       this.state.canTestSend = parsed.canTestSend;
+      this.state.canOpenInEditor = parsed.canOpenInEditor;
+      this.state.lintRules = parsed.lintRules;
       this.state.canCheckLinks = parsed.canCheckLinks;
       this.state.templates = templates;
+      this.state.selectedClient = null;
       this.state.loadingTemplates = false;
 
       if (templates.length === 0) {
+        this.resetEditorRequest();
+        this.state.selectedFindingKey = null;
         this.state.selectedId = null;
         this.state.result = null;
         this.state.rendering = false;
@@ -645,9 +991,12 @@ export class PreviewApplication {
       const selectionChanged = this.state.selectedId !== previousId;
 
       if (selectionChanged) {
+        this.resetEditorRequest();
+        this.state.selectedFindingKey = null;
         this.state.result = null;
         this.state.selectedVariant = '';
         this.state.propsText = '{}';
+        this.state.propsFields = null;
         this.state.appliedProps = null;
         this.state.propsDirty = false;
         this.state.propsError = null;
@@ -676,6 +1025,7 @@ export class PreviewApplication {
     props?: JsonRecord;
     replaceEditor: boolean;
   }): Promise<void> {
+    this.resetVariantCopy();
     this.resetCopyFeedback();
     const id = this.state.selectedId;
 
@@ -684,6 +1034,7 @@ export class PreviewApplication {
     }
 
     const sequence = ++this.renderSequence;
+    const editorAtStart = this.state.propsText;
     const body: {
       id: string;
       variant?: string;
@@ -732,6 +1083,22 @@ export class PreviewApplication {
       }
 
       this.state.result = result;
+      if (
+        this.state.selectedClient &&
+        !result.lint.some((finding) =>
+          finding.clients?.includes(this.state.selectedClient ?? ''),
+        )
+      ) {
+        this.state.selectedClient = null;
+      }
+      if (
+        !result.lint.some(
+          (finding) => findingKey(finding) === this.state.selectedFindingKey,
+        )
+      ) {
+        this.state.selectedFindingKey = null;
+      }
+      this.state.lastRenderedAt = Date.now();
       this.state.rendering = false;
       this.state.appliedProps = result.props;
       if (!this.state.sendSubjectDirty) {
@@ -745,8 +1112,9 @@ export class PreviewApplication {
         this.state.selectedVariant = '';
       }
 
-      if (options.replaceEditor) {
+      if (options.replaceEditor && this.state.propsText === editorAtStart) {
         this.state.propsText = formatJson(result.props);
+        this.state.propsFields = createPropsFields(this.state.propsText);
         this.state.propsDirty = false;
         this.state.propsError = null;
       }
@@ -765,6 +1133,11 @@ export class PreviewApplication {
   }
 
   private async applyProps(): Promise<void> {
+    this.cancelPropsApply();
+    if (this.state.propsFields?.some((field) => field.error)) return;
+    const editorText = this.state.propsText;
+    const templateId = this.state.selectedId;
+    const variant = this.state.selectedVariant;
     let props: unknown;
 
     try {
@@ -782,7 +1155,17 @@ export class PreviewApplication {
     }
 
     this.state.propsError = null;
-    await this.renderCurrent({ props, replaceEditor: true });
+    await this.renderCurrent({ props, replaceEditor: false });
+    if (
+      this.state.propsText === editorText &&
+      this.state.selectedId === templateId &&
+      this.state.selectedVariant === variant &&
+      !this.state.propsError &&
+      !this.state.error
+    ) {
+      this.state.propsDirty = false;
+      this.render();
+    }
   }
 
   private async sendTestEmail(): Promise<void> {
@@ -790,6 +1173,16 @@ export class PreviewApplication {
     const to = this.state.sendTo.trim();
 
     if (!this.state.canTestSend || !result || this.state.sending) {
+      return;
+    }
+    if (
+      this.state.rendering ||
+      this.state.propsDirty ||
+      this.state.propsError
+    ) {
+      this.state.sendError =
+        'Wait for valid props to finish rendering before sending.';
+      this.render();
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(to)) {
@@ -859,7 +1252,131 @@ export class PreviewApplication {
     }
   }
 
-  private async copyCurrentOutput(): Promise<void> {
+  private resetEditorRequest(): void {
+    this.editorSequence += 1;
+    this.state.openingEditor = false;
+    this.state.editorError = null;
+  }
+
+  private async openInEditor(): Promise<void> {
+    const id = this.state.selectedId;
+    if (!id || !this.state.canOpenInEditor || this.state.openingEditor) return;
+    this.resetEditorRequest();
+    const sequence = this.editorSequence;
+    this.state.openingEditor = true;
+    this.render();
+    try {
+      const response = await this.request('/api/open', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-chakra-email-preview-token': this.token,
+        },
+        body: JSON.stringify({ id }),
+      });
+      if (!response.ok) throw await responseError(response);
+    } catch (error) {
+      if (!this.started || sequence !== this.editorSequence) return;
+      this.state.editorError =
+        error instanceof Error ? error.message : 'Could not open the editor.';
+    } finally {
+      if (this.started && sequence === this.editorSequence) {
+        this.state.openingEditor = false;
+        this.render();
+      }
+    }
+  }
+
+  private async copyAsVariant(name: string): Promise<void> {
+    const sequence = this.variantCopySequence;
+    const id = this.state.selectedId;
+    const result = this.state.result;
+    const propsText = this.state.propsText;
+    const variant = this.state.selectedVariant;
+    if (
+      !id ||
+      !result ||
+      this.state.rendering ||
+      this.state.propsDirty ||
+      this.state.propsError
+    ) {
+      throw new Error(
+        'Wait for valid props to finish rendering before copying a variant.',
+      );
+    }
+    // Fetch the fixture rather than the active variant, without replacing the visible render.
+    // This also keeps the diff correct if previewProps changed during a watch session.
+    const response = await this.request('/api/render', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'x-chakra-email-preview-token': this.token,
+      },
+      body: JSON.stringify({ id }),
+    });
+    if (!response.ok) throw await responseError(response);
+    const baseline = parseRenderResult(await response.json());
+    if (
+      !this.started ||
+      sequence !== this.variantCopySequence ||
+      this.state.propsDirty ||
+      this.state.propsError ||
+      this.state.rendering ||
+      this.state.selectedId !== id ||
+      this.state.result !== result ||
+      this.state.propsText !== propsText ||
+      this.state.selectedVariant !== variant ||
+      baseline.id !== id
+    ) {
+      throw new Error('The preview changed. Copy the variant again.');
+    }
+    await this.copyText(
+      buildVariantSnippet(name, baseline.props, result.props),
+    );
+  }
+
+  private resetVariantCopy(close = false): void {
+    this.variantCopySequence += 1;
+    if (this.variantCopyTimer !== null)
+      window.clearTimeout(this.variantCopyTimer);
+    this.variantCopyTimer = null;
+    this.state.variantCopyStatus = 'idle';
+    this.state.variantCopyError = null;
+    if (close) this.state.variantCopyOpen = false;
+  }
+
+  private async copyVariant(): Promise<void> {
+    if (!this.state.variantCopyName.trim()) {
+      this.state.variantCopyError = 'Enter a name for the variant.';
+      this.render();
+      return;
+    }
+    this.resetVariantCopy();
+    const sequence = this.variantCopySequence;
+    this.state.variantCopyStatus = 'copying';
+    this.render();
+    try {
+      await this.copyAsVariant(this.state.variantCopyName);
+      if (!this.started || sequence !== this.variantCopySequence) return;
+      this.state.variantCopyStatus = 'copied';
+      this.variantCopyTimer = window.setTimeout(() => {
+        this.variantCopyTimer = null;
+        this.state.variantCopyStatus = 'idle';
+        this.render();
+      }, 2_000);
+    } catch (error) {
+      if (!this.started || sequence !== this.variantCopySequence) return;
+      this.state.variantCopyStatus = 'idle';
+      this.state.variantCopyError =
+        error instanceof Error ? error.message : 'Could not copy the variant.';
+    }
+    this.render();
+  }
+
+  private async copyCurrentOutput(
+    format = this.state.activeTab,
+  ): Promise<void> {
     const result = this.state.result;
 
     if (!result) {
@@ -871,9 +1388,9 @@ export class PreviewApplication {
     this.render();
 
     const value =
-      this.state.activeTab === 'text'
+      format === 'text'
         ? result.text
-        : this.state.activeTab === 'source'
+        : format === 'source'
           ? result.source
           : result.html;
 
@@ -896,20 +1413,20 @@ export class PreviewApplication {
     }
   }
 
-  private downloadCurrentOutput(): void {
+  private downloadCurrentOutput(format = this.state.activeTab): void {
     const result = this.state.result;
     if (!result) {
       return;
     }
 
     const output =
-      this.state.activeTab === 'text'
+      format === 'text'
         ? {
             extension: 'txt',
             mimeType: 'text/plain;charset=utf-8',
             value: result.text,
           }
-        : this.state.activeTab === 'source'
+        : format === 'source'
           ? {
               extension: 'tsx',
               mimeType: 'text/plain;charset=utf-8',
@@ -944,6 +1461,9 @@ export class PreviewApplication {
       this.eventSource = eventSource;
 
       eventSource.addEventListener('open', () => {
+        // A restarted server begins its generations at one again. Replay after
+        // reconnect establishes the ordering for this connection, not the old process.
+        this.summaryGeneration = 0;
         this.state.connection = 'connected';
         this.render();
       });
@@ -953,6 +1473,31 @@ export class PreviewApplication {
       });
       eventSource.addEventListener('templates', () => {
         this.scheduleRefresh('templates');
+      });
+      eventSource.addEventListener('lint-summary', (event) => {
+        if (
+          !this.started ||
+          !(event instanceof MessageEvent) ||
+          typeof event.data !== 'string'
+        )
+          return;
+        let payload: unknown;
+        try {
+          payload = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+        const summary = parseLintSummary(payload);
+        if (!summary || summary.generation <= this.summaryGeneration) return;
+        this.summaryGeneration = summary.generation;
+        const counts = Object.create(null) as Record<
+          string,
+          TemplateLintCounts
+        >;
+        for (const { id, error, warning, info } of summary.templates)
+          counts[id] = { error, warning, info };
+        this.state.templateSummaries = counts;
+        this.render();
       });
       eventSource.addEventListener('invalidate', (event) => {
         this.handleServerEvent(event, 'render');
@@ -1035,15 +1580,39 @@ export class PreviewApplication {
     }
 
     const state = { ...this.state };
-    document.documentElement.dataset['theme'] = 'dark';
+    const workspaceMode =
+      state.workspaceColorMode === 'system'
+        ? this.mediaQuery?.matches
+          ? 'dark'
+          : 'light'
+        : state.workspaceColorMode;
+    document.documentElement.dataset['theme'] = workspaceMode;
     // Chakra v3's semantic tokens and condition styles follow these classes,
     // including portalled components rendered outside the workspace root.
-    document.documentElement.classList.add('dark');
-    document.documentElement.classList.remove('light');
-    document.documentElement.style.colorScheme = 'dark';
+    document.documentElement.classList.toggle('dark', workspaceMode === 'dark');
+    document.documentElement.classList.toggle(
+      'light',
+      workspaceMode === 'light',
+    );
+    document.documentElement.style.colorScheme = workspaceMode;
+    let highlightColor = '#f5a524';
+    if (state.selectedFindingKey) {
+      const colorProbe = document.createElement('span');
+      colorProbe.hidden = true;
+      colorProbe.style.color = 'var(--chakra-colors-preview-highlight)';
+      this.root.append(colorProbe);
+      highlightColor = window.getComputedStyle(colorProbe).color;
+      colorProbe.remove();
+    }
     const securedHtml = state.result
       ? withPreviewContentSecurityPolicy(
-          withPreviewColorMode(state.result.html, state.emailColorMode),
+          withPreviewHighlight(
+            withPreviewColorMode(state.result.html, state.emailColorMode),
+            state.result.lint.find(
+              (finding) => findingKey(finding) === state.selectedFindingKey,
+            )?.selector,
+            highlightColor,
+          ),
           state.remoteImages,
         )
       : null;
@@ -1053,7 +1622,58 @@ export class PreviewApplication {
         createElement(PreviewRoot, {
           state,
           securedHtml,
+          highlightColor,
           theme: this.theme,
+          onClientChange: (client: string | null) => {
+            if (client !== null && !Object.hasOwn(previewClients, client))
+              return;
+            this.state.selectedClient = client;
+            if (
+              client &&
+              !this.state.result?.lint.some(
+                (finding) =>
+                  findingKey(finding) === this.state.selectedFindingKey &&
+                  finding.clients?.includes(client),
+              )
+            ) {
+              this.state.selectedFindingKey = null;
+            }
+            this.render();
+          },
+          onSelectFinding: (key: string | null) => {
+            this.state.selectedFindingKey =
+              key === this.state.selectedFindingKey ? null : key;
+            this.render();
+          },
+          onPreferenceChange: this.changePreference,
+          onFilterTextChange: (value: string) => {
+            this.state.filterText = value;
+            this.render();
+          },
+          onPanelChange: (
+            panel: 'templatesOpen' | 'inspectorOpen' | 'paletteOpen',
+            open: boolean,
+          ) => {
+            this.state[panel] = open;
+            this.render();
+          },
+          onFrameSizeChange: (width: number, height: number) => {
+            if (
+              width === this.state.frameWidth &&
+              height === this.state.frameHeight
+            )
+              return;
+            this.state.frameWidth = width;
+            this.state.frameHeight = height;
+            this.render();
+          },
+          onResetFrame: () => this.changeViewport(this.state.viewport),
+          onResetProps: () => {
+            this.cancelPropsApply();
+            this.state.propsFields = null;
+            this.state.propsError = null;
+            void this.renderCurrent({ replaceEditor: true });
+          },
           onSelectTemplate: (templateId: string) => {
             this.selectTemplate(templateId);
           },
@@ -1063,16 +1683,50 @@ export class PreviewApplication {
           onRemoteImagesChange: this.changeRemoteImages,
           onVariantChange: this.changeVariant,
           onPropsTextChange: this.changePropsText,
+          onPropsFieldChange: this.changePropsField,
+          onCopyVariant: () => {
+            void this.copyVariant();
+          },
+          onVariantCopyOpenChange: (open: boolean) => {
+            this.resetVariantCopy();
+            if (open)
+              this.state.variantCopyName =
+                'Variant ' + ((this.state.result?.variants.length ?? 0) + 1);
+            this.state.variantCopyOpen = open;
+            this.render();
+          },
+          onVariantCopyNameChange: (name: string) => {
+            this.resetVariantCopy();
+            this.state.variantCopyName = name;
+            this.render();
+          },
           onSendToChange: this.changeSendTo,
+          onOpenInEditor: () => {
+            void this.openInEditor();
+          },
           onSendSubjectChange: this.changeSendSubject,
-          onApplyProps: () => {
-            void this.applyProps();
+          onCopy: (format?: PreviewTab) => {
+            void this.copyCurrentOutput(format);
           },
-          onCopy: () => {
-            void this.copyCurrentOutput();
-          },
-          onDownload: () => {
-            this.downloadCurrentOutput();
+          onDownload: (format?: PreviewTab | 'eml') => {
+            if (format === 'eml' && this.state.result) {
+              try {
+                this.downloadText(
+                  buildPreviewMessage({
+                    ...this.state.result,
+                    to: this.state.sendTo,
+                  }),
+                  downloadFilename(this.state.result.name, 'eml'),
+                  'message/rfc822',
+                );
+              } catch (error) {
+                this.state.error =
+                  error instanceof Error
+                    ? error.message
+                    : 'Could not export the message.';
+                this.render();
+              }
+            } else if (format !== 'eml') this.downloadCurrentOutput(format);
           },
           onSend: () => {
             void this.sendTestEmail();

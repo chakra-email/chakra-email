@@ -12,6 +12,21 @@ export interface PreviewCompatibilityReference {
 export const previewCompatibilityReferences: Readonly<
   Record<string, PreviewCompatibilityReference>
 > = {
+  'external-stylesheet': {
+    feature: 'HTML link element',
+    source: 'Can I Email',
+    url: 'https://www.caniemail.com/features/html-link/',
+  },
+  'css-border-radius': {
+    feature: 'CSS border-radius',
+    source: 'Can I Email',
+    url: 'https://www.caniemail.com/features/css-border-radius/',
+  },
+  'color-scheme-meta': {
+    feature: 'Color-scheme meta tag',
+    source: 'Can I Email',
+    url: 'https://www.caniemail.com/features/html-meta-color-scheme/',
+  },
   'css-background-image': {
     feature: 'CSS background-image',
     source: 'Can I Email',
@@ -31,6 +46,11 @@ export const previewCompatibilityReferences: Readonly<
     feature: 'CSS @font-face',
     source: 'Can I Email',
     url: 'https://www.caniemail.com/features/css-at-font-face/',
+  },
+  'css-position': {
+    feature: 'CSS position',
+    source: 'Can I Email',
+    url: 'https://www.caniemail.com/features/css-position/',
   },
   'unsupported-audio': {
     feature: 'HTML audio element',

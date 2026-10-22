@@ -24,6 +24,56 @@ describe('preview config', () => {
     expect(defineConfig(config)).toBe(config);
   });
 
+  it('normalizes sender metadata and enables local editor support by default', () => {
+    expect(
+      normalizeConfig({ previewFrom: 'Forward <hello@forward.domains>' }),
+    ).toMatchObject({
+      previewFrom: { address: 'hello@forward.domains', name: 'Forward' },
+      openInEditor: true,
+    });
+    expect(
+      normalizeConfig({
+        previewFrom: 'hello@example.org',
+        openInEditor: false,
+      }),
+    ).toMatchObject({
+      previewFrom: { address: 'hello@example.org' },
+      openInEditor: false,
+    });
+    expect(normalizeConfig().previewFrom).toBeUndefined();
+    expect(() =>
+      normalizeConfig({
+        previewFrom: 'hello@example.org\r\nBcc: hidden@example.org',
+      }),
+    ).toThrow('previewFrom');
+    expect(() => normalizeConfig({ openInEditor: 'yes' } as never)).toThrow(
+      'openInEditor',
+    );
+  });
+
+  it('normalizes lint severity overrides without changing the input', () => {
+    const rules = { 'image-alt': 'warning', 'document-title': 'off' } as const;
+    const config = normalizeConfig({ lint: { rules } });
+    expect(config.lint?.rules).toEqual(rules);
+    expect(config.lint?.rules).not.toBe(rules);
+    expect(normalizeConfig().lint).toBeUndefined();
+    expect(normalizeConfig({ lint: {} }).lint).toEqual({ rules: {} });
+  });
+
+  it.each([
+    [
+      { lint: { rules: { typo: 'warning' } } },
+      "Unknown lint rule 'typo' in lint.rules.",
+    ],
+    [{ lint: { rules: { 'image-alt': 'warn' } } }, 'Invalid severity'],
+    [{ lint: { rules: null } }, 'lint.rules must be an object'],
+    [{ lint: { rules: [] } }, 'lint.rules must be an object'],
+    [{ lint: null }, 'lint must be an object'],
+    [{ lint: [] }, 'lint must be an object'],
+  ])('rejects invalid lint configuration %#', (input, message) => {
+    expect(() => normalizeConfig(input as never)).toThrow(message);
+  });
+
   it('resolves all paths from the config file and applies safe defaults', () => {
     const configFile = '/workspace/libs/emails/chakra-email.config.ts';
     const config = normalizeConfig({ root: '.', templates: 'src' }, configFile);

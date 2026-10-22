@@ -1,6 +1,6 @@
 {
   "name": "@chakra-email/chakra-v2",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "React email components and theme adapter for Chakra UI v2.",
   "license": "MIT",
   "author": {
@@ -26,7 +26,7 @@
   "bugs": {
     "url": "https://github.com/chakra-email/chakra-email/issues"
   },
-  "homepage": "https://github.com/chakra-email/chakra-email/tree/main/packages/chakra-email-v2#readme",
+  "homepage": "https://chakra.email/docs/chakra-v2",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -97,7 +97,7 @@
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "dependencies": {
-    "@chakra-email/core": "^0.2.0",
+    "@chakra-email/core": "^0.3.0",
     "tslib": "^2.3.0"
   },
   "nx": {

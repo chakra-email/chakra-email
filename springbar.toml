@@ -15,8 +15,8 @@ setup = []
 [[unit]]
 name = "site"
 working_dir = "apps/site"
-command = '__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=chakra-email.test NX_DAEMON=false npx nx run site:dev -- --host 127.0.0.1 --port "$PORT"'
-package_manager = "npm"
+command = '__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=chakra-email.test NX_DAEMON=false pnpm nx run site:dev -- --host 127.0.0.1 --port "$PORT"'
+package_manager = "pnpm"
 port = 4362
 hostnames = ["chakra-email.test"]
 mode = "lazy"
@@ -25,6 +25,24 @@ role = "site"
 source = "byo"
 enabled = true
 id = "unt_wks_workspace_users_ryanhefner_code_open_source_chakra_email_site"
+
+[unit.runtime]
+kind = "node"
+version = "24.18.0"
+manager = "nvm"
+
+[[unit]]
+name = "email-preview"
+working_dir = "."
+command = 'NX_DAEMON=false pnpm nx run chakra-email-monorepo:email-preview -- --host 127.0.0.1 --port "$PORT"'
+package_manager = "pnpm"
+hostnames = ["preview.chakra-email.test"]
+mode = "lazy"
+subtype = "app"
+role = "site"
+source = "byo"
+enabled = true
+id = "unt_wks_workspace_users_ryanhefner_code_open_source_chakra_email_email_preview"
 
 [unit.runtime]
 kind = "node"

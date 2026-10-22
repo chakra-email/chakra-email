@@ -2,6 +2,8 @@ import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { createJiti } from 'jiti';
 import type { EmailRenderer } from '@chakra-email/core/render';
+import { normalizeLintRules, type PreviewLintConfig } from './lint-rules.js';
+import { parsePreviewFrom, type PreviewSender } from './preview-from.js';
 import {
   normalizeLinkCheck,
   type PreviewLinkCheckConfig,
@@ -47,6 +49,12 @@ export interface PreviewTestTransport {
 export type PreviewThemeConfig = JsonObject;
 
 export interface PreviewConfig {
+  /** Default sender displayed in the inbox preview and exported message. */
+  previewFrom?: string;
+  /** Allow opening discovered templates in the local editor. Defaults to true. */
+  openInEditor?: boolean;
+  /** Severity overrides shared by static linting and explicit link checks. */
+  lint?: PreviewLintConfig;
   /** Enables explicit network link checks for an exact hostname allowlist. */
   linkCheck?: PreviewLinkCheckConfig;
   /** Directory all preview paths are contained by. Relative to the config file. */
@@ -74,6 +82,9 @@ export interface PreviewConfig {
 }
 
 export interface ResolvedPreviewConfig {
+  previewFrom?: PreviewSender;
+  openInEditor: boolean;
+  lint?: PreviewLintConfig;
   linkCheck?: PreviewLinkCheckConfig;
   allowedHosts: readonly string[];
   assets: string;
@@ -240,6 +251,24 @@ export function normalizeConfig(
   cwd = process.cwd(),
 ): ResolvedPreviewConfig {
   const configDirectory = configFile ? resolve(configFile, '..') : resolve(cwd);
+  if (
+    config.openInEditor !== undefined &&
+    typeof config.openInEditor !== 'boolean'
+  ) {
+    throw new Error('openInEditor must be a boolean.');
+  }
+  if (
+    config.lint !== undefined &&
+    (typeof config.lint !== 'object' ||
+      config.lint === null ||
+      Array.isArray(config.lint))
+  ) {
+    throw new Error('lint must be an object containing rules.');
+  }
+  const lint =
+    config.lint === undefined
+      ? undefined
+      : { rules: normalizeLintRules(config.lint.rules) };
   const root = resolve(configDirectory, config.root ?? '.');
   const configuredTemplates = config.templates
     ? typeof config.templates === 'string'
@@ -271,7 +300,13 @@ export function normalizeConfig(
   }
 
   return {
+    previewFrom:
+      config.previewFrom === undefined
+        ? undefined
+        : parsePreviewFrom(config.previewFrom),
+    openInEditor: config.openInEditor ?? true,
     allowedHosts: normalizeAllowedHosts(config.allowedHosts),
+    lint,
     linkCheck:
       config.linkCheck === undefined
         ? undefined

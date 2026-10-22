@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const numericIdentifier = '(?:0|[1-9]\\d*)';
 const nonNumericIdentifier = '(?:\\d*[A-Za-z-][0-9A-Za-z-]*)';
 const prereleaseIdentifier = `(?:${numericIdentifier}|${nonNumericIdentifier})`;
@@ -73,7 +73,7 @@ if (mismatchedPackages.length > 0) {
   );
 }
 
-const args = ['exec', 'nx', '--', 'release', 'publish'];
+const args = ['exec', 'nx', 'release', 'publish'];
 
 if (dryRun) {
   args.push('--dry-run');
@@ -88,7 +88,7 @@ if (process.argv.includes('--validate-only')) {
     `Validated committed release version ${version} for ${publicPackages.length} public packages.`,
   );
 } else {
-  const result = spawnSync(npmCommand, args, {
+  const result = spawnSync(pnpmCommand, args, {
     env: process.env,
     stdio: 'inherit',
   });

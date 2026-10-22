@@ -101,8 +101,14 @@ file. `templates` and `assets` are resolved relative to `root`; `include` and
   including `tokens`, `semanticTokens`, `recipes`, and `slotRecipes`.
 - `renderer` accepts an `EmailRenderer` implementation and remains on the
   preview server; functions are never serialized into the browser UI.
+- `previewFrom` supplies a preview sender (`Name <address>` or a bare address).
+  A template's string or prop-dependent `previewFrom` export overrides it. This
+  is display/export metadata, not your delivery provider's sender configuration.
+- `openInEditor` defaults to `true` on loopback hosts; set `false` to hide the
+  authenticated, discovered-file-only editor action. `LAUNCH_EDITOR` / `EDITOR`
+  select the local editor when automatic detection is unavailable.
 - `testSend` accepts a server-only delivery adapter. When configured, the
-  inspector exposes recipient and subject fields for sending the active render.
+  top-bar popover exposes recipient and subject fields for sending the active render.
 
 The theme is serialized by the local preview server and merged over the
 preview UI defaults in the browser. Keep it data-only: functions and a
@@ -124,55 +130,88 @@ configuration resilient to future package changes.
 A missing `assets` directory does not prevent the server from starting; requests
 for files that are not present return `404`.
 
+## Check templates in CI
+
+```bash
+chakra-email-preview check --strict
+chakra-email-preview check --format json --rule document-title=warning
+```
+
+Checks render defaults and named variants without starting a server or sending
+mail. Errors exit `1`; warnings do so only with `--strict`. Configuration or
+fatal run failures exit `2`. A broken template is reported and checking
+continues. Use `--default-only` to skip variants. Network checks require both
+`--check-links` and configured `linkCheck` hosts. Repeat `--rule id=level` to
+override config severities. `checkTemplates()` returns the versioned report for
+programmatic consumers. See [Checks in CI](../../docs/preview.md#checks-in-ci)
+for package scripts, GitHub Actions, and an explicit cacheable Nx target.
+
 ## Preview workspace
 
-The workspace uses a compact header and format toolbar, a flat template list,
-and a centered email canvas. The workspace and email frame fill the available
-viewport height; long emails scroll inside the frame rather than stretching the
-page. The inspector scrolls independently.
+The workspace has one top bar, a template sidebar, a scrollable email canvas,
+and a tabbed **Props · Info · Checks** inspector. It fills the dynamic viewport.
 
-- Header panel buttons show or hide templates and preview settings. Hiding
-  settings preserves unapplied JSON edits, variants, and test-send fields.
-  Escape from either panel closes it and returns focus to its toggle.
-- Small screens start with both panels closed. Opening a panel uses the
-  available workspace; selecting a template returns to the email canvas.
-- Desktop (680px), Mobile (390px), and Fit presets change the preview width.
-  Drag the frame's bottom-right corner to resize it. **Reset size** restores
-  the selected preset and default height. The footer describes the preset,
-  not the dimensions of a manually resized frame.
-- Copy, Download, viewport presets, and Reset size use icon buttons with
-  accessible names and tooltips on hover or keyboard focus. Copy and Download
-  describe the active output format; copying shows a checkmark and announces
-  success. Remote images and form actions retain visible labels. The header's
-  sun/moon icon button toggles the email preview between Light and Dark, with
-  an accessible name and tooltip describing the next mode.
-- Preview, HTML, Text, and Source form a compact icon tab group with tooltips
-  and accessible names. They retain tab/panel associations, a single tab stop,
-  and arrow-key / Home / End navigation. The viewer `tabs` and `tab` slots
-  customize the group and selected styles; shared icon sizing applies here too.
-- The `feedback.iconButton` slot controls the compact actions' shared geometry.
-  Set `--preview-icon-button-size` to customize the hit area (default: 44px on
-  small screens, 32px from `md` upwards). Existing action recipes still control
-  colors, borders, and interaction styling.
-- The workspace and canvas always use dark mode, including built-in components,
-  portalled tooltips, and custom semantic tokens. The header's email color-mode
-  toggle affects only the email frame. Customize the canvas background in the
-  viewer recipe's `surface` slot (default: `preview.soft`); recipe and theme
-  overrides remain supported.
-  **Light** and **Dark** force Chakra Email's generated color rules in the
-  preview frame. Explicit email choices persist locally; a new session without
-  a saved choice defaults to Light. The former footer System/Light/Dark selector
-  is removed, saved System choices fall back to Light, and old workspace-mode
-  preferences are ignored. OS color-mode changes do not change either surface.
-  Arbitrary
-  authored media queries are not rewritten, and client-specific automatic color
-  inversion is not simulated. Fixed template colors remain fixed. Scripts and
-  forms stay disabled, and remote images still require explicit opt-in.
+- The top bar offers Preview, Compare, HTML, Text, and Source views. Desktop
+  (600px) and Mobile (375px) replace the former Fit preset. The email color
+  controls remain independent of the interface theme.
+- Compare shows desktop/light, mobile/light, and mobile/dark sandboxed frames.
+  Click a frame to open its settings in Preview. HTML includes line numbers.
+  The HTML toolbar offers saved 2-, 4-, or 8-space indentation and an Original
+  view. Lint links follow the formatted lines, while copy/download, test sending,
+  and message sizes continue to use the original HTML. Formatting preserves
+  inline content, conditional comments, attributes, and raw text sections.
+- Filter templates by name or path. Folder groups come from the configured
+  templates directory. Background summaries update all rows, including unvisited
+  templates, after discovery and changes. Counts describe default fixtures, not
+  the active variant or edited props. **With issues** excludes info-only results.
+- Props opens in Fields mode for small objects; JSON supports arrays and larger
+  objects or empty nested objects. Field types stay stable while editing; invalid
+  number drafts show accessible errors without changing the last good render.
+  Clearing an originally null field restores `null`. Valid edits render after
+  300ms of inactivity, and **Reset props** restores the selected fixture/variant.
+- **Copy as variant** copies a named entry to paste into `previewVariants`, with
+  only keys that differ from the base fixture. Nested fixture keys cannot be
+  removed by a merged variant; unsupported deletions show an error instead of
+  copying an entry that restores them. Arrays remain whole-value replacements.
+  Reserved names (`__proto__`, `constructor`, `prototype`) are rejected, and edits
+  cancel a pending copy. It never writes source files.
+- Info shows the current envelope, message sizes, link/image counts, and source.
+  Checks shows severity totals, on-demand link checks, and passed rules from
+  the server's effective catalog and `rulesRun`. Network requests remain opt-in.
+  Individual link rows show actual response codes or skipped/unverified/broken
+  statuses after an explicit check, and reset to not checked on a fresh render.
+  Redirect targets are never followed or verified.
+- Checks cards select one finding at a time, outline its affected element in
+  Preview and Compare, and jump to its highlighted HTML line. The reviewed
+  known-client grid filters mapped findings; it is not a rendering test.
+- The status bar shows measured frame dimensions, UTF-8 HTML size against the
+  102KB Gmail clipping threshold, link/image counts, and a tally that opens
+  Checks. Drag the frame's bottom-right corner to resize it; the reset action
+  appears when its width differs from the selected preset. Remote images
+  remain blocked until explicitly enabled.
+- **Send test** is a top-bar popover, shown only when `testSend` is configured.
+  **Export** offers HTML/plain-text copy and download, plus a local
+  multipart `.eml` export for opening in a mail client. The export uses
+  `previewFrom` as sender when supplied, otherwise `preview@localhost`.
+- ⌘K / Ctrl K opens a grouped, searchable command palette for templates, views,
+  preview modes, workspace settings, and available actions. Up/Down and Home/End
+  navigate; Enter runs a command; Escape restores opener focus. Send test opens
+  its recipient popover without sending. The interface follows the OS by default; explicit Light or
+  Dark choices persist. The sidebar becomes an overlay below 760px; the
+  inspector becomes an overlay below 1100px.
+- Outside text fields, `/` focuses the template filter; `1`–`5` select views;
+  `d` / `m` select viewport presets; `l` toggles email color; and `[` / `]`
+  toggle the sidebar / inspector. Escape dismisses overlays and popovers.
 
-These controls affect only the preview, not generated HTML, plaintext, or
-template source. Full template paths remain available through Chakra tooltips
-on the template rows, including on keyboard focus. Controls use Chakra UI v3
-primitives, including Tabs, Switch, Field, NativeSelect, and portalled Tooltip.
+These controls affect only the preview, never authored files or exported HTML.
+The preview iframe retains its empty sandbox and restrictive CSP. Arbitrary
+authored media queries are not rewritten, and client-specific automatic color
+inversion is not simulated.
+
+Theme and slot-recipe overrides remain supported, including the new success,
+info, and highlight semantic tokens. The viewer `surface` slot defaults to
+`preview.canvas`. The `feedback.iconButton` slot controls shared hit areas
+(default: 44px on small screens, 32px from `md` upwards).
 
 Tooltips inherit Chakra's default surface, arrow, focus, and dismissal behavior.
 To customize both the surface and arrow together, set `--tooltip-bg` in the
@@ -267,8 +306,10 @@ export default function WelcomeEmail({ firstName, plan }: WelcomeEmailProps) {
 
 `previewProps` supplies the base props. Each selected `previewVariants` entry
 is merged over that base, and props entered in the preview JSON editor are
-merged last. Variant values can therefore contain only the fields that differ
-from the base case.
+merged last. Variant objects merge recursively, preserving unchanged nested
+fields; arrays, scalars, and `null` replace the base value. Editor values replace
+their top-level values in full, including nested objects. Copied variant diffs
+can therefore contain only the fields that differ from the base case.
 
 `previewSubject` may be a string or a synchronous/async function. Functions
 receive those fully merged props. The subject appears in the workspace,
@@ -515,8 +556,40 @@ import { lintRenderedEmail } from '@chakra-email/preview';
 const findings = lintRenderedEmail(renderedHtml, renderedPlainText);
 ```
 
+The catalog includes placeholder text, rounded-button VML fallbacks, color-scheme
+metadata, subject/preheader lengths, and accessible link text. Element findings
+carry a unique rendered-HTML selector. Subject length is evaluated only when a
+subject is provided to `lintEmail`; it is not run by `lintRenderedEmail`.
+
+Customize rule severities in `chakra-email.config.ts`:
+
+```ts
+export default defineConfig({
+  lint: {
+    rules: { 'document-title': 'warning', 'css-background-image': 'off' },
+  },
+});
+```
+
+Supported levels are `off`, `info`, `warning`, and `error`. Unknown rule IDs or
+invalid levels fail config loading. The same overrides apply to explicit link
+checks; they never enable network requests or alter the email output.
+
+`getLintRules(overrides?)` returns the shared catalog of enabled rules with
+passing-condition titles and effective severities. `lintEmail(html, { text,
+rules })` returns `{ findings, rulesRun }`, including passing static checks but
+excluding disabled rules and network checks. When `text` is omitted, the
+plain-text-content check is not included. `lintRenderedEmail()` remains
+backwards-compatible and uses the original defaults.
+
 These checks surface common risks; they do not replace delivery-provider tests
 or validation in the mailbox clients your application supports.
+
+Some compatibility findings include curated `clients` IDs, with Can I Email
+source links and an October 2026 review date. The exported `previewClients`,
+`knownBreakages`, and `clientSupportReviewed` describe known breakages only:
+unlisted clients are not guaranteed supported, and partial/conditional results
+are not treated as blanket failures. Windows means classic Outlook.
 
 ## Optional Network Link Checks
 
@@ -537,7 +610,7 @@ export default defineConfig({
 });
 ```
 
-Click **Check links** in the props/inspector panel to re-render the active
+Click **Check links** in the Checks inspector tab to re-render the active
 template with its applied props and check its anchor URLs. Unsaved editor
 changes are not applied. Findings include rendered-HTML line numbers:
 

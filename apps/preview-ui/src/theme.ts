@@ -45,15 +45,20 @@ export const previewWorkspaceSlotRecipe = defineSlotRecipe({
     'primaryAction',
     'content',
     'inspectorPanel',
+    'viewerColumn',
+    'statusbar',
   ],
   base: {
     root: {
       h: '100dvh',
-      gridTemplateRows: '48px minmax(0, 1fr)',
+      gridTemplateRows: 'auto minmax(0, 1fr)',
       color: 'preview.text',
       bg: 'preview.canvas',
     },
     header: {
+      minH: '52px',
+      py: '1.5',
+      flexWrap: 'wrap',
       zIndex: 'docked',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -63,7 +68,13 @@ export const previewWorkspaceSlotRecipe = defineSlotRecipe({
       borderColor: 'preview.border',
       bg: 'preview.chrome',
     },
-    brand: { gap: '2', alignItems: 'center', flexShrink: 0 },
+    brand: {
+      gap: '2',
+      alignItems: 'center',
+      flex: '1',
+      minW: '220px',
+      overflow: 'hidden',
+    },
     brandMark: {
       boxSize: '7',
       placeItems: 'center',
@@ -78,7 +89,14 @@ export const previewWorkspaceSlotRecipe = defineSlotRecipe({
       letterSpacing: '-0.05em',
     },
     brandCopy: { gap: '0', display: { base: 'none', md: 'flex' } },
-    headerActions: { alignItems: 'center', gap: '2' },
+    headerActions: {
+      alignItems: 'center',
+      gap: '2',
+      flex: '1',
+      justifyContent: 'flex-end',
+      minW: '0',
+      flexWrap: 'wrap',
+    },
     modeToggle: {
       borderWidth: '1px',
       borderColor: 'preview.border',
@@ -105,7 +123,7 @@ export const previewWorkspaceSlotRecipe = defineSlotRecipe({
       bg: 'preview.sidebar',
     },
     sidebarHeader: {
-      alignItems: 'center',
+      alignItems: 'stretch',
       justifyContent: 'space-between',
       px: '4',
       pt: '4',
@@ -114,7 +132,7 @@ export const previewWorkspaceSlotRecipe = defineSlotRecipe({
       fontSize: '2xs',
       fontWeight: 'extrabold',
       letterSpacing: '0.09em',
-      textTransform: 'uppercase',
+      textTransform: 'none',
     },
     templateNav: {
       minH: '0',
@@ -164,7 +182,7 @@ export const previewWorkspaceSlotRecipe = defineSlotRecipe({
     },
     title: {
       minW: '0',
-      flex: '1',
+      flex: '0 1 auto',
       overflow: 'hidden',
       color: 'preview.text',
       fontSize: 'xs',
@@ -184,11 +202,17 @@ export const previewWorkspaceSlotRecipe = defineSlotRecipe({
     },
     path: {
       display: 'block',
-      maxW: '500px',
-      mt: '1',
+      maxW: '220px',
       overflow: 'hidden',
       color: 'preview.textMuted',
-      bg: 'transparent',
+      bg: 'preview.panel',
+      direction: 'rtl',
+      textAlign: 'left',
+      px: '2',
+      py: '1',
+      borderWidth: '1px',
+      borderColor: 'preview.border',
+      borderRadius: 'md',
       fontFamily: 'previewMono',
       fontSize: '2xs',
       textOverflow: 'ellipsis',
@@ -264,27 +288,43 @@ export const previewWorkspaceSlotRecipe = defineSlotRecipe({
       overflow: 'hidden',
     },
     inspectorPanel: { minH: '0', minW: '0', overflow: 'auto' },
+    viewerColumn: {
+      minH: '0',
+      minW: '0',
+      gridTemplateRows: 'minmax(0, 1fr) auto',
+      overflow: 'hidden',
+    },
+    statusbar: {
+      minH: '32px',
+      px: '4',
+      gap: '3',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      borderTopWidth: '1px',
+      borderColor: 'preview.border',
+      bg: 'preview.chrome',
+      color: 'preview.textMuted',
+      fontSize: '11px',
+      py: '1',
+    },
   },
   variants: {
     templatesOpen: {
       true: {
         body: {
-          gridTemplateColumns: {
-            base: 'minmax(0, 1fr)',
-            md: '220px minmax(0, 1fr)',
+          '@media (min-width: 760px)': {
+            gridTemplateColumns: '248px minmax(0, 1fr)',
           },
         },
         sidebar: { display: 'grid' },
-        main: { display: { base: 'none', md: 'flex' } },
       },
       false: { sidebar: { display: 'none' } },
     },
     inspectorOpen: {
       true: {
         content: {
-          gridTemplateColumns: {
-            base: 'minmax(0, 1fr)',
-            md: 'minmax(0, 1fr) 280px',
+          '@media (min-width: 1100px)': {
+            gridTemplateColumns: 'minmax(0, 1fr) 340px',
           },
         },
       },
@@ -319,7 +359,7 @@ export const previewTemplatesSlotRecipe = defineSlotRecipe({
     list: { gap: '0.5' },
     item: {
       display: 'grid',
-      gridTemplateColumns: '16px minmax(0, 1fr)',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
       gap: '2',
       alignItems: 'center',
       w: 'full',
@@ -402,6 +442,7 @@ export const previewViewerSlotRecipe = defineSlotRecipe({
     'codeHeader',
     'code',
     'overlay',
+    'inbox',
   ],
   base: {
     root: {
@@ -425,6 +466,9 @@ export const previewViewerSlotRecipe = defineSlotRecipe({
       flexShrink: 0,
     },
     tab: {
+      h: '28px',
+      px: '3',
+      whiteSpace: 'nowrap',
       color: 'preview.textMuted',
       bg: 'transparent',
       fontSize: 'xs',
@@ -452,21 +496,22 @@ export const previewViewerSlotRecipe = defineSlotRecipe({
       fontWeight: 'black',
     },
     surface: {
-      bg: 'preview.soft',
+      bg: 'preview.canvas',
       position: 'relative',
       h: 'full',
       minH: '0',
-      display: 'grid',
-      gridTemplateRows: 'minmax(0, 1fr) auto',
+      display: 'block',
       overflow: 'hidden',
     },
     stage: {
       minH: '0',
       minW: '0',
-      alignItems: 'center',
-      justifyContent: 'center',
+      h: 'full',
+      alignItems: 'stretch',
+      justifyContent: 'flex-start',
+      gap: '5',
       p: { base: '3', md: '8' },
-      overflow: 'hidden',
+      overflow: 'auto',
     },
     surfaceHeader: {
       alignItems: 'center',
@@ -501,16 +546,16 @@ export const previewViewerSlotRecipe = defineSlotRecipe({
     frame: {
       position: 'relative',
       flexShrink: 0,
-      maxW: '100%',
-      minW: 'min(280px, 100%)',
-      h: '100%',
+      maxW: 'none',
+      minW: '280px',
+      h: '842px',
       minH: '120px',
-      maxH: '100%',
+      maxH: 'none',
       overflow: 'hidden',
       resize: 'both',
       borderWidth: '1px',
       borderColor: 'preview.border',
-      borderRadius: 'sm',
+      borderRadius: '8px',
       boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)',
     },
     codeRoot: {
@@ -552,6 +597,7 @@ export const previewViewerSlotRecipe = defineSlotRecipe({
       fontSize: 'sm',
       fontWeight: 'bold',
     },
+    inbox: { w: 'full', maxW: '640px', minW: '0', flexShrink: '0', mx: 'auto' },
   },
   variants: {
     selected: {
@@ -602,8 +648,8 @@ export const previewInspectorSlotRecipe = defineSlotRecipe({
   base: {
     root: {
       minW: '0',
-      gap: '4',
-      p: '4',
+      gap: '0',
+      p: '0',
       borderLeftWidth: '1px',
       borderColor: 'preview.border',
       borderRadius: '0',
@@ -612,7 +658,14 @@ export const previewInspectorSlotRecipe = defineSlotRecipe({
       h: 'full',
       overflowY: 'auto',
     },
-    header: { alignItems: 'start', justifyContent: 'space-between' },
+    header: {
+      alignItems: 'center',
+      gap: '1',
+      px: '3',
+      flexShrink: '0',
+      borderBottomWidth: '1px',
+      borderColor: 'preview.border',
+    },
     eyebrow: {
       mb: '1',
       color: 'preview.textSubtle',
@@ -760,7 +813,7 @@ export const previewSlotRecipes = {
   [previewSlotRecipeKeys.workspace]: previewWorkspaceSlotRecipe,
 };
 
-const previewTheme = defineConfig({
+export const previewTheme = defineConfig({
   globalCss: {
     'html, body, #app': {
       minWidth: '320px',
@@ -867,6 +920,11 @@ const previewTheme = defineConfig({
               _dark: 'rgba(255, 255, 255, 0.2)',
             },
           },
+          success: { value: { _light: '#1f7a4d', _dark: '#4cc38a' } },
+          successSoft: { value: { _light: '#e8f5ee', _dark: '#12291d' } },
+          info: { value: { _light: '#2f5fb3', _dark: '#8ab4ff' } },
+          infoSoft: { value: { _light: '#ebf1fb', _dark: '#15213a' } },
+          highlight: { value: '#f5a524' },
           danger: { value: { _light: '#c53d35', _dark: '#ff8178' } },
           dangerBorder: {
             value: {

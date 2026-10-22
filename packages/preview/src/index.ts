@@ -17,6 +17,11 @@ export type {
 } from './config.js';
 export { createPreviewServer } from './server.js';
 export { exportTemplates } from './export-templates.js';
+export { checkTemplates } from './check-templates.js';
+export type {
+  CheckTemplatesOptions,
+  CheckTemplatesResult,
+} from './check-templates.js';
 export type {
   ExportedTemplateFile,
   ExportFormat,
@@ -25,7 +30,20 @@ export type {
   ExportTemplatesOptions,
   ExportTemplatesResult,
 } from './export-templates.js';
-export { lintRenderedEmail } from './lint-email.js';
+export {
+  extractPreviewText,
+  lintEmail,
+  lintRenderedEmail,
+} from './lint-email.js';
+export type { LintEmailOptions, LintEmailResult } from './lint-email.js';
+export { getLintRules, previewLintRules } from './lint-rules.js';
+export type {
+  LintRuleDefinition,
+  PreviewLintConfig,
+  PreviewLintLevel,
+  PreviewLintOverrides,
+  PreviewLintRuleId,
+} from './lint-rules.js';
 export { createEmailLinkChecker } from './check-links.js';
 export type {
   PreviewLinkCheckConfig,
@@ -37,6 +55,12 @@ export {
 } from './compatibility.js';
 export type { PreviewCompatibilityReference } from './compatibility.js';
 export { previewSlotRecipeKeys } from './ui-theme.js';
+export {
+  clientSupportReviewed,
+  knownBreakages,
+  previewClients,
+} from './client-support.js';
+export type { PreviewClientId } from './client-support.js';
 export type { PreviewSlotRecipeKey } from './ui-theme.js';
 export type {
   CreatePreviewServerOptions,
@@ -44,8 +68,13 @@ export type {
   PreviewServerAddress,
 } from './server.js';
 export type {
+  PreviewLinkCheckEntry,
+  PreviewLinkCheckSummary,
   PreviewLintCategory,
   PreviewLintFinding,
+  PreviewLintSummary,
+  PreviewLintSummaryEntry,
+  PreviewLintRule,
   PreviewLintSeverity,
   PreviewRenderRequest,
   PreviewRenderResponse,
@@ -54,4 +83,10 @@ export type {
   PreviewTestSendRequest,
   PreviewTestSendResponse,
 } from './protocol.js';
-export type { PreviewSubject, TemplateModule } from './render-template.js';
+export type {
+  PreviewFrom,
+  PreviewSubject,
+  TemplateModule,
+} from './render-template.js';
+export { parsePreviewFrom } from './preview-from.js';
+export type { PreviewSender } from './preview-from.js';

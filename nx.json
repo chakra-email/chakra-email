@@ -63,7 +63,7 @@
     ],
     "releaseTagPattern": "v{version}",
     "version": {
-      "preVersionCommand": "npm run build"
+      "preVersionCommand": "pnpm run build"
     },
     "changelog": {
       "workspaceChangelog": {

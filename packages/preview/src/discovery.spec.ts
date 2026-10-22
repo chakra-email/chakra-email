@@ -38,6 +38,7 @@ describe('discoverTemplates', () => {
       expect.objectContaining({
         name: 'Emails / Account / Reset password',
         path: 'emails/account/reset-password.ts',
+        group: 'Account',
       }),
       expect.objectContaining({
         name: 'Emails / Welcome',
@@ -48,6 +49,7 @@ describe('discoverTemplates', () => {
       second.templates.map(({ id }) => id),
     );
     expect(first.templates[0]?.id).not.toContain('reset-password');
+    expect(first.templates[1]?.group).toBeUndefined();
     expect(
       first.byId.get(first.templates[0]?.id ?? '')?.absolutePath,
     ).toContain(root);

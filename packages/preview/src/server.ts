@@ -13,6 +13,11 @@ import {
 } from './config.js';
 import { discoverTemplates, type TemplateRegistry } from './discovery.js';
 import { EventHub } from './event-hub.js';
+import {
+  createLintSummaryRunner,
+  type LintSummaryRunner,
+} from './lint-summary.js';
+import { isLoopbackHost } from './open-in-editor.js';
 import { createPreviewHttpHandler } from './http-handler.js';
 import type {
   PreviewRenderRequest,
@@ -48,15 +53,6 @@ export interface PreviewServerAddress {
 export interface PreviewServer {
   close(): Promise<void>;
   listen(): Promise<PreviewServerAddress>;
-}
-
-function isLoopbackHost(host: string): boolean {
-  const normalized = host.toLowerCase().replace(/^\[|\]$/gu, '');
-  return (
-    normalized === 'localhost' ||
-    normalized === '::1' ||
-    normalized.startsWith('127.')
-  );
 }
 
 async function resolveConfig(
@@ -138,25 +134,34 @@ export async function createPreviewServer(
   const events = new EventHub();
   let refreshTimer: NodeJS.Timeout | undefined;
   let closed = false;
+  let registryGeneration = 0;
+  const summaries: { runner?: LintSummaryRunner } = {};
 
   const refreshRegistry = (): void => {
+    const generation = ++registryGeneration;
     if (refreshTimer) {
       clearTimeout(refreshTimer);
     }
     refreshTimer = setTimeout(() => {
       void discoverTemplates(config)
         .then((nextRegistry) => {
+          if (closed || generation !== registryGeneration) return;
           registry = nextRegistry;
           events.broadcast('templates');
+          summaries.runner?.schedule();
         })
         .catch(() => {
+          if (closed || generation !== registryGeneration) return;
           events.broadcast('invalidate');
+          summaries.runner?.schedule();
         });
     }, 50);
     refreshTimer.unref();
   };
 
   const onWatchEvent = (watchEvent: TemplateWatchEvent): void => {
+    if (closed) return;
+    summaries.runner?.schedule();
     if (
       watchEvent.event === 'add' ||
       watchEvent.event === 'addDir' ||
@@ -189,6 +194,8 @@ export async function createPreviewServer(
       throw new Error('Template was not found.');
     }
     return renderTemplate({
+      previewFrom: config.previewFrom,
+      lintRules: config.lint?.rules,
       module: await moduleLoader.load(template.absolutePath),
       props: request.props,
       renderer: config.renderer,
@@ -205,7 +212,7 @@ export async function createPreviewServer(
         if (!template) {
           throw new Error('Template was not found.');
         }
-        const rendered = await renderRequest(request);
+        const rendered = await renderExplicit(request);
         const result = await config.testSend?.send({
           html: rendered.html,
           props: rendered.props,
@@ -227,12 +234,30 @@ export async function createPreviewServer(
     : undefined;
 
   const getRegistry = (): TemplateRegistry => registry;
+  const summaryRunner = createLintSummaryRunner({
+    getRegistry,
+    load: (path) => moduleLoader.load(path),
+    render: ({ module, template }) =>
+      renderTemplate({
+        previewFrom: config.previewFrom,
+        lintRules: config.lint?.rules,
+        module,
+        renderer: config.renderer,
+        template,
+      }),
+    publish: (summary) => events.publish('lint-summary', summary),
+  });
+  summaries.runner = summaryRunner;
+  const renderExplicit = (
+    request: PreviewRenderRequest,
+  ): Promise<PreviewRenderResponse> =>
+    summaryRunner.runExplicit(() => renderRequest(request));
   const handler = createPreviewHttpHandler({
     allowRemote,
     config,
     events,
     getRegistry,
-    render: renderRequest,
+    render: renderExplicit,
     send: sendRequest,
     token,
     uiRoot,
@@ -255,10 +280,12 @@ export async function createPreviewServer(
     if (refreshTimer) {
       clearTimeout(refreshTimer);
     }
+    summaries.runner?.close();
     events.close();
     await Promise.all([closeHttpServer(httpServer), moduleLoader.close()]);
   };
 
+  summaryRunner.schedule();
   return {
     close: closeResources,
     async listen() {

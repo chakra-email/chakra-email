@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { parse as parseYaml } from 'yaml';
 import { fileURLToPath } from 'node:url';
 import { assertPreviewBinaryMetadata } from './packed-consumer-checks.mjs';
 
@@ -56,31 +57,55 @@ const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
 });
 const committedVersion = publicPackages[0]?.manifest.version;
 
+test('public dependency ranges and the site version match the committed release', () => {
+  const names = new Set(publicPackages.map(({ manifest }) => manifest.name));
+  for (const { manifest } of publicPackages) {
+    assert.equal(manifest.version, committedVersion, manifest.name);
+    for (const field of [
+      'dependencies',
+      'peerDependencies',
+      'optionalDependencies',
+    ]) {
+      for (const [name, range] of Object.entries(manifest[field] ?? {})) {
+        if (names.has(name)) {
+          assert.equal(
+            range,
+            `^${committedVersion}`,
+            `${manifest.name}: ${name}`,
+          );
+        }
+      }
+    }
+  }
+  const shell = readFileSync(
+    new URL('../apps/site/src/components/site-shell.tsx', import.meta.url),
+    'utf8',
+  );
+  assert.ok(shell.includes(`v${committedVersion}`));
+});
+
 test('site Chakra Docs dependencies resolve from public releases without yalc', () => {
   const manifest = JSON.parse(
     readFileSync(new URL('../apps/site/package.json', import.meta.url), 'utf8'),
   );
-  const lock = JSON.parse(
-    readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),
+  const lock = parseYaml(
+    readFileSync(new URL('../pnpm-lock.yaml', import.meta.url), 'utf8'),
   );
   const version = manifest.dependencies['@chakra-docs/chakra'];
   assert.match(version, /^\d+\.\d+\.\d+$/);
-  for (const name of ['chakra', 'core']) {
+  for (const name of ['chakra', 'core', 'search', 'shiki']) {
     assert.equal(manifest.dependencies[`@chakra-docs/${name}`], version);
     assert.equal(
-      lock.packages['apps/site'].dependencies[`@chakra-docs/${name}`],
+      lock.importers['apps/site'].dependencies[`@chakra-docs/${name}`]
+        .specifier,
       version,
     );
+    assert.ok(manifest.scripts['yalc:link'].includes(`@chakra-docs/${name}`));
   }
-  for (const name of ['chakra', 'core', 'search']) {
-    const entry = lock.packages[`node_modules/@chakra-docs/${name}`];
-    assert.equal(entry.version, version);
-    assert.equal(
-      entry.resolved,
-      `https://registry.npmjs.org/@chakra-docs/${name}/-/${name}-${version}.tgz`,
-    );
-    assert.ok(entry.integrity);
-    assert.notEqual(entry.link, true);
+  for (const name of ['chakra', 'core', 'search', 'shiki']) {
+    const entry = lock.packages[`@chakra-docs/${name}@${version}`];
+    assert.ok(entry?.resolution.integrity);
+    assert.equal(entry.resolution.directory, undefined);
   }
 });
 
@@ -88,27 +113,22 @@ test('site Postkit dependencies are pinned registry packages with opt-in yalc li
   const manifest = JSON.parse(
     readFileSync(new URL('../apps/site/package.json', import.meta.url), 'utf8'),
   );
-  const lock = JSON.parse(
-    readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'),
+  const lock = parseYaml(
+    readFileSync(new URL('../pnpm-lock.yaml', import.meta.url), 'utf8'),
   );
   const version = manifest.dependencies['@postkit/react'];
   assert.match(version, /^\d+\.\d+\.\d+$/);
   assert.equal(manifest.dependencies['@postkit/shiki'], version);
   for (const name of ['react', 'shiki']) {
     assert.equal(
-      lock.packages['apps/site'].dependencies[`@postkit/${name}`],
+      lock.importers['apps/site'].dependencies[`@postkit/${name}`].specifier,
       version,
     );
   }
   for (const name of ['react', 'shiki', 'core', 'unfurl']) {
-    const entry = lock.packages[`node_modules/@postkit/${name}`];
-    assert.equal(entry.version, version);
-    assert.equal(
-      entry.resolved,
-      `https://registry.npmjs.org/@postkit/${name}/-/${name}-${version}.tgz`,
-    );
-    assert.ok(entry.integrity);
-    assert.notEqual(entry.link, true);
+    const entry = lock.packages[`@postkit/${name}@${version}`];
+    assert.ok(entry?.resolution.integrity);
+    assert.equal(entry.resolution.directory, undefined);
   }
   assert.ok(!manifest.scripts['yalc:link'].includes('@postkit/'));
   assert.ok(manifest.scripts['yalc:link:postkit'].includes('@postkit/react'));
@@ -254,31 +274,23 @@ test('accepts the committed version for a first release', () => {
   assert.match(result.stdout, /Validated committed release version/);
 });
 
-test('workflows install the npm version declared by packageManager', () => {
-  const packageManagerMatch = /^npm@(\d+\.\d+\.\d+)$/.exec(
+test('workflows activate the pnpm version declared by packageManager', () => {
+  const packageManagerMatch = /^pnpm@(\d+\.\d+\.\d+)$/.exec(
     packageManifest.packageManager,
   );
   assert.ok(
     packageManagerMatch,
-    'packageManager must pin an exact npm version',
+    'packageManager must pin an exact pnpm version',
   );
 
-  const expectedInstall = `run: npm install --global npm@${packageManagerMatch[1]}`;
-  for (const workflow of ['ci.yml', 'pages.yml', 'release.yml']) {
+  for (const workflow of ['ci.yml', 'release.yml']) {
     const workflowSource = readFileSync(
       new URL(`../.github/workflows/${workflow}`, import.meta.url),
       'utf8',
     );
-    const setupNodeCount = workflowSource.match(
-      /uses: actions\/setup-node@/g,
-    )?.length;
-    const pinnedNpmCount = workflowSource.split(expectedInstall).length - 1;
-
-    assert.equal(
-      pinnedNpmCount,
-      setupNodeCount,
-      `${workflow} must install the pinned npm after every setup-node step`,
-    );
+    assert.match(workflowSource, /run: corepack enable/);
+    assert.match(workflowSource, /pnpm install --frozen-lockfile/);
+    assert.doesNotMatch(workflowSource, /npm ci|cache: npm/);
   }
 });
 
@@ -296,6 +308,11 @@ test('every public package is covered by release, pack, local, and consumer gate
   );
 
   for (const { directory, manifest } of publicPackages) {
+    assert.equal(
+      packageManifest.devDependencies[manifest.name],
+      'workspace:*',
+      `root examples and export checks must resolve ${manifest.name} in a clean pnpm install`,
+    );
     assert.match(
       packageManifest.scripts['pack:inspect'],
       new RegExp(`--workspace ${manifest.name.replaceAll('/', '\\/')}(?: |$)`),
@@ -369,7 +386,8 @@ test('publish is read-only on GitHub and never creates Git credentials', () => {
 test('Nx release only publishes committed packages and cannot write Git state', () => {
   const releaseSource = readFileSync(releaseScript, 'utf8');
 
-  assert.match(releaseSource, /\['exec', 'nx', '--', 'release', 'publish'\]/);
+  assert.match(releaseSource, /\['exec', 'nx', 'release', 'publish'\]/);
+  assert.match(releaseSource, /spawnSync\(pnpmCommand, args/);
   assert.deepEqual(nxConfiguration.release.git, {
     commit: false,
     tag: false,
@@ -415,11 +433,11 @@ test('release publication requires successful CI for the exact commit', () => {
   assert.match(ciGateJob, /if \[ -z "\$ci_run_id" \]; then/);
   assert.match(publishJob, /needs: require-ci/);
 
-  assert.match(ciWorkflowSource, /node-label: 24\n\s+node-version: 24\.18\.0/);
-  assert.match(ciWorkflowSource, /npm run release:check/);
+  assert.match(ciWorkflowSource, /node-version-file: '\.nvmrc'/);
+  assert.match(ciWorkflowSource, /pnpm run release:check/);
   assert.match(ciWorkflowSource, /\n  minimum-node-compatibility:/);
   assert.match(ciWorkflowSource, /node-version: 20\.19\.0/);
-  assert.match(ciWorkflowSource, /npm run smoke:consumer/);
+  assert.match(ciWorkflowSource, /node scripts\/smoke-packed-consumer\.mjs/);
   assert.doesNotMatch(
     publishJob,
     /needs: require-main/,
@@ -447,4 +465,28 @@ test('bootstrap documentation uses current granular token guidance', () => {
   assert.match(contributingSource, /granular access token/);
   assert.match(contributingSource, /Bypass 2FA/);
   assert.match(contributingSource, /allowed action `npm publish`/);
+});
+
+test('release instructions describe the committed version and current CI gates', () => {
+  const checklist = readFileSync(
+    new URL('../docs/production-release-checklist.md', import.meta.url),
+    'utf8',
+  );
+  const changelog = readFileSync(
+    new URL('../CHANGELOG.md', import.meta.url),
+    'utf8',
+  );
+  assert.ok(changelog.includes(`## ${committedVersion} (`));
+  assert.ok(checklist.includes(`version: ${committedVersion}`));
+  assert.match(checklist, /first_release: false/);
+  assert.match(checklist, /pnpm run release:check/);
+  assert.match(checklist, /pnpm run types:performance:check/);
+  for (const job of [
+    'Verify (Node 24)',
+    'Compatibility floor (Node 20.19 / React 18)',
+  ]) {
+    assert.ok(ciWorkflowSource.includes(job));
+    assert.ok(checklist.includes(job));
+  }
+  assert.doesNotMatch(checklist, /Verify \(Node 22\)|\bnpm run release:check/);
 });

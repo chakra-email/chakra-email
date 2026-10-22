@@ -28,6 +28,9 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'jsdom',
+    // Multi-step Chakra workspace tests perform real JSDOM renders. Keep a
+    // bounded integration-test budget that also fits a two-core CI runner.
+    testTimeout: 15_000,
     setupFiles: ['./src/test.setup.ts'],
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],

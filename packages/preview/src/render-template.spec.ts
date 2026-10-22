@@ -59,6 +59,55 @@ describe('renderTemplate', () => {
     expect(result.source).toContain('function Welcome');
     expect(result.subject).toBe('Welcome');
     expect(result.variants).toEqual(['friendly']);
+    expect(Number.isInteger(result.renderMs)).toBe(true);
+    expect(result.renderMs).toBeGreaterThanOrEqual(0);
+    expect(result.rulesRun).toContain('plain-text-content');
+    expect(result.rulesRun).not.toContain('link-broken');
+  });
+
+  it('merges nested variant diffs without losing fixture siblings or mutating inputs', async () => {
+    const previewProps = {
+      account: { name: 'Ada', details: { code: 'old', active: true } },
+      items: [{ label: 'base' }],
+      optional: { value: 'base' },
+      scalar: 'base',
+    };
+    const previewVariants = {
+      changed: {
+        account: { details: { code: 'new' } },
+        items: [{ label: 'variant' }],
+        optional: null,
+        scalar: { nested: true },
+      },
+    };
+    const module = {
+      default: () => createElement('p', null, 'Fixture'),
+      previewProps,
+      previewVariants,
+    };
+    const result = await renderTemplate({
+      module,
+      template,
+      variant: 'changed',
+    });
+    expect(result.props).toEqual({
+      account: { name: 'Ada', details: { code: 'new', active: true } },
+      items: [{ label: 'variant' }],
+      optional: null,
+      scalar: { nested: true },
+    });
+    expect(previewProps.account.details.code).toBe('old');
+    expect(previewVariants.changed.account).toEqual({
+      details: { code: 'new' },
+    });
+
+    const edited = await renderTemplate({
+      module,
+      template,
+      variant: 'changed',
+      props: { account: { name: 'Grace' } },
+    });
+    expect(edited.props['account']).toEqual({ name: 'Grace' });
   });
 
   it('derives a subject from the fully merged preview props', async () => {
@@ -75,6 +124,89 @@ describe('renderTemplate', () => {
     });
 
     expect(result.subject).toBe('Welcome Grace');
+  });
+
+  it('exposes the configured sender and normalized hidden preview text', async () => {
+    const result = await renderTemplate({
+      template,
+      previewFrom: { address: 'hello@example.org', name: 'Default sender' },
+      module: { default: () => createElement('p') },
+      renderer: {
+        render: async () => ({
+          html: '<body><div aria-hidden="true" style="display:none"> Hello &nbsp; world &zwnj;&nbsp; </div><p>Body</p></body>',
+          text: 'Body',
+        }),
+      },
+    });
+    expect(result.from).toEqual({
+      address: 'hello@example.org',
+      name: 'Default sender',
+    });
+    expect(result.previewText).toBe('Hello world');
+  });
+
+  it.each([
+    'Template <template@example.org>',
+    async (props: Record<string, unknown>) =>
+      `${String(props['name'])} <template@example.org>`,
+  ])(
+    'lets template sender metadata override config %#',
+    async (previewFrom) => {
+      const result = await renderTemplate({
+        template,
+        previewFrom: { address: 'config@example.org' },
+        module: {
+          default: () => createElement('p'),
+          previewProps: { name: 'Base' },
+          previewVariants: { named: { name: 'Variant' } },
+          previewFrom,
+        },
+        variant: 'named',
+        props: { name: 'Template' },
+      });
+      expect(result.from).toEqual({
+        address: 'template@example.org',
+        name: 'Template',
+      });
+    },
+  );
+
+  it.each([
+    42,
+    async () => 'a@example.org\r\nBcc: hidden@example.org',
+    'not-an-address',
+  ])('rejects invalid template sender metadata %#', async (previewFrom) => {
+    await expect(
+      renderTemplate({
+        template,
+        module: { default: () => createElement('p'), previewFrom },
+      }),
+    ).rejects.toThrow('previewFrom');
+  });
+
+  it('uses configured lint rules without changing rendered HTML or text', async () => {
+    const module = {
+      default: () =>
+        createElement('img', { src: 'http://example.org/image.png' }),
+    };
+    const defaults = await renderTemplate({ module, template });
+    const customized = await renderTemplate({
+      module,
+      template,
+      lintRules: { 'image-alt': 'info', 'insecure-url': 'off' },
+    });
+    expect(customized.html).toBe(defaults.html);
+    expect(customized.text).toBe(defaults.text);
+    expect(
+      defaults.lint.find((finding) => finding.ruleId === 'image-alt')?.severity,
+    ).toBe('error');
+    expect(
+      customized.lint.find((finding) => finding.ruleId === 'image-alt')
+        ?.severity,
+    ).toBe('info');
+    expect(
+      customized.lint.some((finding) => finding.ruleId === 'insecure-url'),
+    ).toBe(false);
   });
 
   it.each([

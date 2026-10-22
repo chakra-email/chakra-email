@@ -29,7 +29,7 @@ npm install chakra-email react react-dom
 Use `@chakra-email/chakra-v2` instead when you need to adapt an existing Chakra UI v2 theme object.
 
 > [!NOTE]
-> These packages are ESM-only (no CommonJS build). Node.js 22 or 24 is recommended and exercised by the primary CI matrix. Node.js 20.19 is retained only as a compatibility floor for unflagged `require()` of ESM modules; Node 20 is end-of-life and should not be used for new deployments.
+> These packages are ESM-only (no CommonJS build). Node.js 22 or 24 is recommended and supported by the published packages; development and primary CI use Node 24. Node.js 20.19 is retained only as a compatibility floor for unflagged `require()` of ESM modules; Node 20 is end-of-life and should not be used for new deployments.
 
 ## First Email
 
@@ -339,14 +339,20 @@ The renderer is shared by the public packages and exposed as a subpath. A standa
 ## Development
 
 ```bash
-npm install
-npm run site:dev
-npm run email:dev
-npm run check
-npm exec nx -- run chakra-email-monorepo:yalc-publish
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run site:dev
+pnpm run email:dev
+pnpm run check
+pnpm nx run chakra-email-monorepo:yalc-publish
 ```
 
-`npm run check` is the canonical release gate. It audits dependencies, lints,
+Springbar provides the docs site at `chakra-email.test` and the local email
+preview at `preview.chakra-email.test`. The preview service builds the local
+preview package and serves the templates in `examples/preview/emails`, using
+Springbar's assigned port while remaining bound to `127.0.0.1`.
+
+`pnpm run check` is the canonical release gate. It audits dependencies, lints,
 runs coverage tests, performs a clean build and typecheck, compiles the examples,
 inspects package contents, and installs the resulting tarballs in a clean React
 18 consumer for runtime and declaration checks.

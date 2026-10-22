@@ -1,6 +1,6 @@
 {
   "name": "@chakra-email/preview",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Local React email preview server with live rendering, template variants, and email linting.",
   "license": "MIT",
   "author": {
@@ -26,7 +26,7 @@
   "bugs": {
     "url": "https://github.com/chakra-email/chakra-email/issues"
   },
-  "homepage": "https://github.com/chakra-email/chakra-email/tree/main/packages/preview#readme",
+  "homepage": "https://chakra.email/docs/preview",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -78,12 +78,13 @@
     ]
   },
   "dependencies": {
-    "@chakra-email/core": "^0.2.0",
+    "@chakra-email/core": "^0.3.0",
     "jiti": "^2.4.2",
+    "launch-editor": "^2.14.2",
     "parse5": "^8.0.0",
     "tinyglobby": "^0.2.17",
     "tslib": "^2.3.0",
-    "vite": "^8.1.5"
+    "vite": "~8.1.6"
   },
   "publishConfig": {
     "access": "public"

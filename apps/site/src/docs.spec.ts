@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getRecommendedSearchResults } from './search-recommendations';
 
 import {
   docsManifest,
@@ -9,6 +10,24 @@ import {
 } from './docs';
 
 describe('documentation manifest', () => {
+  it('recommends the six onboarding pages using their manifest metadata', () => {
+    const results = getRecommendedSearchResults(docsManifest.search);
+    expect(results.map(({ title }) => title)).toEqual([
+      'Getting Started',
+      'Components',
+      'Theming',
+      'Rendering',
+      'Email Preview',
+      'Markdown',
+    ]);
+    for (const result of results) {
+      expect(result.description).toBe(
+        docsManifest.byRoute[result.route]?.description,
+      );
+      expect(result).not.toHaveProperty('text');
+      expect(result).not.toHaveProperty('headings');
+    }
+  });
   it('builds indexed pages, navigation, search, and duplicate-safe headings', () => {
     expect(docsManifest.pages).toHaveLength(docsManifest.nav.length);
     expect(docsManifest.search.length).toBeGreaterThan(
@@ -27,6 +46,13 @@ describe('documentation manifest', () => {
     expect(prepareMarkdown('# Getting Started\n\n## Install')).toBe(
       '## Install',
     );
+  });
+  it('ignores headings inside fenced source examples', () => {
+    expect(
+      extractDocsHeadings(
+        '# Page\n\n```md\n## Not a heading\n```\n\n## Real heading',
+      ),
+    ).toEqual([{ id: 'real-heading', title: 'Real heading', level: 2 }]);
   });
 
   it('resolves documentation links to manifest routes and repository fallbacks', () => {

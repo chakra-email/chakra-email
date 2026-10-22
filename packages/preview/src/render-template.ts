@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { parse } from 'parse5';
 import {
   chakraEmailRenderer,
   type EmailRenderer,
@@ -13,14 +14,19 @@ import {
 import type { JsonObject, JsonValue } from './config.js';
 import type { PreviewRenderResponse } from './protocol.js';
 import type { RegisteredTemplate } from './discovery.js';
-import { lintRenderedEmail } from './lint-email.js';
+import { extractPreviewText, lintEmail } from './lint-email.js';
+import { parsePreviewFrom, type PreviewSender } from './preview-from.js';
+import type { PreviewLintOverrides } from './lint-rules.js';
 
 export type TemplateModule = Record<string, unknown> & { default?: unknown };
 export type PreviewSubject<Props = JsonObject> =
   | string
   | ((props: Props) => string | Promise<string>);
+export type PreviewFrom<Props = JsonObject> = PreviewSubject<Props>;
 
 export interface RenderTemplateOptions {
+  previewFrom?: PreviewSender;
+  lintRules?: PreviewLintOverrides;
   module: TemplateModule;
   pretty?: boolean;
   props?: unknown;
@@ -96,6 +102,25 @@ export function normalizeJsonObject(value: unknown, label: string): JsonObject {
   return normalized;
 }
 
+// Both inputs have already been cloned and checked for reserved keys. Variant
+// objects are partial fixtures; arrays and scalar values remain replacements.
+function mergeVariantProps(base: JsonObject, variant: JsonObject): JsonObject {
+  const result = { ...base };
+  for (const [key, value] of Object.entries(variant)) {
+    const previous = base[key];
+    result[key] =
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      previous !== null &&
+      typeof previous === 'object' &&
+      !Array.isArray(previous)
+        ? mergeVariantProps(previous, value)
+        : value;
+  }
+  return result;
+}
+
 function getComponentPreviewProps(component: unknown): unknown {
   if (
     (typeof component === 'function' || typeof component === 'object') &&
@@ -156,6 +181,7 @@ async function resolvePreviewSubject(
 export async function renderTemplate(
   options: RenderTemplateOptions,
 ): Promise<PreviewRenderResponse> {
+  const start = performance.now();
   const component = options.module.default;
   if (!component) {
     throw new Error('Template must have a default export.');
@@ -183,10 +209,15 @@ export async function renderTemplate(
     );
   }
   const customProps = normalizeJsonObject(options.props, 'props');
-  const props = { ...baseProps, ...variantProps, ...customProps };
+  // Live editor props are complete values: do not recursively restore keys a
+  // user intentionally removed from a nested object in the JSON editor.
+  const props = {
+    ...mergeVariantProps(baseProps, variantProps),
+    ...customProps,
+  };
   const element = createTemplateElement(component, props);
   const renderer = options.renderer ?? chakraEmailRenderer;
-  const [output, source, subject] = await Promise.all([
+  const [output, source, subject, from] = await Promise.all([
     renderer.render(element, { pretty: options.pretty ?? true }),
     readFile(options.template.absolutePath, 'utf8'),
     resolvePreviewSubject(
@@ -194,13 +225,25 @@ export async function renderTemplate(
       props,
       options.template.name,
     ),
+    options.module.previewFrom === undefined
+      ? options.previewFrom
+      : Promise.resolve(
+          typeof options.module.previewFrom === 'function'
+            ? options.module.previewFrom(props)
+            : options.module.previewFrom,
+        ).then(parsePreviewFrom),
   ]);
   const { html, text } = output;
+  const lint = lintEmail(html, { text, subject, rules: options.lintRules });
 
   return {
+    ...(from ? { from } : {}),
+    previewText: extractPreviewText(parse(html)),
     html,
     id: options.template.id,
-    lint: lintRenderedEmail(html, text),
+    lint: lint.findings,
+    rulesRun: lint.rulesRun,
+    renderMs: Math.round(performance.now() - start),
     name: options.template.name,
     props,
     source,

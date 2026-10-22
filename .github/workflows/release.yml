@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Exact package version already committed on main, such as 0.2.0'
+        description: 'Exact package version already committed on main, such as 0.3.0'
         type: string
         required: true
       dry_run:
@@ -84,14 +84,14 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
-          cache: npm
+          package-manager-cache: false
 
-      - name: Install pinned npm
-        run: npm install --global npm@11.16.0
+      - name: Enable pinned pnpm
+        run: corepack enable
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      - run: npm run build
+      - run: pnpm run build
 
       - name: Preview release
         run: node scripts/run-release.mjs
@@ -123,10 +123,10 @@ jobs:
           node-version-file: '.nvmrc'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install pinned npm
-        run: npm install --global npm@11.16.0
+      - name: Enable pinned pnpm
+        run: corepack enable
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: Require the verified main commit
         env:
@@ -150,7 +150,7 @@ jobs:
             exit 1
           fi
 
-      - run: npm run build
+      - run: pnpm run build
 
       - name: Validate the one-time bootstrap token
         if: inputs.first_release

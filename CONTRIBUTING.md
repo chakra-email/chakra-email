@@ -6,16 +6,17 @@ Thanks for helping improve Chakra Email.
 
 ```bash
 nvm use
-npm install
-npm run check
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run check
 ```
 
-This is an Nx workspace. Prefer running tasks through the npm scripts or `npm exec nx --`.
-Use an active Node.js release (22 or 24). Node 20.19 is tested only as the
+This is an Nx workspace. Prefer running tasks through the pnpm scripts or `pnpm nx`.
+Use the Node.js 24 version pinned in `.nvmrc`. Node 20.19 is tested only as the
 published package compatibility floor. The repository defaults to Node 24 in
-`.nvmrc` and pins the npm CLI through the root `packageManager` field.
+`.nvmrc` and pins the pnpm CLI through the root `packageManager` field.
 
-`npm run check` is the canonical CI and release gate. It includes the dependency
+`pnpm run check` is the canonical CI and release gate. It includes the dependency
 audit, lint, coverage, clean build, typecheck, examples, export checks, dry package
 inspection, and a clean tarball consumer using React 18.
 
@@ -25,7 +26,7 @@ Before opening a pull request:
 
 - Add or update tests for behavior changes.
 - Update package docs for public API changes.
-- Run `npm run check`.
+- Run `pnpm run check`.
 
 ## Package Boundaries
 
@@ -36,7 +37,7 @@ Before opening a pull request:
 
 ## Releases
 
-All four packages use one fixed version. Version and changelog changes are
+All seven public packages use one fixed version. Version and changelog changes are
 reviewed and committed through a normal pull request; the `Release` GitHub
 Actions workflow only verifies and publishes the package versions already on
 `main`. It never commits, tags, pushes, or creates a GitHub release.
@@ -44,16 +45,17 @@ Actions workflow only verifies and publishes the package versions already on
 To prepare a later release, create a branch and run:
 
 ```bash
-npm exec nx -- release version 0.2.0
-npm exec nx -- release changelog 0.2.0
-npm run check
+pnpm nx release version 0.3.0
+pnpm nx release changelog 0.3.0
+pnpm run check
 ```
 
-Replace `0.2.0` with the intended exact version, review the package manifests,
+Replace `0.3.0` with the intended exact version, review the package manifests,
 lockfile, and `CHANGELOG.md`, then merge those changes through a pull request.
+Align internal first-party dependency ranges and the site version pill too.
 Nx is configured not to commit, tag, push, or create a GitHub release. The
-initial `0.1.0` version and changelog are already committed, so no preparation
-step is required for the first publication.
+`0.3.0` preparation is already committed; do not run another version bump just
+to retry a publication.
 
 To publish:
 
@@ -74,33 +76,33 @@ approval, rebuilds the packages, and verifies the requested version against
 every public package manifest. It needs only read access to GitHub and OIDC
 permission for npm trusted publishing.
 
-You can preview the initial publication locally with:
+You can preview the prepared 0.3.0 publication locally with:
 
 ```bash
-npm run build
-RELEASE_VERSION=0.1.0 RELEASE_DRY_RUN=true RELEASE_FIRST_RELEASE=true \
+pnpm run build
+RELEASE_VERSION=0.3.0 RELEASE_DRY_RUN=true RELEASE_FIRST_RELEASE=false \
   node scripts/run-release.mjs
 ```
 
-Before the initial publish, and whenever release ownership or credentials
-change, complete the [production release checklist](docs/production-release-checklist.md).
+For every release, complete the
+[production release checklist](docs/production-release-checklist.md).
 
 Repository administrators must configure the following controls in GitHub; files
 in the repository cannot enforce them by themselves:
 
 - Protect `main`, require pull requests and CODEOWNER review, dismiss stale
-  approvals, prevent force pushes/deletion, and require the Node 22/24 CI checks.
+  approvals, prevent force pushes/deletion, and require the Node 24 CI and compatibility checks.
 - Protect `v*` tags from updates and deletion. Maintainers create a matching tag
   and GitHub release only after every package has been published successfully.
 - Protect the `npm-publish` environment with required reviewers and restrict it
   to `main`.
 - For the first publish only, create a short-lived
   [granular access token](https://docs.npmjs.com/about-access-tokens/) with the
-  narrowest read/write package access that covers all four package names and
+  narrowest read/write package access that covers the new package names and
   **Bypass 2FA** enabled. Store it as the protected environment secret
   `NPM_BOOTSTRAP_TOKEN`; the workflow validates it with `npm whoami` before Nx
   publishes any package.
-- After all four packages exist, configure each package's
+- For each of the seven public packages, verify its
   [trusted publisher](https://docs.npmjs.com/trusted-publishers/) with GitHub
   owner `chakra-email`, repository `chakra-email`, workflow `release.yml`,
   environment `npm-publish`, and allowed action `npm publish`. Then revoke the
@@ -108,8 +110,10 @@ in the repository cannot enforce them by themselves:
   with short-lived OIDC credentials.
 - After a tokenless trusted publish succeeds, configure npm publishing access to
   require 2FA and disallow traditional tokens. Keep provenance enabled.
-- Configure GitHub Pages to use GitHub Actions as its source. Documentation is
-  deployed only from the exact `main` commit that completed CI successfully.
+- Connect the documentation site to Vercel with Root Directory `apps/site`.
+  Use the committed build configuration and deploy the reviewed release commit;
+  see [deployment settings](apps/site/DEPLOYMENT.md). npm publication and site
+  deployment are separate operations.
 
 ## Documentation
 

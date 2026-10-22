@@ -34,13 +34,6 @@ keeps Vite, file watching, the local HTTP server, and browser UI out of the
 component packages. It works from npm scripts in any repository; Nx consumers
 can attach the same CLI to a continuous, non-cacheable target.
 
-## Future Package Splits
-
-Potential future splits can be added without changing the main package API:
-
-- `@chakra-email/components` if component-only installs become common.
-- `@chakra-email/render` if render-only tooling becomes common.
-
 These seven packages keep runtime adapters, shared rendering, and development
 tooling behind clear boundaries.
 

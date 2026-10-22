@@ -4,7 +4,17 @@ import { realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import {
+  checkExitCode,
+  checkTemplates,
+  formatCheckReport,
+} from './check-templates.js';
 import { exportTemplates, type ExportFormat } from './export-templates.js';
+import {
+  normalizeLintRules,
+  type PreviewLintOverrides,
+  type PreviewLintLevel,
+} from './lint-rules.js';
 import { createPreviewServer } from './server.js';
 
 const HELP = `Chakra Email Preview
@@ -12,6 +22,7 @@ const HELP = `Chakra Email Preview
 Usage:
   chakra-email-preview [options]
   chakra-email-preview export [options]
+  chakra-email-preview check [options]
 
 Options:
   -c, --config <path>  Preview config file (default: chakra-email.config.*)
@@ -19,9 +30,12 @@ Options:
   -p, --port <port>    Port to bind (default: 4100)
       --allow-remote   Explicitly allow a non-loopback host
       --out-dir <path> Export destination (default: dist/emails)
-      --format <value> Export html, text, or both (default: both)
-      --default-only   Export templates without named preview variants
+      --format <value> Export: html/text/both; check: text/json
+      --default-only   Skip named preview variants in export or check
       --compact        Do not pretty-print exported HTML
+      --strict         Check: fail on warnings as well as errors
+      --check-links    Check: opt in to configured network link checks
+      --rule <id=level> Check: repeatable severity override (off/info/warning/error)
   -h, --help           Show this help
   -v, --version        Show the package version
 `;
@@ -59,7 +73,55 @@ function parseFormat(value: string | undefined): ExportFormat | undefined {
   return value;
 }
 
+function parseRuleFlags(flags: readonly string[] = []): PreviewLintOverrides {
+  const overrides: Record<string, PreviewLintLevel> = Object.create(
+    null,
+  ) as Record<string, PreviewLintLevel>;
+  for (const flag of flags) {
+    const match = /^([^=]+)=(off|info|warning|error)$/u.exec(flag);
+    if (!match)
+      throw new Error(
+        '--rule must be id=off, id=info, id=warning, or id=error.',
+      );
+    overrides[match[1]] = match[2] as PreviewLintLevel;
+  }
+  return normalizeLintRules(overrides);
+}
+
+/** Identifies the command even when strict option parsing fails. */
+function requestedCommand(argv: readonly string[]): string | undefined {
+  const takesValue = new Set([
+    '-c',
+    '--config',
+    '--host',
+    '-p',
+    '--port',
+    '--out-dir',
+    '--format',
+    '--rule',
+  ]);
+  for (let index = 0; index < argv.length; index++) {
+    const argument = argv[index];
+    if (argument === '--') return argv[index + 1];
+    if (takesValue.has(argument)) {
+      index++;
+      continue;
+    }
+    if (!argument.startsWith('-')) return argument;
+  }
+  return undefined;
+}
+
 export async function runCli(argv = process.argv.slice(2)): Promise<void> {
+  try {
+    await runCliCommand(argv);
+  } catch (error) {
+    if (requestedCommand(argv) === 'check') process.exitCode = 2;
+    throw error;
+  }
+}
+
+async function runCliCommand(argv: string[]): Promise<void> {
   const { positionals, values: options } = parseArgs({
     allowPositionals: true,
     args: argv,
@@ -67,19 +129,25 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
       'allow-remote': { type: 'boolean' },
       config: { short: 'c', type: 'string' },
       compact: { type: 'boolean' },
+      'check-links': { type: 'boolean' },
       'default-only': { type: 'boolean' },
       format: { type: 'string' },
       help: { short: 'h', type: 'boolean' },
       host: { type: 'string' },
       'out-dir': { type: 'string' },
       port: { short: 'p', type: 'string' },
+      rule: { type: 'string', multiple: true },
+      strict: { type: 'boolean' },
       version: { short: 'v', type: 'boolean' },
     },
     strict: true,
   });
 
   const command = positionals[0];
-  if (positionals.length > 1 || (command && command !== 'export')) {
+  if (
+    positionals.length > 1 ||
+    (command && command !== 'export' && command !== 'check')
+  ) {
     throw new Error(`Unknown command: ${positionals.join(' ')}`);
   }
 
@@ -90,6 +158,54 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
   if (options.version) {
     process.stdout.write(`${await packageVersion()}\n`);
     return;
+  }
+
+  if (command === 'check') {
+    try {
+      if (
+        options.host !== undefined ||
+        options.port !== undefined ||
+        options['allow-remote']
+      ) {
+        throw new Error(
+          '--host, --port, and --allow-remote apply only to the preview server.',
+        );
+      }
+      if (options['out-dir'] !== undefined || options.compact) {
+        throw new Error('--out-dir and --compact apply only to export.');
+      }
+      if (
+        options.format !== undefined &&
+        options.format !== 'text' &&
+        options.format !== 'json'
+      ) {
+        throw new Error('--format must be text or json for check.');
+      }
+      const report = await checkTemplates({
+        configFile: options.config,
+        includeVariants: !options['default-only'],
+        checkLinks: options['check-links'],
+        rules: parseRuleFlags(options.rule),
+      });
+      process.stdout.write(
+        options.format === 'json'
+          ? `${JSON.stringify(report, null, 2)}\n`
+          : formatCheckReport(
+              report,
+              Boolean(process.stdout.isTTY) &&
+                process.env['NO_COLOR'] === undefined,
+            ),
+      );
+      process.exitCode = checkExitCode(report, options.strict);
+      return;
+    } catch (error) {
+      process.exitCode = 2;
+      throw error;
+    }
+  }
+
+  if (options.strict || options['check-links'] || options.rule !== undefined) {
+    throw new Error('--strict, --check-links, and --rule apply only to check.');
   }
 
   if (command === 'export') {
@@ -160,6 +276,10 @@ if (entrypoint === import.meta.url) {
     process.stderr.write(
       `chakra-email-preview: ${error instanceof Error ? error.message : String(error)}\n`,
     );
-    process.exitCode = 1;
+    process.exitCode =
+      process.exitCode === 2 ||
+      requestedCommand(process.argv.slice(2)) === 'check'
+        ? 2
+        : 1;
   });
 }

@@ -55,6 +55,9 @@ are omitted, discovery defaults to `./emails` below the resolved root.
 | `allowedHosts` | Exact trusted reverse-proxy hostnames; wildcards and ports fail.      |
 | `port`         | Listening port; defaults to `4100`.                                   |
 | `renderer`     | Optional server-side email renderer adapter.                          |
+| `previewFrom`  | Default preview sender, as an address or `Name <address>`.            |
+| `openInEditor` | Allow local editor launches; defaults to `true` on loopback hosts.    |
+| `lint.rules`   | Per-rule severity overrides: `off`, `info`, `warning`, or `error`.    |
 | `testSend`     | Optional server-side test-delivery adapter.                           |
 | `theme`        | JSON-safe theme and recipe overrides for the browser workspace.       |
 
@@ -115,12 +118,28 @@ The effective component props are merged in this order:
 2. the selected entry from `previewVariants`;
 3. values entered in the preview JSON editor.
 
-Later sources override earlier ones. A variant can therefore contain a partial
-props object that changes only the scenario-specific values.
+Variant objects merge recursively with the base fixture, so a nested partial
+object preserves unchanged siblings. Arrays, scalar values, and `null` replace
+the base value. Live editor values override top-level keys last, replacing each
+edited value in full so removed nested fields stay removed.
 
 `previewSubject` accepts a string or a synchronous/async function of the fully
 merged props. It is validated as an email subject, displayed in the preview,
 used as the default test-send subject, and included in exported metadata.
+
+`previewFrom` accepts one ASCII mailbox address, optionally with a Unicode
+display name: `Forward <hello@forward.domains>`. Set it in the config for a
+default, or export a string or synchronous/async function from a template to
+override it with the merged props. Invalid addresses, recipient lists, and
+CR/LF header injection are rejected at config load or template render.
+
+```ts
+export const previewFrom = 'Forward <hello@forward.domains>';
+// Or: export const previewFrom = (props) => `${props.brand} <hello@example.com>`;
+```
+
+This metadata controls the preview and `.eml` export only. Your `testSend`
+adapter still owns the provider's actual sender configuration.
 
 If a module does not export named `previewProps`, the server also recognizes a
 `PreviewProps` value attached to the default component:
@@ -139,6 +158,96 @@ export default ResetPasswordEmail;
 
 This fallback supports the convention used by existing React Email templates.
 When both forms exist, the named `previewProps` export wins.
+
+## Preview workspace
+
+The local workspace uses one top bar with Preview, Compare, HTML, Text, and
+Source views, a filterable template sidebar, and a Props / Info / Checks
+inspector. Desktop and Mobile presets use 600px and 375px; Compare shows
+desktop/light, mobile/light, and mobile/dark together.
+
+The HTML view formats nested markup with 2-space indentation by default. Its
+**Indentation** selector offers 2, 4, or 8 spaces, or **Original** to show the
+unformatted response. The choice is saved in this browser. Formatting changes
+only the display: copy/download, test sending, linting, and message-size totals
+still use the original rendered HTML. Lint links and highlights map original
+line/column positions to the displayed line numbers; a link's tooltip retains
+the original location. Inline text, attributes, comments (including Outlook
+conditional markup), and raw sections such as `pre`, `textarea`, `script`, and
+`style` are preserved. Complex parser repairs, extreme nesting, and unusually
+large inputs fall back to the original view rather than risk altering markup.
+
+Props supports generated fields or JSON. Fields retain their fixture types while
+you edit: invalid or empty number drafts show an inline error rather than becoming
+strings, and clearing an originally `null` field restores `null`. Arrays, empty
+nested objects, and objects with more than 20 scalar leaves use JSON instead.
+Edits render after 300ms of inactivity; invalid fields or JSON leave the previous
+render visible. Reset props restores the
+selected fixture and variant. The inbox row shows the sender, subject, and
+server-normalized hidden preheader, with the variant selector above it.
+Late variant or watch responses preserve props edited while a request was in
+flight; the debounced edit then renders against the current selection.
+
+**Copy as variant** opens an inline name field (defaulting to the next variant
+number), then copies a single-quoted entry for `previewVariants`. Only keys that
+differ from the template's base `previewProps` are included, with a deep diff for
+objects and whole values for changed arrays. Wait for props to finish rendering
+before copying. The action reads the current base fixture without switching the
+visible preview, and never writes to your template files.
+Variants merge nested objects with the base fixture. Removed fixture keys and
+empty-object replacements that would restore deleted keys cannot be copied;
+keep those keys or update `previewProps` in your source. Arrays are replaced as
+whole values, so removing array items is supported. Variant names cannot be
+`__proto__`, `constructor`, or `prototype`. Editing props or the name while the
+base fixture loads cancels the pending copy rather than writing stale clipboard data.
+
+The status bar reports frame dimensions, UTF-8 message size, links, images, and
+findings. Its findings tally opens Checks, which includes passed rules from the
+effective server catalog. Sidebar counts come from background renders of each
+template's default fixture, including templates you have not opened. They do
+not change when you select a variant or edit props; the active Checks tab and
+status bar still describe the current preview.
+
+Summaries start after discovery and refresh after changes, with a 500ms debounce
+and at most two background templates in flight. Explicit renders take priority.
+Cancelled generations cannot publish stale results, render failures count as
+one error, and newly connected SSE clients receive the latest complete summary.
+Rows show no indicator until the first summary arrives.
+
+Checks cards open one at a time. Select a finding to outline its affected
+element in Preview and all Compare frames; **HTML line N** opens and scrolls to
+the highlighted rendered-HTML line. Selecting the card again or pressing Escape
+clears it. Selection survives a re-render only while the same finding remains.
+Outlines use injected CSS, never iframe scripts, and do not change copied or
+exported HTML. The client grid filters findings to known breakages for that
+client; its reviewed date and disclaimer distinguish this from a rendering test.
+
+Use Export for HTML/plain-text copy and downloads or a local multipart `.eml`
+message. The `.eml` sender uses `previewFrom` when supplied, or defaults to
+`preview@localhost`; exporting does not send email. Display names and subjects
+are safely encoded for non-ASCII text. A configured test-send transport enables
+a top-bar Send test popover.
+
+Info's **Open in editor** action (also in the command palette) launches only
+discovered template source files, with the same request token and origin checks
+as rendering. It is hidden for non-loopback binds and when `openInEditor` is
+`false`. Set `LAUNCH_EDITOR` or `EDITOR` if editor auto-detection fails. Launches
+are acknowledged after a short immediate-error window, not when the editor
+closes; failures reported later by a GUI editor cannot be reflected in that
+completed request.
+
+⌘K / Ctrl K opens the command palette, grouped into Templates, View, Preview,
+Workspace, and Actions. Search includes template groups and source paths. Use
+Up/Down or Home/End to select a command, Enter to run it, and Escape to return
+focus to the opener. Preview offers explicit viewport, email color, and remote
+image settings. Actions includes available link checks and editor controls,
+HTML copy, `.eml` download, and Send test. Send test opens and focuses its recipient
+popover; it never sends automatically. Disabled or unavailable actions cannot run.
+The interface follows the OS unless overridden;
+email Light/Dark remains a separate preview setting. Outside text fields, use
+`/` to filter, `1`–`5` for views, `d` / `m` for viewports, `l` for email color,
+and `[` / `]` for panels. On narrow screens the panels become overlay sheets.
+Remote images remain blocked by default, including in Compare.
 
 ## CLI
 
@@ -200,6 +309,67 @@ export default defineConfig({
 This is an exact DNS-rebinding exception, not a wildcard or an authentication
 mechanism.
 
+## Checks in CI
+
+Run the same checks without starting the preview server or sending mail:
+
+```bash
+chakra-email-preview check --config chakra-email.config.ts
+chakra-email-preview check --strict --default-only
+chakra-email-preview check --format json --rule document-title=warning
+```
+
+By default, checks render every template and named variant. Errors fail with exit
+code `1`; warnings fail only with `--strict`. A template that cannot render is
+reported as a `render-failed` error, and the other templates and known variants
+are still checked. Configuration, discovery, or fatal run failures exit `2`.
+Successful checks exit `0`. `--default-only` skips variants.
+
+Repeat `--rule id=level` to override severities (`off`, `info`, `warning`, `error`):
+rule defaults are overridden by `lint.rules`, then by CLI flags. Network checks
+are off unless `--check-links` is passed, which also requires configured
+`linkCheck` hosts. No check sends email.
+
+Add a package script and a GitHub Actions step after installing dependencies:
+
+```json
+{
+  "scripts": {
+    "email:check": "chakra-email-preview check --strict"
+  }
+}
+```
+
+```yaml
+- name: Check email templates
+  run: pnpm run email:check
+```
+
+For an Nx library in `packages/emails`, add an explicit target:
+
+```json
+{
+  "email-check": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "inputs": ["{projectRoot}/**/*"],
+    "options": {
+      "cwd": "packages/emails",
+      "command": "chakra-email-preview check"
+    }
+  }
+}
+```
+
+Include any shared template/config dependencies in that target's inputs. Do not
+cache a target that enables network checks: remote results can change without
+local file changes. The package does not infer an `email-check` target.
+
+`--format json` prints a versioned report with `summary` counts and `results`
+sorted by path, variant, and HTML location. Programmatic consumers can call
+`checkTemplates({ configFile, includeVariants, checkLinks, rules })` to receive
+that same report; the caller decides whether warnings should fail its process.
+
 ## npm Script
 
 Add a script to the project that owns the templates:
@@ -258,8 +428,8 @@ npm exec nx -- run @acme/emails:email-preview
 
 `continuous: true` tells Nx that the task intentionally stays alive. The target
 is non-cacheable because it creates a local server rather than a reusable output
-artifact. The MVP does not yet ship an Nx plugin or infer this target from the
-configuration file.
+artifact. Configure the target explicitly: the preview CLI does not require an
+Nx plugin or infer targets from its configuration file.
 
 ## Programmatic API
 
@@ -337,7 +507,7 @@ export default defineConfig({
 });
 ```
 
-Configuring `testSend` adds a test-delivery form to the inspector. Leaving it
+Configuring `testSend` adds a test-delivery popover to the top bar. Leaving it
 out removes that UI and the endpoint remains unavailable. The transport also
 receives template metadata, effective props, and the selected variant, so an
 application can add logging or provider-specific metadata without a package
@@ -407,6 +577,72 @@ structured findings used by the preview UI. Lint results are advisory: they
 catch common compatibility and accessibility problems, but they are not a
 mailbox-client renderer or compatibility certification.
 
+### Rule catalog and severity overrides
+
+The catalog also checks for unfinished placeholder text, rounded links without
+an Outlook VML fallback, missing color-scheme metadata, subjects over 60
+characters, preheaders outside 40–150 characters, and empty or ambiguous link
+text. Subject length runs only when a subject is supplied. Element findings
+include a unique CSS `selector` for the rendered HTML, not a TSX source location.
+The exported `extractPreviewText(document)` accepts a parse5 document and removes
+hidden-preheader padding before returning normalized text.
+
+Use `lint.rules` in `chakra-email.config.ts` to adjust existing checks:
+
+```ts
+export default defineConfig({
+  lint: {
+    rules: {
+      'document-title': 'warning',
+      'css-background-image': 'off',
+      'link-redirect': 'warning',
+    },
+  },
+});
+```
+
+Unknown rule IDs and invalid severities fail configuration loading. Overrides
+apply to every template and variant, including the explicit **Check links**
+action. They do not enable network access or change rendered email output.
+Rules set to `off` produce no findings.
+
+The Checks link list starts at **not checked**. Explicit link checks show the
+actual successful HTTP code, redirect code, or a broken, skipped, or unverified
+status for each occurrence, including duplicate URLs. Redirects are not followed;
+HEAD responses do not certify that a destination works in a browser. A fresh
+render clears these statuses, and older servers without per-link metadata never
+imply success. Network access remains opt-in and allowlisted.
+
+For programmatic consumers, the shared catalog and evaluated rule IDs are
+available without starting a server:
+
+```ts
+import { getLintRules, lintEmail } from '@chakra-email/preview';
+
+const rules = { 'document-title': 'warning' } as const;
+const catalog = getLintRules(rules);
+const { findings, rulesRun } = lintEmail(renderedHtml, {
+  text: renderedPlainText,
+  rules,
+});
+```
+
+Catalog entries contain `id`, `category`, a passing-condition `title`, and the
+effective `severity`; disabled rules are omitted. `rulesRun` lists enabled
+static checks, including passing checks, but excludes the plain-text check
+when no `text` was supplied. It never includes network link checks. The existing
+`lintRenderedEmail()` convenience function retains its original default behavior.
+
+### Known client breakages
+
+Mapped compatibility findings include `clients` IDs from a deliberately short
+list reviewed against Can I Email in October 2026. Each rule links to its source;
+partial or conditional support is not treated as a blanket failure. Windows
+means classic Outlook, not the new web-based Outlook client. The exported
+`previewClients`, `knownBreakages`, and `clientSupportReviewed` describe this
+curation. An unlisted client is not guaranteed to support a feature. This is
+advisory metadata, not an actual mailbox rendering test.
+
 ## Local Security
 
 The loopback default is deliberate. Template modules are executable code and
@@ -439,7 +675,7 @@ in a delivered email, so replace it with an absolute public URL or attachment
 
 ## Scope
 
-The preview is not currently:
+The preview is a local development tool, not:
 
 - an email-delivery provider or inbox placement service;
 - a drag-and-drop visual editor;

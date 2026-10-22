@@ -1,5 +1,75 @@
 # Changelog
 
+## 0.3.0 (2026-10-21)
+
+### Added
+
+- Read-only HTML-view formatting with a saved 2-, 4-, or 8-space indentation
+  preference and Original mode, plus source-mapped lint links and highlights.
+- Grouped, keyboard-operable palette commands include explicit preview modes,
+  `.eml` download, capability-aware actions, and a focused Send test handoff.
+- Per-link check results retain actual HTTP status codes and distinguish redirects,
+  broken, skipped, and unverified URLs without implying unchecked links succeeded.
+- Background default-template lint summaries update every sidebar row over SSE,
+  including unvisited templates, with debounced, bounded work, stale-generation
+  cancellation, late-client replay, and priority for explicit renders.
+- Config and template `previewFrom` metadata powers the inbox, Info, and `.eml`
+  sender headers. Authenticated **Open in editor** opens discovered templates
+  only on loopback hosts and can be disabled with `openInEditor: false`.
+- Selectable Checks cards outline affected elements in Preview and Compare,
+  link to highlighted HTML lines, and filter by curated client breakages.
+- Curated known-client breakage metadata on compatibility findings, reviewed
+  against Can I Email in October 2026 and excluding partial/conditional results.
+- `chakra-email-preview check` and `checkTemplates()` for CI reports across
+  templates and variants, with strict mode, JSON output, severity overrides,
+  recoverable render failures, and opt-in network link checks.
+- Six preview checks for placeholders, rounded-button fallbacks, color-scheme
+  metadata, subject/preheader lengths, and accessible link text. Element findings
+  now include unique selectors for the rendered HTML.
+- **Copy as variant** copies a named `previewVariants` entry containing only
+  props that differ from the template's base fixture, without changing files.
+- A redesigned local preview workspace with a single top bar, filterable template
+  navigation, inbox preview, Props / Info / Checks tabs, live debounced Fields
+  and JSON editors, Compare view, command palette, and message status bar.
+- Additive preview API metadata for folder groups, the effective lint catalog,
+  rules run, and render duration; passed checks use actual render results.
+- Local multipart `.eml` exports alongside HTML/plain-text exports, with
+  quoted-printable bodies and UTF-8 encoded subjects.
+
+- A shared preview lint-rule catalog with passing-condition titles and default
+  severities, plus `lint.rules` configuration for changing or disabling existing
+  static and on-demand link checks.
+- `lintEmail(html, options)` returns findings and the enabled static `rulesRun`;
+  `getLintRules()` exposes the effective rule catalog. The existing
+  `lintRenderedEmail(html, plainText?)` signature and existing rule defaults are
+  preserved; the new static checks are additive.
+
+### Changed
+
+- All seven public packages are versioned at `0.3.0`, with internal dependency
+  ranges aligned to `^0.3.0` and a synchronized lockfile.
+- Copy as variant rejects reserved names and fixture-key deletions that cannot
+  round-trip through nested merges; edits also cancel pending clipboard writes.
+- Props fields retain their types across invalid number drafts and null edits;
+  unsupported field shapes use JSON, and reset/variant changes cancel pending edits.
+- Nested variant objects preserve unchanged fixture fields, so copied deep-diff
+  variants render the same props; arrays and live editor values remain replacements.
+- Findings from multiple attributes at the same HTML location remain separate,
+  so selecting one issue never expands another card.
+- A late variant or watch refresh no longer overwrites props typed while the
+  request was in flight.
+- `.eml` exports also work on local HTTP domains without secure-context UUIDs.
+- Desktop / Mobile preview presets use 600px / 375px; the former Fit preset
+  falls back to Desktop. Workspace color follows the OS or the palette's saved
+  preference independently of email color. Test sending moves to the top bar.
+
+### Fixed
+
+- Declare first-party workspace dependencies used by root-level examples and
+  export validation so clean pnpm installs resolve the same packages as CI.
+- Update Vite, Nx, Vitest, and affected transitive dependencies to patched
+  releases while retaining the existing high-severity audit gate.
+
 ## 0.2.0 (2026-09-15)
 
 ### Added

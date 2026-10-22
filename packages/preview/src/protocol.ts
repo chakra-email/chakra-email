@@ -1,14 +1,19 @@
 import type { JsonObject } from './config.js';
 import type { PreviewCompatibilityReference } from './compatibility.js';
+import type { PreviewClientId } from './client-support.js';
+import type { PreviewSender } from './preview-from.js';
 
 export interface PreviewTemplate {
+  group?: string;
   id: string;
   name: string;
   path: string;
 }
 
 export interface PreviewTemplatesResponse {
+  lintRules?: PreviewLintRule[];
   capabilities: {
+    openInEditor?: boolean;
     linkCheck?: boolean;
     testSend: boolean;
   };
@@ -41,7 +46,16 @@ export type PreviewLintCategory =
   | 'deliverability'
   | 'markup';
 
+export interface PreviewLintRule {
+  id: string;
+  category: PreviewLintCategory;
+  /** Passing condition displayed in the checks catalog. */
+  title: string;
+  severity: PreviewLintSeverity;
+}
+
 export interface PreviewLintFinding {
+  clients?: PreviewClientId[];
   category: PreviewLintCategory;
   column?: number;
   compatibility?: PreviewCompatibilityReference;
@@ -49,12 +63,35 @@ export interface PreviewLintFinding {
   line?: number;
   message: string;
   ruleId: string;
+  /** Selector matching the affected element in the rendered HTML. */
+  selector?: string;
   severity: PreviewLintSeverity;
   suggestion: string;
 }
 
+export interface PreviewLinkCheckEntry {
+  /** Document-order index among all a[href] elements, including empty hrefs. */
+  index: number;
+  line?: number;
+  column?: number;
+  status: 'ok' | 'redirect' | 'broken' | 'skipped' | 'unverified';
+  /** Actual HEAD response code; absent when no HTTP response was received. */
+  statusCode?: number;
+}
+
+export interface PreviewLinkCheckSummary {
+  checked: number;
+  skipped: number;
+  /** Optional for compatibility with older preview servers. */
+  links?: PreviewLinkCheckEntry[];
+}
+
 export interface PreviewRenderResponse {
-  linkCheck?: { checked: number; skipped: number };
+  from?: PreviewSender;
+  previewText?: string;
+  rulesRun?: string[];
+  renderMs?: number;
+  linkCheck?: PreviewLinkCheckSummary;
   html: string;
   id: string;
   lint: PreviewLintFinding[];
@@ -71,4 +108,16 @@ export interface PreviewErrorResponse {
     message: string;
     stack?: string;
   };
+}
+
+export interface PreviewLintSummaryEntry {
+  id: string;
+  error: number;
+  warning: number;
+  info: number;
+}
+
+export interface PreviewLintSummary {
+  generation: number;
+  templates: PreviewLintSummaryEntry[];
 }
