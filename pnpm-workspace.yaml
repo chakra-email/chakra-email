@@ -16,12 +16,16 @@ overrides:
   'source-map-js@<1.2.2': 1.2.2
   axios: ^1.18.1
   browserslist: ^4.28.9
-  fast-uri: ^3.1.6
+  'brace-expansion@<1.1.21': 1.1.21
+  'brace-expansion@>=4.0.0 <5.0.12': 5.0.12
+  'engine.io@>=6.6.0 <6.6.10': 6.6.10
+  fast-uri: ^3.1.8
+  'follow-redirects@>=1.16.0 <1.16.1': 1.16.1
   js-yaml: ^4.3.1
   nanoid: ^3.3.18
-  'nx>brace-expansion': 5.0.9
-  'nx>smol-toml': 1.7.1
+  'nx>smol-toml': 1.9.0
   qs: ^6.16.0
+  'undici@>=7.0.0 <7.29.1': 7.29.1
 
 minimumReleaseAgeExclude:
   - react-structured@0.2.0

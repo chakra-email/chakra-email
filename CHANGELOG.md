@@ -63,6 +63,13 @@
   falls back to Desktop. Workspace color follows the OS or the palette's saved
   preference independently of email color. Test sending moves to the top bar.
 
+### Fixed
+
+- Declare first-party workspace dependencies used by root-level examples and
+  export validation so clean pnpm installs resolve the same packages as CI.
+- Update Vite, Nx, Vitest, and affected transitive dependencies to patched
+  releases while retaining the existing high-severity audit gate.
+
 ## 0.2.0 (2026-09-15)
 
 ### Added
