@@ -1,14 +1,15 @@
 # @chakra-email/core
 
-[![npm](https://img.shields.io/npm/v/%40chakra-email%2Fcore?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/core)
-[![NPM](https://img.shields.io/npm/l/%40chakra-email%2Fcore?style=flat-square)](https://github.com/chakra-email/chakra-email/blob/main/LICENSE)
-[![npm](https://img.shields.io/npm/dt/%40chakra-email%2Fcore?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/core)
+Email-safe React primitives, theme resolution, and HTML/plain-text rendering for Chakra Email adapters and custom tooling.
 
-Shared implementation for Chakra Email packages.
+[Documentation](https://chakra.email/docs/package-architecture) · [Getting started](https://chakra.email/docs/getting-started) · [Examples](https://chakra.email/examples) · [Issues](https://github.com/chakra-email/chakra-email/issues)
+
+[![npm](https://img.shields.io/npm/v/%40chakra-email%2Fcore?style=flat-square)](https://www.npmjs.com/package/@chakra-email/core)
+[![NPM](https://img.shields.io/npm/l/%40chakra-email%2Fcore?style=flat-square)](https://github.com/chakra-email/chakra-email/blob/main/LICENSE)
 
 Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
 
-Most applications should install `chakra-email` for current Chakra UI v3-style themes or `@chakra-email/chakra-v2` for legacy Chakra UI v2 themes. Install `@chakra-email/core` directly when you are building an adapter package or integrating the renderer into custom tooling.
+Most applications should install [`chakra-email`](https://chakra.email/docs/getting-started), or [`@chakra-email/chakra-v2`](https://chakra.email/docs/chakra-v2) for an existing v2 theme. Install core directly when building an adapter or integrating rendering into custom tooling. `@chakra-ui/react` is not required.
 
 ## Install
 
@@ -16,65 +17,71 @@ Most applications should install `chakra-email` for current Chakra UI v3-style t
 npm install @chakra-email/core react react-dom
 ```
 
-> [!NOTE]
-> `@chakra-email/core` is ESM-only and requires Node.js 20.19 or newer. Node.js 22 or 24 is recommended for new deployments.
+React 18 and 19 are supported. Packages are ESM-only: use `import` in an ESM-capable server or build tool. Node.js 24 is recommended; the published engine compatibility floor remains Node.js 20.19.
+
+## Quick start for tooling authors
+
+Use focused component, theme, and rendering entry points without either theme adapter:
+
+<!-- quickstart:start -->
+
+```tsx
+import { Body, Head, Html, Text } from '@chakra-email/core/components';
+import { renderEmail } from '@chakra-email/core/render';
+import { ThemeProvider } from '@chakra-email/core/theme';
+
+export default function WelcomeEmail() {
+  return (
+    <ThemeProvider>
+      <Html lang="en">
+        <Head>
+          <title>Welcome to Acme</title>
+        </Head>
+        <Body>
+          <Text>Welcome! Your account is ready.</Text>
+        </Body>
+      </Html>
+    </ThemeProvider>
+  );
+}
+
+export async function renderWelcomeEmail() {
+  const { html, text } = await renderEmail(<WelcomeEmail />);
+  return { html, text };
+}
+```
+
+<!-- quickstart:end -->
+
+Call `renderWelcomeEmail()` in server-side tooling and hand `html` and `text` to your delivery provider. Rendering does not send mail. For renderer adapters, the `chakraEmailRenderer` export from `@chakra-email/core/render` implements the shared preview renderer contract.
 
 ## Includes
 
-- React email primitives.
-- Theme-aware font stacks and safe optional web-font declarations.
-- Markdown-body primitives for blockquotes, code, preformatted blocks, and tables.
-- Email-safe Chakra-style style prop mapping.
-- Chakra v3 token object and semantic token resolution.
-- Chakra v2-style flat theme scale compatibility.
+- React document, layout, text, table, and Markdown-body primitives.
+- Theme-aware fonts and optional safe web-font declarations.
+- Chakra-style style prop mapping and token/semantic-token resolution.
 - Email-safe component recipes and multipart slot recipes.
-- HTML and plain-text render helpers.
-- Strict, configurable URL policies and bounded-output helpers.
+- HTML and plain-text rendering from a single React render.
+- Configurable URL policies and bounded-output helpers.
 
-## Exports
+Focused entry points are `@chakra-email/core/components`, `@chakra-email/core/render`, `@chakra-email/core/theme`, `@chakra-email/core/system`, and `@chakra-email/core/security`. The package root re-exports the shared surface.
 
-```ts
-import {
-  Blockquote,
-  Button,
-  Code,
-  Table,
-  Text,
-} from '@chakra-email/core/components';
-import {
-  chakraEmailRenderer,
-  render,
-  renderEmail,
-  renderPlainText,
-} from '@chakra-email/core/render';
-import {
-  EmailRenderError,
-  strictEmailOutputLimits,
-  strictEmailSecurityPolicy,
-} from '@chakra-email/core/security';
-import {
-  ThemeProvider,
-  chakraEmailRecipeKeys,
-  chakraEmailSlotRecipeKeys,
-  chakraEmailThemeConfig,
-} from '@chakra-email/core/theme';
-```
+Read [theming](https://chakra.email/docs/theming) for `ThemeProvider`, recipe keys, multipart slots, and optional Chakra UI `createSystem()` integration.
 
-See the [theming guide](https://github.com/chakra-email/chakra-email/blob/main/docs/theming.md#component-recipes) for recipe keys, multipart slots, and Chakra UI `createSystem()` integration.
+## Safety
 
-## Package Role
+Use absolute public URLs for links and images, or valid `cid:` image attachments. The default policy omits unsafe and relative URLs; `EmailRenderError`, `strictEmailSecurityPolicy`, and `strictEmailOutputLimits` from `@chakra-email/core/security` enable stricter handling and final HTML/text byte limits. Sanitize raw HTML before admitting it to Markdown, and test representative email clients rather than assuming browser feature support.
 
-`@chakra-email/core` is intentionally lower-level than `chakra-email`. Its public surface is stable for adapter authors, but application code should usually import from `chakra-email` or `@chakra-email/chakra-v2`.
+## Next steps
 
-## More Docs
-
-- [Package architecture](https://github.com/chakra-email/chakra-email/blob/main/docs/package-architecture.md)
-- [Components](https://github.com/chakra-email/chakra-email/blob/main/docs/components.md)
-- [Rendering](https://github.com/chakra-email/chakra-email/blob/main/docs/rendering.md)
+- [Package architecture](https://chakra.email/docs/package-architecture)
+- [Components](https://chakra.email/docs/components)
+- [Rendering and renderer adapters](https://chakra.email/docs/rendering)
+- [Local preview](https://chakra.email/docs/preview)
 
 ## Help and contributing
 
-See the [project README](https://github.com/chakra-email/chakra-email#readme), [open an issue](https://github.com/chakra-email/chakra-email/issues), or read the [contribution guidelines](https://github.com/chakra-email/chakra-email/blob/main/CONTRIBUTING.md). Report vulnerabilities privately through the [security policy](https://github.com/chakra-email/chakra-email/security/policy).
+[Open an issue](https://github.com/chakra-email/chakra-email/issues) or read the [contribution guidelines](https://github.com/chakra-email/chakra-email/blob/main/CONTRIBUTING.md). Report vulnerabilities privately through the [security policy](https://github.com/chakra-email/chakra-email/security/policy).
 
 ## License
 
