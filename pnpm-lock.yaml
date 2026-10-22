@@ -18,9 +18,24 @@ overrides:
 importers:
   .:
     devDependencies:
+      '@chakra-email/chakra-v2':
+        specifier: workspace:*
+        version: link:packages/chakra-email-v2
+      '@chakra-email/code-block':
+        specifier: workspace:*
+        version: link:packages/code-block
       '@chakra-email/core':
         specifier: workspace:*
         version: link:packages/core
+      '@chakra-email/markdown':
+        specifier: workspace:*
+        version: link:packages/markdown
+      '@chakra-email/preview':
+        specifier: workspace:*
+        version: link:packages/preview
+      '@chakra-email/react-email':
+        specifier: workspace:*
+        version: link:packages/react-email
       '@chakra-ui/react':
         specifier: 3.36.0
         version: 3.36.0(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.5)(supports-color@7.2.0))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -72,6 +87,9 @@ importers:
       axe-core:
         specifier: 4.12.1
         version: 4.12.1
+      chakra-email:
+        specifier: workspace:*
+        version: link:packages/chakra-email
       eslint:
         specifier: ~8.57.0
         version: 8.57.1(supports-color@7.2.0)

@@ -75,7 +75,12 @@
     "pnpm": ">=11.25.0"
   },
   "devDependencies": {
+    "@chakra-email/chakra-v2": "workspace:*",
+    "@chakra-email/code-block": "workspace:*",
     "@chakra-email/core": "workspace:*",
+    "@chakra-email/markdown": "workspace:*",
+    "@chakra-email/preview": "workspace:*",
+    "@chakra-email/react-email": "workspace:*",
     "@chakra-ui/react": "3.36.0",
     "@chakra-ui/react-v2": "npm:@chakra-ui/react@2.10.9",
     "@eslint/js": "^9.8.0",
@@ -93,6 +98,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitest/coverage-v8": "4.1.11",
     "axe-core": "4.12.1",
+    "chakra-email": "workspace:*",
     "eslint": "~8.57.0",
     "fast-check": "^4.8.0",
     "hast-util-from-html": "^2.0.3",

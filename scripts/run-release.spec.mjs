@@ -308,6 +308,11 @@ test('every public package is covered by release, pack, local, and consumer gate
   );
 
   for (const { directory, manifest } of publicPackages) {
+    assert.equal(
+      packageManifest.devDependencies[manifest.name],
+      'workspace:*',
+      `root examples and export checks must resolve ${manifest.name} in a clean pnpm install`,
+    );
     assert.match(
       packageManifest.scripts['pack:inspect'],
       new RegExp(`--workspace ${manifest.name.replaceAll('/', '\\/')}(?: |$)`),
