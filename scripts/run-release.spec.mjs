@@ -283,7 +283,7 @@ test('workflows activate the pnpm version declared by packageManager', () => {
     'packageManager must pin an exact pnpm version',
   );
 
-  for (const workflow of ['ci.yml', 'pages.yml', 'release.yml']) {
+  for (const workflow of ['ci.yml', 'release.yml']) {
     const workflowSource = readFileSync(
       new URL(`../.github/workflows/${workflow}`, import.meta.url),
       'utf8',

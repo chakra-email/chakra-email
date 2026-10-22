@@ -110,8 +110,10 @@ in the repository cannot enforce them by themselves:
   with short-lived OIDC credentials.
 - After a tokenless trusted publish succeeds, configure npm publishing access to
   require 2FA and disallow traditional tokens. Keep provenance enabled.
-- Configure GitHub Pages to use GitHub Actions as its source. Documentation is
-  deployed only from the exact `main` commit that completed CI successfully.
+- Connect the documentation site to Vercel with Root Directory `apps/site`.
+  Use the committed build configuration and deploy the reviewed release commit;
+  see [deployment settings](apps/site/DEPLOYMENT.md). npm publication and site
+  deployment are separate operations.
 
 ## Documentation
 

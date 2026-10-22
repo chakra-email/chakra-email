@@ -1,4 +1,37 @@
-# chakra.email analytics
+# Deploying chakra.email
+
+## Vercel project settings
+
+Import `chakra-email/chakra-email` and use these project settings:
+
+- Root Directory: `apps/site`. Enable **Include source files outside of the
+  Root Directory in the Build Step** so the workspace packages and docs are available.
+- Framework Preset: **Vite**, not Next.js.
+- Node.js: **24.x** (local development and CI pin `24.18.0`).
+- Production branch: `main`; production domain: `chakra.email`.
+- Use the committed `vercel.json` for install/build commands and Output Directory
+  `dist`, relative to `apps/site` (the repository path is `apps/site/dist`).
+- Leave `SITE_BASE_PATH` unset for the production domain; its default is `/`.
+
+The install command enables the pinned pnpm version at the repository root and
+performs a frozen workspace install. The build command runs `pnpm run site:build`
+from that root. This is a static Vite site: do not use `.next`, `out`, or a
+Next.js framework preset. Public dependencies require no npm publishing token
+or GitHub App credentials for deployment.
+
+Vercel serves the generated route-specific HTML files with extensionless URLs.
+There is deliberately no catch-all SPA rewrite: unknown paths should return
+the generated `404.html` with status 404, not the homepage with status 200.
+See [Vercel's configuration reference](https://vercel.com/docs/project-configuration/vercel-json).
+
+Deploy a preview first. Check a direct visit and refresh on
+`/docs/getting-started`, `/examples`, `/packages`, and `/withoss`, verify an
+unknown path returns 404, and check the discovery URLs below. After production
+deployment, verify canonical URLs use `https://chakra.email` and Fathom receives
+pageviews. GitHub Actions still verifies the code and publishes npm packages;
+the old GitHub Pages deployment workflow has been retired.
+
+## Analytics environment variables
 
 The documentation site uses React Fathom for initial pageviews, SPA navigation,
 and docs interaction events. The email preview app and delivered email HTML
@@ -23,7 +56,7 @@ site ID does not reuse an artifact compiled for another analytics site.
 The site uses published `next-meta@0.5.0` through its framework-free core.
 The Vite build emits route-specific HTML heads for public pages, the `/docs`
 alias, error pages, and social-image capture templates. Serve these generated
-`<route>/index.html` files before applying an SPA fallback, and use the generated
+`<route>/index.html` files directly, and use the generated
 `404.html` for unknown routes with an HTTP 404 status. No Next.js runtime
 is installed or needed. Client navigation uses the same metadata resolver and
 updates canonical, Open Graph, and Twitter tags without duplicates.
@@ -41,7 +74,7 @@ HTML capture templates while keeping renderer-generated social PNGs crawlable.
 Both files are also available on the development server. `SITE_BASE_PATH` is
 respected for subpath deployments; crawlers look for `robots.txt` at the domain
 root, so a subpath host must also publish or merge those rules into its root
-robots file. Serve the generated files before any SPA fallback, with
+robots file. Serve the generated files directly, with
 `application/xml; charset=utf-8` for the sitemap and `text/plain; charset=utf-8`
 for robots. Check both URLs after deploying. No npm publish is required.
 

@@ -47,10 +47,16 @@ families. Do not externalize unresolved browser imports to make the gate pass.
 
 ## Production Hosting
 
-The site is a static Vite build. Publish `apps/site/dist` with any static host.
-Configure an HTML fallback to `index.html` for application routes such as
-`/docs/getting-started`, `/examples`, `/packages`, and `/withoss` so direct visits
-and browser refreshes work.
+The production site deploys on Vercel with Root Directory `apps/site`, the Vite
+preset, and the committed `apps/site/vercel.json`. See the
+[deployment settings](https://github.com/chakra-email/chakra-email/blob/main/apps/site/DEPLOYMENT.md)
+for environment variables and the preview verification checklist. npm publication
+does not deploy the site; the former GitHub Pages workflow has been retired.
+
+The static Vite build can also be hosted elsewhere by publishing `apps/site/dist`.
+Serve each generated `<route>/index.html` file for direct visits and refreshes
+on `/docs/getting-started`, `/examples`, `/packages`, and `/withoss`. Use
+`404.html` with HTTP status 404 for unknown routes, not a blanket homepage fallback.
 For a host that serves the site below a repository path, provide the public base
 path at build time:
 
@@ -65,8 +71,8 @@ location without hard-coded root links.
 ### Crawler discovery files
 
 The build generates `/sitemap.xml`, `/robots.txt`, `/llms.txt`, and
-`/llms-full.txt` alongside the app in `apps/site/dist`. Serve these files before
-the HTML fallback so crawlers receive XML or text rather than the SPA shell.
+`/llms-full.txt` alongside the app in `apps/site/dist`. Serve these files directly
+so crawlers receive XML or text rather than the SPA shell.
 The sitemap includes public site pages and published docs, but not the `/docs`
 alias, draft or hidden docs, or social-image capture templates. Robots advertises
 the canonical sitemap and blocks HTML capture templates without blocking

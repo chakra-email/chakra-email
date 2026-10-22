@@ -11,7 +11,7 @@ test('development and release tooling pin Node 24 and pnpm', () => {
   assert.match(read('.nvmrc').trim(), /^24\.\d+\.\d+$/);
   assert.equal(manifest.packageManager, 'pnpm@11.25.0');
   assert.equal(manifest.engines.node, '>=24 <25');
-  for (const file of ['ci.yml', 'pages.yml', 'release.yml']) {
+  for (const file of ['ci.yml', 'release.yml']) {
     const source = read('.github/workflows/' + file);
     assert.match(source, /node-version-file: '\.nvmrc'/);
     assert.match(source, /corepack enable/);
@@ -23,6 +23,29 @@ test('development and release tooling pin Node 24 and pnpm', () => {
   assert.ok(springbar.includes(`version = "${read('.nvmrc').trim()}"`));
   assert.match(read('pnpm-workspace.yaml'), /'packages\/\*'/);
   assert.match(read('pnpm-workspace.yaml'), /'apps\/\*'/);
+});
+
+test('Vercel builds the static site from the workspace without a catch-all rewrite', () => {
+  const config = JSON.parse(read('apps/site/vercel.json'));
+  assert.equal(config.framework, 'vite');
+  assert.equal(
+    config.installCommand,
+    'cd ../.. && corepack enable && pnpm install --frozen-lockfile',
+  );
+  assert.equal(config.buildCommand, 'cd ../.. && pnpm run site:build');
+  assert.equal(config.outputDirectory, 'dist');
+  assert.equal(config.cleanUrls, true);
+  assert.equal(config.trailingSlash, false);
+  assert.equal(
+    config.rewrites,
+    undefined,
+    'preserve route-specific HTML and real 404s',
+  );
+  assert.equal(config.routes, undefined);
+  const deployment = read('apps/site/DEPLOYMENT.md');
+  assert.match(deployment, /Root Directory.*`apps\/site`/);
+  assert.match(deployment, /VITE_FATHOM_SITE_ID/);
+  assert.match(deployment, /404\.html/);
 });
 
 test('Springbar runs the local email preview with a trusted hostname and assigned port', () => {
