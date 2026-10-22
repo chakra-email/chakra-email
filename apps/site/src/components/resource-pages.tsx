@@ -1,8 +1,9 @@
 import { DocsCards, MarkdownContent } from '@chakra-docs/chakra';
 import { Box, Heading, Stack, Tabs } from '@chakra-ui/react';
-import { examples, packageLinks } from '../content';
+import { packageLinks } from '../site-resources';
+import type { Example } from '../content';
 
-export function ExamplesPage() {
+export function ExamplesPage({ examples }: { examples: Example[] }) {
   return (
     <Stack gap={8}>
       <DocsCards.Root>

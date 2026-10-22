@@ -6,6 +6,11 @@
   "tags": ["scope:site"],
   "// targets": "to see all targets run: nx show project site --web",
   "targets": {
+    "smoke": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": { "command": "node scripts/site-smoke.mjs" }
+    },
     "test": {
       "inputs": [
         "default",
@@ -15,15 +20,50 @@
       ]
     },
     "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/site",
+        "command": "next build --webpack",
+        "env": { "NODE_ENV": "production" }
+      },
+      "outputs": ["{projectRoot}/.next"],
+      "dependsOn": ["^build"],
       "inputs": [
         "production",
         "^production",
         "{workspaceRoot}/docs/**/*.md",
-        { "externalDependencies": ["vite"] },
-        { "env": "SITE_BASE_PATH" },
-        { "env": "VITE_FATHOM_SITE_ID" },
-        { "env": "VITE_FATHOM_CUSTOM_DOMAIN" }
+        "{workspaceRoot}/examples/**/*",
+        { "externalDependencies": ["next"] },
+        { "env": "NEXT_PUBLIC_FATHOM_SITE_ID" },
+        { "env": "NEXT_PUBLIC_FATHOM_CUSTOM_DOMAIN" }
       ]
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "cwd": "apps/site",
+        "command": "next dev --webpack --hostname 127.0.0.1 --port 4200",
+        "env": { "NODE_ENV": "development" }
+      }
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "dependsOn": ["build"],
+      "options": {
+        "cwd": "apps/site",
+        "command": "next start --hostname 127.0.0.1 --port 4300",
+        "env": { "NODE_ENV": "production" }
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/site",
+        "command": "next typegen && tsc --noEmit"
+      },
+      "dependsOn": ["^build"]
     }
   }
 }

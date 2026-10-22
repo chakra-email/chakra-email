@@ -15,7 +15,7 @@ setup = []
 [[unit]]
 name = "site"
 working_dir = "apps/site"
-command = '__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=chakra-email.test NX_DAEMON=false pnpm nx run site:dev -- --host 127.0.0.1 --port "$PORT"'
+command = 'pnpm exec next dev --webpack --hostname 127.0.0.1 --port "$PORT"'
 package_manager = "pnpm"
 port = 4362
 hostnames = ["chakra-email.test"]

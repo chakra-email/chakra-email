@@ -1,17 +1,11 @@
-/** Keep application links and static artwork aligned with Vite's deployment base. */
-export function toSiteHref(
-  href: string,
-  base = import.meta.env.BASE_URL,
-): string {
+/** Keep application links and static artwork aligned with the deployment base. */
+export function toSiteHref(href: string, base = '/'): string {
   if (!href.startsWith('/') || href.startsWith('//') || base === '/')
     return href;
   return `${base.replace(/\/$/, '')}${href}`;
 }
 
-export function getSitePathname(
-  pathname: string,
-  base = import.meta.env.BASE_URL,
-): string {
+export function getSitePathname(pathname: string, base = '/'): string {
   pathname = pathname.replace(/\/+$/, '') || '/';
   const prefix = base.replace(/\/$/, '');
   if (!prefix) return pathname;

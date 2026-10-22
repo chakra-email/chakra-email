@@ -2,88 +2,47 @@
 
 ## Vercel project settings
 
-Import `chakra-email/chakra-email` and use these project settings:
-
-- Root Directory: `apps/site`. Enable **Include source files outside of the
-  Root Directory in the Build Step** so the workspace packages and docs are available.
-- Framework Preset: **Vite**, not Next.js.
-- Node.js: **24.x** (local development and CI pin `24.18.0`).
+- Root Directory: `apps/site`. Enable **Include source files outside of the Root Directory in the Build Step** so documentation and example sources are available.
+- Framework Preset: **Next.js**. Do not select the separate Vite preview app.
+- Node.js: **24.x** (development and CI pin `24.18.0`).
 - Production branch: `main`; production domain: `chakra.email`.
-- Use the committed `vercel.json` for install/build commands and Output Directory
-  `dist`, relative to `apps/site` (the repository path is `apps/site/dist`).
-- Leave `SITE_BASE_PATH` unset for the production domain; its default is `/`.
+- Install and Build Commands: use the committed `vercel.json` defaults.
+- Output Directory: **clear the override and leave automatic**. Next uses `.next`; do not enter `out`, `dist`, `docs/out`, or a repository-relative output path.
 
-The install command enables the pinned pnpm version at the repository root and
-performs a frozen workspace install. The build command runs `pnpm run site:build`
-from that root. This is a static Vite site: do not use `.next`, `out`, or a
-Next.js framework preset. Public dependencies require no npm publishing token
-or GitHub App credentials for deployment.
+The install command enables the repository's pinned pnpm version and performs a frozen workspace install. The build command runs `pnpm run site:build` from the repository root. Next prerenders the documentation and discovery endpoints while retaining a runtime for `/api/docs/search`. Do not enable `output: 'export'` or add a catch-all SPA rewrite.
 
-Vercel serves the generated route-specific HTML files with extensionless URLs.
-There is deliberately no catch-all SPA rewrite: unknown paths should return
-the generated `404.html` with status 404, not the homepage with status 200.
-See [Vercel's configuration reference](https://vercel.com/docs/project-configuration/vercel-json).
+Public dependencies need no npm publishing token or GitHub App credentials for deployment. Publishing the npm packages does not deploy the site. The email preview application remains Vite-based and is not the Vercel project root.
 
-Deploy a preview first. Check a direct visit and refresh on
-`/docs/getting-started`, `/examples`, `/packages`, and `/withoss`, verify an
-unknown path returns 404, and check the discovery URLs below. After production
-deployment, verify canonical URLs use `https://chakra.email` and Fathom receives
-pageviews. GitHub Actions still verifies the code and publishes npm packages;
-the old GitHub Pages deployment workflow has been retired.
+If the Vercel project was previously configured for Vite, update the Framework Preset and remove its saved `dist`/`out` Output Directory override before redeploying. A dashboard override can survive repository changes.
 
 ## Analytics environment variables
 
-The documentation site uses React Fathom for initial pageviews, SPA navigation,
-and docs interaction events. The email preview app and delivered email HTML
-do not include analytics.
+Set these in Vercel before building:
 
-Set `VITE_FATHOM_SITE_ID` and optionally `VITE_FATHOM_CUSTOM_DOMAIN` before
-building the site. These are public Vite values, not secrets. An empty ID
-disables script loading and network tracking. Only event names are sent:
-search strings, clipboard contents, and feedback comments are excluded.
-Pageview URLs omit query strings and fragments; OG capture pages are untracked.
+- `NEXT_PUBLIC_FATHOM_SITE_ID`: the Fathom site ID. Leave unset to disable analytics.
+- `NEXT_PUBLIC_FATHOM_CUSTOM_DOMAIN`: optional custom tracking hostname, without a scheme or path.
 
-The site uses the published `react-fathom@0.3.0` release and Chakra Docs packages
-pinned to `0.3.0`. No local yalc copies of these packages are needed for a clean
-CI or deployment install.
+These public build-time settings replace the old `VITE_FATHOM_*` names. Add them to Production and Preview environments as desired, then rebuild. Nx includes both values in the build-cache inputs. No other environment variables are required.
 
-Build with `pnpm nx run site:build` using the pinned Node 24 and pnpm versions.
-The build cache includes both analytics environment variables, so changing a
-site ID does not reuse an artifact compiled for another analytics site.
+The site uses published React Fathom for one initial pageview and subsequent Next navigation. Query strings, fragments, search text, clipboard data, and feedback comments are excluded. Social-image captures are untracked. The preview app and delivered email HTML do not include analytics.
 
-## Search engine discovery
+## Metadata and discovery
 
-The site uses published `next-meta@0.5.0` through its framework-free core.
-The Vite build emits route-specific HTML heads for public pages, the `/docs`
-alias, error pages, and social-image capture templates. Serve these generated
-`<route>/index.html` files directly, and use the generated
-`404.html` for unknown routes with an HTTP 404 status. No Next.js runtime
-is installed or needed. Client navigation uses the same metadata resolver and
-updates canonical, Open Graph, and Twitter tags without duplicates.
+The Next Metadata API uses `next-meta/app` for canonical, Open Graph, and Twitter metadata. Public pages include server-rendered JSON-LD through React Structured. Next returns real 404 responses for unknown pages. Capture pages are noindex in both HTML metadata and response headers, and do not advertise normal social cards.
 
-Capture and not-found pages are marked noindex. Capture pages do not advertise
-social cards. No image URLs are invented: this site has no static social PNG
-and PNG generation remains owned by the external image renderer.
+The following native route handlers are prerendered from the same documentation manifest:
 
-The build generates `sitemap.xml` and `robots.txt` in `apps/site/dist`. The sitemap
-lists the home, examples, packages, OSS credits, and published documentation
-pages using `https://chakra.email`. Draft and hidden docs and social-image
-capture templates are excluded. Robots advertises the sitemap and disallows
-HTML capture templates while keeping renderer-generated social PNGs crawlable.
+- `/sitemap.xml`: public pages and published docs, excluding aliases, drafts, hidden pages, and captures.
+- `/robots.txt`: canonical sitemap plus HTML-capture exclusions.
+- `/llms.txt`: canonical documentation index.
+- `/llms-full.txt`: complete published Markdown bodies.
 
-Both files are also available on the development server. `SITE_BASE_PATH` is
-respected for subpath deployments; crawlers look for `robots.txt` at the domain
-root, so a subpath host must also publish or merge those rules into its root
-robots file. Serve the generated files directly, with
-`application/xml; charset=utf-8` for the sitemap and `text/plain; charset=utf-8`
-for robots. Check both URLs after deploying. No npm publish is required.
+Search is served through `/api/docs/search` with bounded queries and compact results; its complete index stays on the server. The build traces Markdown and example source files from outside `apps/site` so runtime functions can access them on Vercel.
 
-## LLM documentation
+PNG generation remains owned by the configured external image renderer. Do not rewrite renderer-owned `.png` URLs to HTML.
 
-The Vite build writes `llms.txt` and `llms-full.txt` to `apps/site/dist`, and the
-development server serves the same text endpoints. They use the site's shared
-documentation manifest: the index links to canonical `https://chakra.email`
-pages and the full file contains the Markdown bodies. Draft and hidden pages
-are excluded, and links respect `SITE_BASE_PATH` when deploying under a subpath.
-Documentation source files are included in the Nx build-cache inputs. Rebuild
-and deploy the site after editing docs; no npm publish is needed.
+## Verification checklist
+
+Run `pnpm nx build site`, `pnpm nx run site:typecheck`, `pnpm nx run site:test --coverage --maxWorkers=1`, and `pnpm nx run site:smoke` using the pinned Node and pnpm versions.
+
+Deploy a preview and verify direct visits and refreshes on `/`, `/docs/getting-started`, `/examples`, `/packages`, and `/withoss`; an unknown page must return 404. Check all four discovery endpoints, API search, mobile navigation, highlighted code/copy buttons, and `/og-image`. Canonical URLs must use `https://chakra.email`. Confirm Fathom receives pageviews after production deployment.

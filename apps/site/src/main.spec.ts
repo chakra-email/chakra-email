@@ -4,13 +4,76 @@ import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './app';
-import { docPages, examples, packageLinks } from './content';
+import { docPages, docsManifest, examples } from './test/content';
+import { packageLinks } from './site-resources';
+import { resolveSitePage } from './server/pages';
+import { getRecommendedSearchResults } from './search-recommendations';
+import { getSitePathname } from './routing';
+import { createSiteStructuredData } from './site-structured-data';
+import { Graph } from 'react-structured';
 import { OG_IMAGE_DEFAULTS } from './og-image';
 import { siteOgImageRecipe } from './theme/og-image';
 import { siteSlotRecipes } from './theme/site-recipes';
 import { siteThemeConfig } from './theme/system';
 
 let root: Root;
+vi.mock('next/navigation', () => ({
+  usePathname: () => getSitePathname(window.location.pathname),
+  useSearchParams: () => new URLSearchParams(window.location.search),
+  useRouter: () => ({ push: (href: string) => navigate(href) }),
+}));
+vi.mock('next/link', () => ({
+  default: ({
+    href,
+    children,
+    onClick,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) =>
+    createElement(
+      'a',
+      {
+        ...props,
+        href,
+        onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
+          onClick?.(event);
+          if (
+            !event.defaultPrevented &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.shiftKey &&
+            !event.altKey &&
+            event.button === 0 &&
+            !props.target
+          ) {
+            event.preventDefault();
+            void navigate(href);
+          }
+        },
+      },
+      children,
+    ),
+}));
+
+function renderApp() {
+  const pathname = getSitePathname(window.location.pathname);
+  const graph = createSiteStructuredData(pathname, docsManifest);
+  root.render(
+    createElement(App, {
+      page: resolveSitePage(pathname, docsManifest),
+      nav: [
+        ...docsManifest.nav,
+        { id: 'examples', title: 'Template examples', href: '/examples' },
+        { id: 'packages', title: 'Packages', href: '/packages' },
+      ],
+      recommendations: getRecommendedSearchResults(docsManifest.search),
+      year: 2026,
+      examples,
+      children: graph
+        ? createElement(Graph, { id: 'page-structured-data', data: graph })
+        : null,
+    }),
+  );
+}
 beforeEach(async () => {
   (
     globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
@@ -46,7 +109,7 @@ beforeEach(async () => {
   const appElement = document.getElementById('app');
   if (!appElement) throw new Error('Missing test app root.');
   root = createRoot(appElement);
-  await act(async () => root.render(createElement(App)));
+  await act(async () => renderApp());
 });
 afterEach(async () => {
   await act(async () => root.unmount());
@@ -57,15 +120,14 @@ afterEach(async () => {
 async function navigate(path: string) {
   await act(async () => {
     window.history.pushState({}, '', path);
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    renderApp();
   });
 }
 
 describe('documentation application', () => {
-  it('keeps static directory routes usable and replaces metadata on client navigation', async () => {
+  it('renders the server-selected page and its structured data on navigation', async () => {
     await navigate('/docs/getting-started/?private=value#install');
     expect(document.querySelector('h1')?.textContent).toBe('Getting Started');
-    expect(document.title).toBe('Getting Started - Chakra Email');
     expect(
       document.querySelectorAll('script[type="application/ld+json"]'),
     ).toHaveLength(1);
@@ -78,36 +140,18 @@ describe('documentation application', () => {
         (node: { '@type': string }) => node['@type'] === 'TechArticle',
       ).headline,
     ).toBe('Getting Started');
-    expect(document.querySelectorAll('link[rel="canonical"]')).toHaveLength(1);
-    expect(
-      document.querySelector('link[rel="canonical"]')?.getAttribute('href'),
-    ).toBe('https://chakra.email/docs/getting-started');
     await navigate('/packages/');
     expect(document.querySelector('h1')?.textContent).toBe('Packages');
-    expect(document.title).toBe('Packages - Chakra Email');
     expect(
       graph().find(
         (node: { '@type': string }) => node['@type'] === 'CollectionPage',
       ).name,
     ).toBe('Packages');
-    expect(document.querySelectorAll('meta[property="og:title"]')).toHaveLength(
-      1,
-    );
-    expect(
-      document
-        .querySelector('meta[property="og:url"]')
-        ?.getAttribute('content'),
-    ).toBe('https://chakra.email/packages');
     await navigate('/og-image');
     expect(
       document.querySelector('script[type="application/ld+json"]'),
     ).toBeNull();
-    expect(document.querySelector('meta[property="og:title"]')).toBeNull();
     await navigate('/packages');
-    expect(document.querySelector('meta[name="robots"]')).toBeNull();
-    expect(document.querySelectorAll('meta[property="og:title"]')).toHaveLength(
-      1,
-    );
   });
 
   it('shares one mobile toolbar across home, docs, examples, and packages', async () => {
@@ -229,9 +273,6 @@ describe('documentation application', () => {
       expect(siteOgImageRecipe.base?.root.w).toBe('1200px');
       expect(siteOgImageRecipe.base?.root.h).toBe('630px');
       expect(document.querySelector('header, footer, button')).toBeNull();
-      expect(
-        document.querySelector('meta[name="robots"]')?.getAttribute('content'),
-      ).toBe('noindex, nofollow');
       expect(document.querySelector('[data-og-ready="true"]')).not.toBeNull();
     }
     await navigate(

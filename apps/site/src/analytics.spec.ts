@@ -10,8 +10,8 @@ let element: HTMLDivElement;
 let client: FathomClient;
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-  vi.stubEnv('VITE_FATHOM_SITE_ID', 'TESTSITE');
-  vi.stubEnv('VITE_FATHOM_CUSTOM_DOMAIN', 'analytics.example.com');
+  vi.stubEnv('NEXT_PUBLIC_FATHOM_SITE_ID', 'TESTSITE');
+  vi.stubEnv('NEXT_PUBLIC_FATHOM_CUSTOM_DOMAIN', 'analytics.example.com');
   window.history.replaceState({}, '', '/docs?token=private#heading');
   element = document.createElement('div');
   document.body.append(element);
@@ -72,7 +72,7 @@ describe('site analytics', () => {
     ).not.toMatch(/private|token|heading/);
   });
   it('preserves children without loading analytics when no ID is set', async () => {
-    vi.stubEnv('VITE_FATHOM_SITE_ID', '');
+    vi.stubEnv('NEXT_PUBLIC_FATHOM_SITE_ID', '');
     await render('/docs');
     expect(element.textContent).toBe('Page content');
     expect(client.load).not.toHaveBeenCalled();

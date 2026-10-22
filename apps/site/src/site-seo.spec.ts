@@ -1,8 +1,8 @@
 import { createSitemapEntries } from '@chakra-docs/core';
 import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
-import { createDiscoveryFiles } from '../discovery-plugin';
-import { docsManifest } from './docs';
+import { createDiscoveryFiles } from './server/discovery';
+import { docsManifest } from './test/content';
 import { SITE_URL } from './site-metadata';
 import { createSiteRobots, createSiteSitemap } from './site-seo';
 

@@ -64,7 +64,7 @@ export type SiteMetadata = {
   tags: HeadTag[];
 };
 
-/** Shared by Vite's HTML build and client navigation; no Next or React runtime. */
+/** Shared route metadata for Next's Metadata API and structured data. */
 export function createSiteMetadata(
   pathname: string,
   manifest: DocsManifest,
@@ -156,74 +156,4 @@ export function getSiteMetadataRoutes(manifest: DocsManifest): string[] {
         .map((route) => `/og-image${route}`),
     ]),
   ];
-}
-
-const escapeHtml = (value: string) =>
-  value.replace(
-    /[&<>"']/g,
-    (character) =>
-      ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      })[character] ?? character,
-  );
-
-export function renderSiteMetadataHtml(
-  html: string,
-  metadata: SiteMetadata,
-  structuredDataHtml = '',
-): string {
-  const marker =
-    /<!-- site-metadata:start -->[\s\S]*?<!-- site-metadata:end -->/;
-  if (!marker.test(html))
-    throw new Error('Site metadata HTML marker is missing.');
-  const tags = [
-    `<title>${escapeHtml(metadata.title)}</title>`,
-    ...(metadata.canonical
-      ? [
-          `<link rel="canonical" data-site-metadata href="${escapeHtml(metadata.canonical)}">`,
-        ]
-      : []),
-    ...metadata.tags.map(
-      (tag) =>
-        `<meta data-site-metadata ${tag.name ? `name="${escapeHtml(tag.name)}"` : `property="${escapeHtml(tag.property ?? '')}"`} content="${escapeHtml(tag.content)}">`,
-    ),
-  ];
-  return html.replace(
-    marker,
-    () =>
-      `<!-- site-metadata:start -->\n${tags.join('\n')}\n${structuredDataHtml}\n<!-- site-metadata:end -->`,
-  );
-}
-
-export function applySiteMetadata(
-  document: Document,
-  metadata: SiteMetadata,
-): () => void {
-  document.title = metadata.title;
-  document.head
-    .querySelectorAll('[data-site-metadata]')
-    .forEach((node) => node.remove());
-  const owned: Element[] = [];
-  if (metadata.canonical) {
-    const link = document.createElement('link');
-    link.rel = 'canonical';
-    link.href = metadata.canonical;
-    owned.push(link);
-  }
-  for (const tag of metadata.tags) {
-    const element = document.createElement('meta');
-    if (tag.name) element.name = tag.name;
-    if (tag.property) element.setAttribute('property', tag.property);
-    element.content = tag.content;
-    owned.push(element);
-  }
-  for (const element of owned) {
-    element.setAttribute('data-site-metadata', '');
-    document.head.append(element);
-  }
-  return () => owned.forEach((element) => element.remove());
 }

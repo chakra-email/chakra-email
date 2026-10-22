@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { getRecommendedSearchResults } from './search-recommendations';
 
 import {
-  docsManifest,
   extractDocsHeadings,
-  getDocsPage,
   prepareMarkdown,
   resolveMarkdownHref,
 } from './docs';
+import { docsManifest } from './test/content';
+import { resolveSitePage } from './server/pages';
 
 describe('documentation manifest', () => {
   it('recommends the six onboarding pages using their manifest metadata', () => {
@@ -76,6 +76,6 @@ describe('documentation manifest', () => {
   });
 
   it('uses the first page as the landing-page documentation selection', () => {
-    expect(getDocsPage('/').id).toBe('getting-started');
+    expect(resolveSitePage('/docs', docsManifest)?.id).toBe('getting-started');
   });
 });
