@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-10-21)
 
 ### Added
 
@@ -46,6 +46,8 @@
 
 ### Changed
 
+- All seven public packages are versioned at `0.3.0`, with internal dependency
+  ranges aligned to `^0.3.0` and a synchronized lockfile.
 - Copy as variant rejects reserved names and fixture-key deletions that cannot
   round-trip through nested merges; edits also cancel pending clipboard writes.
 - Props fields retain their types across invalid number drafts and null edits;

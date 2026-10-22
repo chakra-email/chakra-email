@@ -37,7 +37,7 @@ Before opening a pull request:
 
 ## Releases
 
-All four packages use one fixed version. Version and changelog changes are
+All seven public packages use one fixed version. Version and changelog changes are
 reviewed and committed through a normal pull request; the `Release` GitHub
 Actions workflow only verifies and publishes the package versions already on
 `main`. It never commits, tags, pushes, or creates a GitHub release.
@@ -45,16 +45,17 @@ Actions workflow only verifies and publishes the package versions already on
 To prepare a later release, create a branch and run:
 
 ```bash
-pnpm nx release version 0.2.0
-pnpm nx release changelog 0.2.0
+pnpm nx release version 0.3.0
+pnpm nx release changelog 0.3.0
 pnpm run check
 ```
 
-Replace `0.2.0` with the intended exact version, review the package manifests,
+Replace `0.3.0` with the intended exact version, review the package manifests,
 lockfile, and `CHANGELOG.md`, then merge those changes through a pull request.
+Align internal first-party dependency ranges and the site version pill too.
 Nx is configured not to commit, tag, push, or create a GitHub release. The
-initial `0.1.0` version and changelog are already committed, so no preparation
-step is required for the first publication.
+`0.3.0` preparation is already committed; do not run another version bump just
+to retry a publication.
 
 To publish:
 
@@ -75,16 +76,16 @@ approval, rebuilds the packages, and verifies the requested version against
 every public package manifest. It needs only read access to GitHub and OIDC
 permission for npm trusted publishing.
 
-You can preview the initial publication locally with:
+You can preview the prepared 0.3.0 publication locally with:
 
 ```bash
 pnpm run build
-RELEASE_VERSION=0.1.0 RELEASE_DRY_RUN=true RELEASE_FIRST_RELEASE=true \
+RELEASE_VERSION=0.3.0 RELEASE_DRY_RUN=true RELEASE_FIRST_RELEASE=false \
   node scripts/run-release.mjs
 ```
 
-Before the initial publish, and whenever release ownership or credentials
-change, complete the [production release checklist](docs/production-release-checklist.md).
+For every release, complete the
+[production release checklist](docs/production-release-checklist.md).
 
 Repository administrators must configure the following controls in GitHub; files
 in the repository cannot enforce them by themselves:
@@ -97,11 +98,11 @@ in the repository cannot enforce them by themselves:
   to `main`.
 - For the first publish only, create a short-lived
   [granular access token](https://docs.npmjs.com/about-access-tokens/) with the
-  narrowest read/write package access that covers all four package names and
+  narrowest read/write package access that covers the new package names and
   **Bypass 2FA** enabled. Store it as the protected environment secret
   `NPM_BOOTSTRAP_TOKEN`; the workflow validates it with `npm whoami` before Nx
   publishes any package.
-- After all four packages exist, configure each package's
+- For each of the seven public packages, verify its
   [trusted publisher](https://docs.npmjs.com/trusted-publishers/) with GitHub
   owner `chakra-email`, repository `chakra-email`, workflow `release.yml`,
   environment `npm-publish`, and allowed action `npm publish`. Then revoke the

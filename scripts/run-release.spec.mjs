@@ -461,3 +461,27 @@ test('bootstrap documentation uses current granular token guidance', () => {
   assert.match(contributingSource, /Bypass 2FA/);
   assert.match(contributingSource, /allowed action `npm publish`/);
 });
+
+test('release instructions describe the committed version and current CI gates', () => {
+  const checklist = readFileSync(
+    new URL('../docs/production-release-checklist.md', import.meta.url),
+    'utf8',
+  );
+  const changelog = readFileSync(
+    new URL('../CHANGELOG.md', import.meta.url),
+    'utf8',
+  );
+  assert.ok(changelog.includes(`## ${committedVersion} (`));
+  assert.ok(checklist.includes(`version: ${committedVersion}`));
+  assert.match(checklist, /first_release: false/);
+  assert.match(checklist, /pnpm run release:check/);
+  assert.match(checklist, /pnpm run types:performance:check/);
+  for (const job of [
+    'Verify (Node 24)',
+    'Compatibility floor (Node 20.19 / React 18)',
+  ]) {
+    assert.ok(ciWorkflowSource.includes(job));
+    assert.ok(checklist.includes(job));
+  }
+  assert.doesNotMatch(checklist, /Verify \(Node 22\)|\bnpm run release:check/);
+});
