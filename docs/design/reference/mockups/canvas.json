@@ -1,16 +1,36 @@
 {
   "v": 3,
-  "createdOnFiles": {"v": 1, "at": "2026-10-14T15:36:00Z"},
+  "createdOnFiles": { "v": 1, "at": "2026-10-14T15:36:00Z" },
   "title": "Chakra Email Preview Redesign",
-  "launch": {"view": "focused", "file": "Main.dc.html"},
+  "launch": { "view": "focused", "file": "Main.dc.html" },
   "pages": [],
   "boards": {
-    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 900, "title": "Preview app — interactive", "expand": "fill", "is_interactive": true},
-    "Email.dc.html": {"x": 1520, "y": 0, "w": 600, "h": 840, "title": "Email render (used by the preview)"}
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Preview app — interactive",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Email.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 600,
+      "h": 840,
+      "title": "Email render (used by the preview)"
+    }
   },
   "order": ["Main.dc.html", "Email.dc.html"],
   "notes": {
-    "heading": {"x": 0, "y": -300, "text": "Chakra Email preview — simplified, with validation built in", "kind": "title1", "maxW": 2120}
+    "heading": {
+      "x": 0,
+      "y": -300,
+      "text": "Chakra Email preview — simplified, with validation built in",
+      "kind": "title1",
+      "maxW": 2120
+    }
   },
   "designSystems": []
 }

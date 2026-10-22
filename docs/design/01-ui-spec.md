@@ -29,11 +29,11 @@
 One row, 52 px, `preview.chrome` background, bottom border `preview.border`. Three groups; the outer two
 flex and the middle one stays centred. It wraps rather than overflows.
 
-| Group | Contents |
-|---|---|
-| Left | Product mark and "Chakra Email" · `/` · group name (§3.2, omitted with one group) · `/` · template name · the template's `path` in a mono chip (truncates from the left, full path in a tooltip) |
-| Centre | **View switch** (segmented): Preview · Compare · HTML · Text · Source |
-| Right | **Viewport** (icon segmented): Desktop · Mobile. **Email color** (icon segmented): Light · Dark. Divider. **⌘K** button. **Send test** (primary; only when `canTestSend`). **Export** (icon button, menu) |
+| Group  | Contents                                                                                                                                                                                                  |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Left   | Product mark and "Chakra Email" · `/` · group name (§3.2, omitted with one group) · `/` · template name · the template's `path` in a mono chip (truncates from the left, full path in a tooltip)          |
+| Centre | **View switch** (segmented): Preview · Compare · HTML · Text · Source                                                                                                                                     |
+| Right  | **Viewport** (icon segmented): Desktop · Mobile. **Email color** (icon segmented): Light · Dark. Divider. **⌘K** button. **Send test** (primary; only when `canTestSend`). **Export** (icon button, menu) |
 
 - View switch maps to `PreviewTab`, extended with `'compare'`. Arrow keys move within a segmented group;
   each button has `aria-pressed`.
@@ -79,11 +79,11 @@ flex and the middle one stays centred. It wraps rather than overflows.
 
 One line: a status dot and text derived from `connection` and the time of the last successful render.
 
-| `connection` | Dot | Text |
-|---|---|---|
-| `connected` | `preview.success` | "Watching · rebuilt 4s ago" (relative, updates every 10 s; "just now" under 5 s) |
-| `connecting` | `preview.textMuted` | "Connecting…" |
-| `reconnecting` | `preview.warning` | "Reconnecting…" |
+| `connection`   | Dot                 | Text                                                                             |
+| -------------- | ------------------- | -------------------------------------------------------------------------------- |
+| `connected`    | `preview.success`   | "Watching · rebuilt 4s ago" (relative, updates every 10 s; "just now" under 5 s) |
+| `connecting`   | `preview.textMuted` | "Connecting…"                                                                    |
+| `reconnecting` | `preview.warning`   | "Reconnecting…"                                                                  |
 
 This replaces both the "Live" pill and "Changes refresh automatically".
 
@@ -116,11 +116,11 @@ Shows what a mailbox list would show, above the viewer, at the frame's width (ma
 
 Three frames side by side, each in a `figure` with a mono caption:
 
-| Caption | Width | Color mode | Scale |
-|---|---|---|---|
-| Desktop · Light · 600 | 600 | light | 0.5 |
-| Mobile · Light · 375 | 375 | light | 0.5 |
-| Mobile · Dark · 375 | 375 | dark | 0.5 |
+| Caption               | Width | Color mode | Scale |
+| --------------------- | ----- | ---------- | ----- |
+| Desktop · Light · 600 | 600   | light      | 0.5   |
+| Mobile · Light · 375  | 375   | light      | 0.5   |
+| Mobile · Dark · 375   | 375   | dark       | 0.5   |
 
 - Each frame is its own sandboxed iframe with the same rewriting pipeline. Use `transform: scale()` on a
   fixed-size wrapper so layout widths stay true.
@@ -191,11 +191,11 @@ persists under `chakra-email.preview.inspector-tab`; the default is Props.
 
 Three definition lists, then actions.
 
-| Section | Rows |
-|---|---|
+| Section  | Rows                                                                                                                              |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | Envelope | From (`result.from`, or "Not set — add `previewFrom`") · To (the Send test address if entered, else "—") · Subject · Preview text |
-| Message | HTML (size) · Plain text (size) · Images · Links · Render (`result.renderMs` ms) |
-| Source | Template (`path`) · Variant (selected, or "Default") |
+| Message  | HTML (size) · Plain text (size) · Images · Links · Render (`result.renderMs` ms)                                                  |
+| Source   | Template (`path`) · Variant (selected, or "Default")                                                                              |
 
 - **Open in editor** button: `POST /api/open` (`02` §1.4). Hidden when the capability is off.
 - **Export** buttons: the same five actions as the top-bar Export menu, as a 2-column grid.
@@ -243,14 +243,14 @@ with the existing overlay; don't blank the preview.
 
 ### 6.2 Persistence (localStorage, all under `chakra-email.preview.`)
 
-| Key | Value |
-|---|---|
-| `email-color-mode` | existing |
+| Key                    | Value                                   |
+| ---------------------- | --------------------------------------- |
+| `email-color-mode`     | existing                                |
 | `workspace-color-mode` | existing; now set only from the palette |
-| `inspector-tab` | `props` · `info` · `checks` |
-| `props-mode` | `fields` · `json` |
-| `template-filter` | `all` · `issues` |
-| `viewport` | `desktop` · `mobile` |
+| `inspector-tab`        | `props` · `info` · `checks`             |
+| `props-mode`           | `fields` · `json`                       |
+| `template-filter`      | `all` · `issues`                        |
+| `viewport`             | `desktop` · `mobile`                    |
 
 Wrap every read and write in the existing safe helpers (`app.ts` lines ~138–150).
 
@@ -271,16 +271,16 @@ Hide actions whose capability is off.
 
 ## 7. Keyboard
 
-| Keys | Action |
-|---|---|
-| ⌘K / Ctrl K | Command palette |
-| `/` | Focus the template filter |
-| ↑ / ↓ in the template list | Move selection (existing roving behaviour) |
-| `1`–`5` | Preview · Compare · HTML · Text · Source (when focus isn't in a text field) |
-| `d` / `m` | Desktop / Mobile |
-| `l` | Toggle email light/dark |
-| `[` / `]` | Toggle sidebar / inspector |
-| Esc | Close popover, palette or sheet; clear the selected finding |
+| Keys                       | Action                                                                      |
+| -------------------------- | --------------------------------------------------------------------------- |
+| ⌘K / Ctrl K                | Command palette                                                             |
+| `/`                        | Focus the template filter                                                   |
+| ↑ / ↓ in the template list | Move selection (existing roving behaviour)                                  |
+| `1`–`5`                    | Preview · Compare · HTML · Text · Source (when focus isn't in a text field) |
+| `d` / `m`                  | Desktop / Mobile                                                            |
+| `l`                        | Toggle email light/dark                                                     |
+| `[` / `]`                  | Toggle sidebar / inspector                                                  |
+| Esc                        | Close popover, palette or sheet; clear the selected finding                 |
 
 Single-letter shortcuts are ignored while focus is in an input, textarea, select or the code editor.
 
@@ -316,13 +316,13 @@ override in `chakra-email.config.ts` keeps working. Reuse what exists (`canvas`,
 
 Add these, with light and dark values checked for 4.5:1 text contrast on `preview.panel`:
 
-| Token | Light | Dark | Use |
-|---|---|---|---|
-| `preview.success` | `#1f7a4d` | `#4cc38a` | Passed tile, OK cells, healthy clip meter, watching dot |
-| `preview.successSoft` | `#e8f5ee` | `#12291d` | Passed list hover |
-| `preview.info` | `#2f5fb3` | `#8ab4ff` | Info severity |
-| `preview.infoSoft` | `#ebf1fb` | `#15213a` | Info card background when selected |
-| `preview.highlight` | `#f5a524` | `#f5a524` | The outline injected into the email for the selected finding (same in both modes: it's drawn on the email, not the workspace) |
+| Token                 | Light     | Dark      | Use                                                                                                                           |
+| --------------------- | --------- | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `preview.success`     | `#1f7a4d` | `#4cc38a` | Passed tile, OK cells, healthy clip meter, watching dot                                                                       |
+| `preview.successSoft` | `#e8f5ee` | `#12291d` | Passed list hover                                                                                                             |
+| `preview.info`        | `#2f5fb3` | `#8ab4ff` | Info severity                                                                                                                 |
+| `preview.infoSoft`    | `#ebf1fb` | `#15213a` | Info card background when selected                                                                                            |
+| `preview.highlight`   | `#f5a524` | `#f5a524` | The outline injected into the email for the selected finding (same in both modes: it's drawn on the email, not the workspace) |
 
 Type: keep `fonts.preview` and `fonts.previewMono`. The mockup uses Geist for presentation only; the
 font choice isn't part of this update.

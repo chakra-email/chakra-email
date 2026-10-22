@@ -14,23 +14,24 @@ export interface PreviewTemplate {
   id: string;
   name: string;
   path: string;
-  group?: string;            // NEW: first folder under the templates directory, title-cased
+  group?: string; // NEW: first folder under the templates directory, title-cased
 }
 
-export interface PreviewLintRule {   // NEW
-  id: string;                        // 'placeholder-text'
+export interface PreviewLintRule {
+  // NEW
+  id: string; // 'placeholder-text'
   category: PreviewLintCategory;
-  title: string;                     // 'No placeholder text' — phrased as the passing condition
-  severity: PreviewLintSeverity;     // effective severity after config overrides (§4)
+  title: string; // 'No placeholder text' — phrased as the passing condition
+  severity: PreviewLintSeverity; // effective severity after config overrides (§4)
 }
 
 export interface PreviewTemplatesResponse {
   capabilities: {
     linkCheck?: boolean;
-    openInEditor: boolean;           // NEW (§1.4)
+    openInEditor: boolean; // NEW (§1.4)
     testSend: boolean;
   };
-  lintRules: PreviewLintRule[];      // NEW: the full catalog, for the Passed list
+  lintRules: PreviewLintRule[]; // NEW: the full catalog, for the Passed list
   templates: PreviewTemplate[];
 }
 ```
@@ -46,29 +47,29 @@ export interface PreviewTemplatesResponse {
 ```ts
 export interface PreviewLintFinding {
   category: PreviewLintCategory;
-  clients?: PreviewClientId[];       // NEW: from the client support list (§3)
+  clients?: PreviewClientId[]; // NEW: from the client support list (§3)
   column?: number;
   compatibility?: PreviewCompatibilityReference;
   element?: string;
   line?: number;
   message: string;
   ruleId: string;
-  selector?: string;                 // NEW: CSS selector for the element in the rendered HTML (§2.3)
+  selector?: string; // NEW: CSS selector for the element in the rendered HTML (§2.3)
   severity: PreviewLintSeverity;
   suggestion: string;
 }
 
 export interface PreviewRenderResponse {
-  from?: { address: string; name?: string };  // NEW (§4)
+  from?: { address: string; name?: string }; // NEW (§4)
   html: string;
   id: string;
   linkCheck?: { checked: number; skipped: number };
   lint: PreviewLintFinding[];
   name: string;
-  previewText?: string;              // NEW: text of the hidden preheader, trimmed, whitespace collapsed
+  previewText?: string; // NEW: text of the hidden preheader, trimmed, whitespace collapsed
   props: JsonObject;
-  renderMs: number;                  // NEW: wall time of render + lint, whole milliseconds
-  rulesRun: string[];                // NEW: rule IDs that ran for this render (§2.1)
+  renderMs: number; // NEW: wall time of render + lint, whole milliseconds
+  rulesRun: string[]; // NEW: rule IDs that ran for this render (§2.1)
   source: string;
   subject: string;
   text: string;
@@ -126,7 +127,7 @@ Create `packages/preview/src/lint-rules.ts` with one entry per rule:
 export interface LintRuleDefinition {
   id: string;
   category: PreviewLintCategory;
-  title: string;                 // passing-condition phrasing for the Passed list
+  title: string; // passing-condition phrasing for the Passed list
   severity: PreviewLintSeverity; // default
 }
 ```
@@ -142,14 +143,14 @@ code for any ID this list misses). `finding()` looks the rule up, applies the co
 
 ### 2.2 New rules
 
-| ID | Category | Default | Fires when | Suggestion |
-|---|---|---|---|---|
-| `placeholder-text` | content | warning | Visible text or the preheader contains a bracketed placeholder `[Like this]` (3+ chars inside, not a link), `{{ … }}`, `TODO`, `TBD`, `XXX`, or "lorem ipsum" (case-insensitive) | "Replace placeholder text before sending." |
-| `css-border-radius` | compatibility | warning | An `a` with a background color and `border-radius`, and the document has no `v:roundrect` VML fallback | "Classic Outlook for Windows ignores border-radius. Add a VML fallback if the shape matters." |
-| `color-scheme-meta` | compatibility | info | No `<meta name="color-scheme">` | "Declare `color-scheme` so clients that support dark mode apply your dark styles." |
-| `subject-length` | deliverability | info | Subject is over 60 characters | "Many inboxes cut subjects around 40–60 characters. Lead with what matters." |
-| `preview-text-length` | deliverability | info | Preview text is under 40 or over 150 characters | "Aim for 40–150 characters so clients don't fill the gap with body text." |
-| `link-text` | accessibility | info | An `a[href]` whose accessible text is empty or one of: "click here", "here", "link", "read more", "more" | "Use link text that says where it goes." |
+| ID                    | Category       | Default | Fires when                                                                                                                                                                       | Suggestion                                                                                    |
+| --------------------- | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `placeholder-text`    | content        | warning | Visible text or the preheader contains a bracketed placeholder `[Like this]` (3+ chars inside, not a link), `{{ … }}`, `TODO`, `TBD`, `XXX`, or "lorem ipsum" (case-insensitive) | "Replace placeholder text before sending."                                                    |
+| `css-border-radius`   | compatibility  | warning | An `a` with a background color and `border-radius`, and the document has no `v:roundrect` VML fallback                                                                           | "Classic Outlook for Windows ignores border-radius. Add a VML fallback if the shape matters." |
+| `color-scheme-meta`   | compatibility  | info    | No `<meta name="color-scheme">`                                                                                                                                                  | "Declare `color-scheme` so clients that support dark mode apply your dark styles."            |
+| `subject-length`      | deliverability | info    | Subject is over 60 characters                                                                                                                                                    | "Many inboxes cut subjects around 40–60 characters. Lead with what matters."                  |
+| `preview-text-length` | deliverability | info    | Preview text is under 40 or over 150 characters                                                                                                                                  | "Aim for 40–150 characters so clients don't fill the gap with body text."                     |
+| `link-text`           | accessibility  | info    | An `a[href]` whose accessible text is empty or one of: "click here", "here", "link", "read more", "more"                                                                         | "Use link text that says where it goes."                                                      |
 
 Each new rule gets a `compatibility` reference where one exists (add `css-border-radius` →
 `https://www.caniemail.com/features/css-border-radius/` to `compatibility.ts`).
@@ -170,14 +171,22 @@ has to match the rendered HTML the response carries, so it's stable for the UI's
 
 ```ts
 export type PreviewClientId =
-  | 'apple-mail' | 'ios-mail' | 'gmail' | 'gmail-android'
-  | 'outlook-com' | 'outlook-windows' | 'outlook-mac' | 'yahoo';
+  | 'apple-mail'
+  | 'ios-mail'
+  | 'gmail'
+  | 'gmail-android'
+  | 'outlook-com'
+  | 'outlook-windows'
+  | 'outlook-mac'
+  | 'yahoo';
 
 export const previewClients: Readonly<Record<PreviewClientId, string>>; // display names
 
-export const clientSupportReviewed = '2026-10';  // shown in the UI note
+export const clientSupportReviewed = '2026-10'; // shown in the UI note
 
-export const knownBreakages: Readonly<Record<string /* ruleId */, readonly PreviewClientId[]>>;
+export const knownBreakages: Readonly<
+  Record<string /* ruleId */, readonly PreviewClientId[]>
+>;
 ```
 
 - A finding's `clients` is `knownBreakages[ruleId]`. Rules not in the map have no `clients` and don't
@@ -187,19 +196,19 @@ export const knownBreakages: Readonly<Record<string /* ruleId */, readonly Previ
 - Seed list — **verify each entry against its Can I Email page before merging**, and drop anything that
   isn't a clear "not supported":
 
-| Rule | Seed clients |
-|---|---|
-| `css-border-radius` | outlook-windows |
-| `css-background-image` | outlook-windows |
-| `css-display-flex` | outlook-windows |
-| `css-display-grid` | outlook-windows, gmail, gmail-android |
-| `css-font-face` | gmail, gmail-android, outlook-windows, yahoo |
-| `css-position` | gmail, gmail-android, outlook-windows, yahoo |
-| `external-stylesheet` | gmail, gmail-android, outlook-windows, yahoo |
-| `unsupported-svg` | gmail, gmail-android, outlook-windows |
-| `unsupported-video` | gmail, gmail-android, outlook-com, outlook-windows, yahoo |
-| `unsupported-audio` | gmail, gmail-android, outlook-com, outlook-windows, yahoo |
-| `unsupported-form` | gmail, gmail-android, outlook-windows |
+| Rule                   | Seed clients                                              |
+| ---------------------- | --------------------------------------------------------- |
+| `css-border-radius`    | outlook-windows                                           |
+| `css-background-image` | outlook-windows                                           |
+| `css-display-flex`     | outlook-windows                                           |
+| `css-display-grid`     | outlook-windows, gmail, gmail-android                     |
+| `css-font-face`        | gmail, gmail-android, outlook-windows, yahoo              |
+| `css-position`         | gmail, gmail-android, outlook-windows, yahoo              |
+| `external-stylesheet`  | gmail, gmail-android, outlook-windows, yahoo              |
+| `unsupported-svg`      | gmail, gmail-android, outlook-windows                     |
+| `unsupported-video`    | gmail, gmail-android, outlook-com, outlook-windows, yahoo |
+| `unsupported-audio`    | gmail, gmail-android, outlook-com, outlook-windows, yahoo |
+| `unsupported-form`     | gmail, gmail-android, outlook-windows                     |
 
 - Add a spec that fails if any key in `knownBreakages` isn't a registered rule ID, and a comment at the
   top of the file asking for the `clientSupportReviewed` date to be bumped with every edit.
