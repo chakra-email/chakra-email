@@ -14,7 +14,7 @@ export function MarkdownBody({ markdown }: { markdown: string }) {
 }
 ```
 
-Use the `chakraEmailMarkdown` slot recipe to customize document elements and `chakraEmailCodeBlock` to customize fenced code. CodeBlock also accepts a synchronous `highlighter` adapter, keeping Prism, Shiki, or another syntax engine optional.
+Use the `chakraEmailMarkdown` slot recipe to customize document elements and `chakraEmailCodeBlock` to customize fenced code. [CodeBlock](./code-block.md) also accepts a synchronous `highlighter` adapter, keeping Prism, Shiki, or another syntax engine optional.
 
 For complete control, use the markdown parser you prefer and map markdown elements to Chakra Email components yourself.
 

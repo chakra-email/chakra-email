@@ -2,6 +2,8 @@
 
 Themeable, email-safe code blocks for Chakra Email. The default renderer is dependency-free and displays plain code; pass a synchronous highlighter adapter when syntax colors are needed.
 
+[Documentation](https://chakra.email/docs/code-block)
+
 ```tsx
 import { CodeBlock, type CodeHighlighter } from '@chakra-email/code-block';
 

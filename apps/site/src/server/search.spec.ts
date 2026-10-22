@@ -4,7 +4,7 @@ import { getDocsManifest, getExamples } from './content';
 
 describe('server documentation content and search', () => {
   it('loads real documentation and example sources without raw browser imports', async () => {
-    expect((await getDocsManifest()).pages.length).toBe(9);
+    expect((await getDocsManifest()).pages.length).toBe(10);
     const examples = await getExamples();
     expect(examples).toHaveLength(4);
     for (const example of examples) expect(example.source).toMatch(/export/);

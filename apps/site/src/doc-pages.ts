@@ -46,6 +46,15 @@ export const docPageDefinitions = [
     sourceHref: `${repo}/blob/main/docs/markdown.md`,
   },
   {
+    id: 'code-block',
+    title: 'Code Blocks',
+    eyebrow: 'Code in email',
+    description:
+      'Render themeable code blocks with line numbers and optional syntax highlighting.',
+    sourceFile: 'code-block.md',
+    sourceHref: `${repo}/blob/main/docs/code-block.md`,
+  },
+  {
     id: 'rendering',
     title: 'Rendering',
     eyebrow: 'HTML output',
