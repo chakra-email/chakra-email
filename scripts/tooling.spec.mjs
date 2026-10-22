@@ -48,6 +48,22 @@ test('Vercel builds the static site from the workspace without a catch-all rewri
   assert.match(deployment, /404\.html/);
 });
 
+test('workspace tests bound Nx and Vitest concurrency for small CI runners', () => {
+  const { scripts } = JSON.parse(read('package.json'));
+  for (const name of ['test', 'test:coverage']) {
+    const [nx, vitest] = scripts[name].split(' -- ');
+    assert.match(nx, /--parallel=2(?:\s|$)/);
+    assert.match(vitest, /--maxWorkers=1(?:\s|$)/);
+  }
+  assert.match(scripts['test:coverage'], /--coverage(?:\s|$)/);
+  assert.match(read('apps/preview-ui/vite.config.mts'), /testTimeout: 15_000/);
+});
+
+test('format checks cover the workspace without requiring a local main ref', () => {
+  const { scripts } = JSON.parse(read('package.json'));
+  assert.equal(scripts['format:check'], 'pnpm nx format:check --all');
+});
+
 test('Springbar runs the local email preview with a trusted hostname and assigned port', () => {
   const preview = read('springbar.toml')
     .split('[[unit]]')
