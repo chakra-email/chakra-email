@@ -352,9 +352,14 @@ preview at `preview.chakra-email.test`. The preview service builds the local
 preview package and serves the templates in `examples/preview/emails`, using
 Springbar's assigned port while remaining bound to `127.0.0.1`.
 
+The docs site uses Next.js; the local email preview remains Vite-based. For
+Vercel, select the Next.js preset with `apps/site` as the Root Directory and
+leave the Output Directory automatic. See the [deployment guide](apps/site/DEPLOYMENT.md).
+
 `pnpm run check` is the canonical release gate. It audits dependencies, lints,
 runs coverage tests, performs a clean build and typecheck, compiles the examples,
-inspects package contents, and installs the resulting tarballs in a clean React
+checks the production docs routes and search API, inspects package contents,
+and installs the resulting tarballs in a clean React
 18 consumer for runtime and declaration checks.
 
 ## License

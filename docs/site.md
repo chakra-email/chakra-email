@@ -2,7 +2,7 @@
 
 The canonical documentation site lives in `apps/site`.
 
-It is an Nx-managed Vite application that imports the markdown files in `docs/` as raw content and renders them into the site. Keep long-form product documentation in `docs/` first, then expose it through the site navigation. This keeps the repository README, npm package docs, and website from drifting apart.
+It is an Nx-managed Next.js App Router application. Documentation and example sources are loaded on the server and pages are prerendered with their metadata and structured data. Search uses a bounded `/api/docs/search` endpoint instead of shipping the full index to the browser. Keep long-form product documentation in `docs/` first, then expose it through the site navigation. This keeps the repository README, npm package docs, and website from drifting apart.
 
 ## Commands
 
@@ -47,40 +47,23 @@ families. Do not externalize unresolved browser imports to make the gate pass.
 
 ## Production Hosting
 
-The production site deploys on Vercel with Root Directory `apps/site`, the Vite
+The production site deploys on Vercel with Root Directory `apps/site`, the Next.js
 preset, and the committed `apps/site/vercel.json`. See the
 [deployment settings](https://github.com/chakra-email/chakra-email/blob/main/apps/site/DEPLOYMENT.md)
 for environment variables and the preview verification checklist. npm publication
 does not deploy the site; the former GitHub Pages workflow has been retired.
 
-The static Vite build can also be hosted elsewhere by publishing `apps/site/dist`.
-Serve each generated `<route>/index.html` file for direct visits and refreshes
-on `/docs/getting-started`, `/examples`, `/packages`, and `/withoss`. Use
-`404.html` with HTTP status 404 for unknown routes, not a blanket homepage fallback.
-For a host that serves the site below a repository path, provide the public base
-path at build time:
-
-```bash
-SITE_BASE_PATH=/chakra-email/ pnpm run site:build
-```
-
-Use `/` (the default) when the site is served from its own domain. The base path
-is applied to generated asset URLs, so the same source can be deployed to either
-location without hard-coded root links.
+Use the default Next.js output (`.next`), not `dist` or `out`. Do not enable static export: the search API needs the Next.js runtime. In Vercel, clear any Output Directory override.
 
 ### Crawler discovery files
 
-The build generates `/sitemap.xml`, `/robots.txt`, `/llms.txt`, and
-`/llms-full.txt` alongside the app in `apps/site/dist`. Serve these files directly
-so crawlers receive XML or text rather than the SPA shell.
+Next route handlers prerender `/sitemap.xml`, `/robots.txt`, `/llms.txt`, and `/llms-full.txt`. Crawlers receive XML or text, never an app fallback.
 The sitemap includes public site pages and published docs, but not the `/docs`
 alias, draft or hidden docs, or social-image capture templates. Robots advertises
 the canonical sitemap and blocks HTML capture templates without blocking
 renderer-generated social PNGs.
 
-All discovery links use `https://chakra.email` and respect `SITE_BASE_PATH`.
-For a subpath deployment, also publish or merge the robots rules into the
-domain-root `/robots.txt`, where crawlers look for them. Rebuild the site after
+All discovery links use the canonical production domain, `https://chakra.email`. Rebuild the site after
 changing docs; no separate package release is needed.
 
 ## Shared site design
@@ -94,7 +77,7 @@ The site matches Chakra Docs and react-fathom: a compact header, neutral theme,
 system light/dark mode, Suisse Intl typography, 2026 credit/license footer,
 shared OSS artwork at `/withoss`, and a black COMMUNE sub-footer. Styling lives
 in `src/theme` and Chakra props, not standalone CSS or inline `style` props.
-The shared Fontstack kit is loaded once in `index.html`:
+The shared Fontstack kit is loaded once in `src/app/layout.tsx`:
 `https://kits.fontstack.com/kit/o0v0t0oi.css`. Ensure it allows the production
 domain and `chakra-email.test`.
 
@@ -118,14 +101,12 @@ Page-specific templates follow the same convention as ryanhefner.com:
 
 The equivalent internal routes are `/og-image`, `/og-image/docs/getting-started`,
 and `/og-image/examples`. Captures use the matching page's title and description;
-unknown page paths show the not-found page. This site is Vite, so its SPA handles
-the aliases rather than a Next config. The static host must serve `index.html`
-for these **extensionless HTML** routes, as it does for ordinary docs routes.
+unknown page paths return a real HTTP 404. Next prerenders these extensionless HTML routes along with the public pages.
 
 For the OpenGraphs generation flow, use the corresponding
 `/<page>/social-image.png` **template URL** in the renderer integration. It
 captures the extensionless HTML route. The configured OpenGraphs renderer must
-serve the resulting PNG; do not send `.png` requests through the SPA fallback
+serve the resulting PNG; do not rewrite `.png` requests to an HTML page
 or return HTML with an image content type.
 
 Optional `title` and `description` query parameters customize the copy:
@@ -141,12 +122,7 @@ so the current copy, web fonts, and wordmark have settled.
 
 For OpenGraphs, use the publicly deployed capture URL and a 1200 × 630
 viewport. Local `.test` domains are not reachable by hosted capture services.
-The Fontstack kit must allow the capture hostname. Because this site is a
-client-rendered SPA, the capture route's robots meta tag is applied after
-JavaScript runs; also set `X-Robots-Tag: noindex, nofollow` for `/og-image`,
-`/og-image/*`, and `/*/social-image` (including `/social-image` and trailing
-slashes) on the static host. Vite development and preview servers already set
-this header for capture routes. Keep capture routes out of sitemap generation.
+The Fontstack kit must allow the capture hostname. Next emits noindex metadata during server rendering and sets `X-Robots-Tag: noindex, nofollow` on capture routes in development and production. Keep capture routes out of sitemap generation.
 Use the generated PNG/JPEG or hosted image URL for `og:image` and
 `twitter:image` metadata, **not** the HTML capture URL.
 
@@ -160,15 +136,14 @@ Use the generated PNG/JPEG or hosted image URL for `og:image` and
 ## Adding A Page
 
 1. Add a markdown file to `docs/`.
-2. Import it in `apps/site/src/content.ts`.
-3. Add a `docPageDefinitions` entry in `apps/site/src/doc-pages.ts` with a stable
+2. Add a `docPageDefinitions` entry in `apps/site/src/doc-pages.ts` with a stable
    `id`, title, summary, source filename, and GitHub source link. The site and its
    discovery files share these definitions.
 
 ## Adding An Example
 
 1. Add the example under `examples/`.
-2. Import its source file in `apps/site/src/content.ts`.
-3. Add an `examples` entry with a GitHub link and short description.
+2. Add its source path to `exampleSources` in `apps/site/src/server/content.ts`.
+3. Add an `exampleLinks` entry in `apps/site/src/site-resources.ts` with a GitHub link and short description.
 
 Prefer examples that can be copied into a real project without hidden setup. If an example needs extra packages, list them in the example README.
