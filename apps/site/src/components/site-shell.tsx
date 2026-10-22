@@ -9,22 +9,24 @@ import {
   Tooltip,
   useSlotRecipe,
 } from '@chakra-ui/react';
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
+import { createHttpSearchProvider } from '@chakra-docs/search/client';
 import { SiGithub } from 'react-icons/si';
-import { docsManifest } from '../docs';
 import { useNavigate } from '../navigation';
-import { getRecommendedSearchResults } from '../search-recommendations';
+import type { RecommendedSearchResult } from '../search-recommendations';
 import { SiteLink } from './site-link';
 
-const recommendedSearchResults = getRecommendedSearchResults(
-  docsManifest.search,
+const searchProvider = createHttpSearchProvider('/api/docs/search');
+export const SearchRecommendations = createContext<RecommendedSearchResult[]>(
+  [],
 );
 
 export function SiteSearch() {
   const navigate = useNavigate();
+  const recommendedSearchResults = useContext(SearchRecommendations);
   return (
     <DocsSearch
-      records={docsManifest.search}
+      searchProvider={searchProvider}
       defaultResults={recommendedSearchResults}
       defaultResultsLabel="Recommended"
       popularLimit={6}

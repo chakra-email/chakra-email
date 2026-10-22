@@ -1,21 +1,9 @@
-import { createHeadingId, type DocsPage } from '@chakra-docs/core';
-import { docPages } from './content';
-import { createSiteDocsManifest } from './docs-manifest';
+import { createHeadingId } from '@chakra-docs/core';
+import { docPageDefinitions } from './doc-pages';
 
 export { prepareMarkdown, extractDocsHeadings } from './docs-manifest';
 
 const repositoryUrl = 'https://github.com/chakra-email/chakra-email';
-export const docsManifest = createSiteDocsManifest(docPages);
-
-const defaultDocsPage = docsManifest.pages[0];
-
-if (!defaultDocsPage) {
-  throw new Error('The Chakra Email documentation manifest requires a page.');
-}
-
-export function getDocsPage(pathname: string): DocsPage {
-  return docsManifest.byRoute[pathname] ?? defaultDocsPage;
-}
 
 export function resolveMarkdownHref(
   href: string | undefined,
@@ -36,11 +24,11 @@ export function resolveMarkdownHref(
   }
 
   const pageId = markdownMatch[1];
-  const target = docsManifest.pages.find((page) => page.id === pageId);
+  const target = docPageDefinitions.find((page) => page.id === pageId);
 
   if (!target) {
     return `${repositoryUrl}/blob/main/docs/${path}${fragment ? `#${createHeadingId(decodeURIComponent(fragment))}` : ''}`;
   }
 
-  return `${target.route}${fragment ? `#${createHeadingId(decodeURIComponent(fragment))}` : ''}`;
+  return `/docs/${target.id}${fragment ? `#${createHeadingId(decodeURIComponent(fragment))}` : ''}`;
 }

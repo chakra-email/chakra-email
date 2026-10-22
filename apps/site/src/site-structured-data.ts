@@ -5,7 +5,7 @@ import { createSiteMetadata, sitePages, SITE_URL } from './site-metadata';
 import { toSiteHref } from './routing';
 import { exampleLinks, packageLinks } from './site-resources';
 
-/** The build and SPA share route resolution, canonical URLs, and exclusions. */
+/** Metadata and server-rendered JSON-LD share canonical URLs and exclusions. */
 export function createSiteStructuredData(
   pathname: string,
   manifest: DocsManifest,

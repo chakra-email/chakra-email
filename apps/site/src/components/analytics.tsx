@@ -6,6 +6,7 @@ import {
   getFathomConfig,
 } from '../analytics';
 import { toSiteHref } from '../routing';
+import { SITE_URL } from '../site-metadata';
 
 function TrackNavigation({ pathname }: { pathname: string }) {
   const { client, trackPageview } = useFathom();
@@ -39,15 +40,12 @@ export function Analytics({
   const config = useMemo(
     () =>
       getFathomConfig(
-        import.meta.env.VITE_FATHOM_SITE_ID,
-        import.meta.env.VITE_FATHOM_CUSTOM_DOMAIN,
+        process.env.NEXT_PUBLIC_FATHOM_SITE_ID,
+        process.env.NEXT_PUBLIC_FATHOM_CUSTOM_DOMAIN,
       ),
     [],
   );
-  if (
-    !config ||
-    !getAnalyticsUrl(new URL(toSiteHref(pathname), window.location.origin).href)
-  )
+  if (!config || !getAnalyticsUrl(new URL(toSiteHref(pathname), SITE_URL).href))
     return children;
   return (
     <FathomProvider {...config} client={client}>

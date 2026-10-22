@@ -43,6 +43,8 @@ version already committed on disk; it does not bump versions or create tags.
       permit unreviewed protection-rule bypasses.
 - [ ] Vercel is connected to the canonical repository with `main` as its
       production branch, `apps/site` as its root, and `chakra.email` as its domain.
+      The framework preset is Next.js and the Output Directory override is cleared
+      (automatic `.next`, never `dist` or `out`).
 
 ## npm package access
 

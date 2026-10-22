@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { docsManifest } from './docs';
+import { docsManifest } from './test/content';
 import { exampleLinks, packageLinks } from './site-resources';
 import { createSiteStructuredData } from './site-structured-data';
 

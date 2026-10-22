@@ -88,7 +88,7 @@ export const ossProjectGroups = [
         name: 'next-meta',
         packages: ['next-meta'],
         description:
-          'Framework-free canonical and social metadata for the site.',
+          'Canonical and social metadata through the Next.js App Router.',
         href: 'https://next-meta.dev/',
       },
       {
@@ -143,10 +143,11 @@ export const ossProjectGroups = [
         href: 'https://shiki.style/',
       },
       {
-        name: 'Vite',
-        packages: ['vite'],
-        description: 'Development server and production builds for this site.',
-        href: 'https://vite.dev/',
+        name: 'Next.js',
+        packages: ['next'],
+        description:
+          'Server-rendered documentation, metadata, search API, and production builds.',
+        href: 'https://nextjs.org/',
       },
       {
         name: 'Nx',

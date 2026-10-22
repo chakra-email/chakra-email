@@ -25,17 +25,24 @@ test('development and release tooling pin Node 24 and pnpm', () => {
   assert.match(read('pnpm-workspace.yaml'), /'apps\/\*'/);
 });
 
-test('Vercel builds the static site from the workspace without a catch-all rewrite', () => {
+test('Vercel builds the Next docs app without an output override or SPA rewrite', () => {
   const config = JSON.parse(read('apps/site/vercel.json'));
-  assert.equal(config.framework, 'vite');
+  assert.equal(config.framework, 'nextjs');
   assert.equal(
     config.installCommand,
     'cd ../.. && corepack enable && pnpm install --frozen-lockfile',
   );
   assert.equal(config.buildCommand, 'cd ../.. && pnpm run site:build');
-  assert.equal(config.outputDirectory, 'dist');
-  assert.equal(config.cleanUrls, true);
-  assert.equal(config.trailingSlash, false);
+  assert.equal(config.outputDirectory, undefined);
+  assert.equal(config.cleanUrls, undefined);
+  const nextConfig = read('apps/site/next.config.mjs');
+  assert.doesNotMatch(nextConfig, /output:\s*['"]export['"]|distDir:/);
+  assert.match(nextConfig, /outputFileTracingRoot/);
+  assert.match(nextConfig, /outputFileTracingIncludes/);
+  assert.match(
+    read('apps/site/src/app/api/docs/search/route.ts'),
+    /GET = searchHandler/,
+  );
   assert.equal(
     config.rewrites,
     undefined,
@@ -44,8 +51,8 @@ test('Vercel builds the static site from the workspace without a catch-all rewri
   assert.equal(config.routes, undefined);
   const deployment = read('apps/site/DEPLOYMENT.md');
   assert.match(deployment, /Root Directory.*`apps\/site`/);
-  assert.match(deployment, /VITE_FATHOM_SITE_ID/);
-  assert.match(deployment, /404\.html/);
+  assert.match(deployment, /NEXT_PUBLIC_FATHOM_SITE_ID/);
+  assert.match(deployment, /\.next/);
 });
 
 test('workspace tests bound Nx and Vitest concurrency for small CI runners', () => {
