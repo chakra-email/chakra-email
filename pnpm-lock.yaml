@@ -202,8 +202,8 @@ importers:
         specifier: 5.7.0
         version: 5.7.0(react@19.2.5)
       react-structured:
-        specifier: 0.1.1
-        version: 0.1.1(react@19.2.5)
+        specifier: 0.2.0
+        version: 0.2.0(react@19.2.5)
 
   packages/chakra-email:
     dependencies:
@@ -6460,10 +6460,10 @@ packages:
       '@types/react':
         optional: true
 
-  react-structured@0.1.1:
+  react-structured@0.2.0:
     resolution:
       {
-        integrity: sha512-RUbm1+NoTDYu1YJxCkLufM/zucn3jXl0SvDZUYQfIiiQ6GMln9q1o7GRaTkJljO4lLubuw6jmrqx8FKc4Zshig==,
+        integrity: sha512-yZV+6krfbh3uo0g8q7UvWjpbOlgu80gkNd+1xEtx+9jW8SnYFwBglBOcr5sTmTShIQ05NriD37RBhSOmqA5+1A==,
       }
     peerDependencies:
       react: '>=16.14'
@@ -12382,7 +12382,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.14
 
-  react-structured@0.1.1(react@19.2.5):
+  react-structured@0.2.0(react@19.2.5):
     dependencies:
       react: 19.2.5
       schema-dts: 2.1.0
