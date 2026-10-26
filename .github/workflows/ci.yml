@@ -19,12 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: '.nvmrc'
           package-manager-cache: false
@@ -39,7 +39,7 @@ jobs:
         run: pnpm run types:performance:check
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: packages/core/test-output/vitest/coverage/lcov.info,packages/chakra-email/test-output/vitest/coverage/lcov.info,packages/chakra-email-v2/test-output/vitest/coverage/lcov.info,packages/code-block/test-output/vitest/coverage/lcov.info,packages/markdown/test-output/vitest/coverage/lcov.info,packages/preview/test-output/vitest/coverage/lcov.info,packages/react-email/test-output/vitest/coverage/lcov.info,apps/preview-ui/test-output/vitest/coverage/lcov.info,apps/site/test-output/vitest/coverage/lcov.info
@@ -52,12 +52,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: '.nvmrc'
           package-manager-cache: false
@@ -71,7 +71,7 @@ jobs:
       # Build with the pinned development runtime, then exercise the packed
       # artifacts with the supported consumer runtime (no workspace install).
       - name: Switch to the consumer compatibility floor
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 20.19.0
           package-manager-cache: false
