@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.1 (2026-10-29)
+
+### Changed
+
+- Improve npm descriptions, keywords, support links, and package READMEs, with
+  complete HTML/plain-text quick starts and clearer package selection.
+- Add a dedicated CodeBlock guide and link the package to its documentation.
+- Move the documentation site to Next.js App Router with server-rendered
+  content, metadata, search, and crawler endpoints.
+- Align all seven public packages and internal dependency ranges at `0.3.1`.
+
+### Fixed
+
+- Update the documentation site's Next.js dependency to `16.4.2`.
+- Validate actual README examples, documentation routes and anchors, and
+  production HTTP behavior as part of the release checks.
+
 ## 0.3.0 (2026-10-21)
 
 ### Added

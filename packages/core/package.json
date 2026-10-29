@@ -1,6 +1,6 @@
 {
   "name": "@chakra-email/core",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Low-level React email primitives, HTML and plain-text rendering, and theme resolution for Chakra Email adapters and integrations.",
   "license": "MIT",
   "author": {

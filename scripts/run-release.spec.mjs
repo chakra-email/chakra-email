@@ -135,7 +135,10 @@ test('public packages retain discoverable, package-specific npm metadata', () =>
 
 test('public dependency ranges and the site version match the committed release', () => {
   const names = new Set(publicPackages.map(({ manifest }) => manifest.name));
-  for (const { manifest } of publicPackages) {
+  const lock = parseYaml(
+    readFileSync(new URL('../pnpm-lock.yaml', import.meta.url), 'utf8'),
+  );
+  for (const { directory, manifest } of publicPackages) {
     assert.equal(manifest.version, committedVersion, manifest.name);
     for (const field of [
       'dependencies',
@@ -148,6 +151,11 @@ test('public dependency ranges and the site version match the committed release'
             range,
             `^${committedVersion}`,
             `${manifest.name}: ${name}`,
+          );
+          assert.equal(
+            lock.importers[`packages/${directory}`]?.[field]?.[name]?.specifier,
+            range,
+            `${manifest.name}: ${name} lockfile specifier`,
           );
         }
       }

@@ -5,9 +5,9 @@ credential settings whenever ownership or release workflows change. The
 settings below live in GitHub and npm, so they cannot be enforced by files in
 this repository alone.
 
-## 0.3.0 release procedure
+## 0.3.1 release procedure
 
-The seven existing public packages release together at `0.3.0`. This is not an
+The seven existing public packages release together at `0.3.1`. This is not an
 initial publish: leave **first_release** disabled. The workflow publishes the
 version already committed on disk; it does not bump versions or create tags.
 
@@ -15,13 +15,13 @@ version already committed on disk; it does not bump versions or create tags.
 2. Merge the release-preparation branch, then wait for a successful CI **push**
    run on the exact `main` SHA to be published. A PR check or an older CI run
    does not satisfy the release gate.
-3. Dispatch **Release** from `main` with `version: 0.3.0`, `dry_run: true`, and
+3. Dispatch **Release** from `main` with `version: 0.3.1`, `dry_run: true`, and
    `first_release: false`. Review the package list and tarball contents.
 4. Without advancing `main`, dispatch again with `dry_run: false` and approve
    the protected `npm-publish` environment. Ordinary releases use OIDC, not a
    stored `NODE_AUTH_TOKEN`.
 5. Verify every package at npm, test a clean consumer, then create the GitHub
-   release and `v0.3.0` tag at the exact published SHA.
+   release and `v0.3.1` tag at the exact published SHA.
 6. Deploy the documentation site separately through Vercel. See
    [deployment settings](../apps/site/DEPLOYMENT.md); publishing npm packages
    does not deploy the site.
@@ -54,13 +54,13 @@ version already committed on disk; it does not bump versions or create tags.
       confirm that the intended version does not already exist:
 
   ```bash
-  npm view @chakra-email/core@0.3.0 version
-  npm view chakra-email@0.3.0 version
-  npm view @chakra-email/chakra-v2@0.3.0 version
-  npm view @chakra-email/preview@0.3.0 version
-  npm view @chakra-email/react-email@0.3.0 version
-  npm view @chakra-email/code-block@0.3.0 version
-  npm view @chakra-email/markdown@0.3.0 version
+  npm view @chakra-email/core@0.3.1 version
+  npm view chakra-email@0.3.1 version
+  npm view @chakra-email/chakra-v2@0.3.1 version
+  npm view @chakra-email/preview@0.3.1 version
+  npm view @chakra-email/react-email@0.3.1 version
+  npm view @chakra-email/code-block@0.3.1 version
+  npm view @chakra-email/markdown@0.3.1 version
   ```
 
   An expected version-not-found response means the version is available; a
@@ -90,7 +90,7 @@ Then complete these checks:
 
 ### Bootstrap only for packages that have never been published
 
-Do not enable `first_release` for this `0.3.0` release. If a future release adds
+Do not enable `first_release` for this `0.3.1` release. If a future release adds
 a new package, plan its initial publication separately: a short-lived granular
 token must have the narrowest required package/scope write permissions and
 publishing access allowed by npm's current account policy. Store it only as

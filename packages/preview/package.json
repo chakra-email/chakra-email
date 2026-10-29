@@ -1,6 +1,6 @@
 {
   "name": "@chakra-email/preview",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Preview and inspect React emails locally with live props, template variants, HTML and plain-text views, and email lint checks.",
   "license": "MIT",
   "author": {
@@ -76,7 +76,7 @@
     ]
   },
   "dependencies": {
-    "@chakra-email/core": "^0.3.0",
+    "@chakra-email/core": "^0.3.1",
     "jiti": "^2.4.2",
     "launch-editor": "^2.14.2",
     "parse5": "^8.0.0",
