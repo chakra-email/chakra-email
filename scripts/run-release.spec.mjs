@@ -57,6 +57,31 @@ const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
 });
 const committedVersion = publicPackages[0]?.manifest.version;
 
+test('Undici 7 resolves to the patched security baseline', () => {
+  const workspace = parseYaml(
+    readFileSync(new URL('../pnpm-workspace.yaml', import.meta.url), 'utf8'),
+  );
+  const lockfile = parseYaml(
+    readFileSync(new URL('../pnpm-lock.yaml', import.meta.url), 'utf8'),
+  );
+  const selector = 'undici@>=7.0.0 <7.30.1';
+  assert.equal(workspace.overrides[selector], '7.30.1');
+  assert.equal(lockfile.overrides[selector], workspace.overrides[selector]);
+  for (const section of ['packages', 'snapshots']) {
+    const entries = Object.keys(lockfile[section]).filter((key) =>
+      key.startsWith('undici@7.'),
+    );
+    assert.ok(entries.length > 0, `${section}: Undici 7 must be checked`);
+    for (const entry of entries) {
+      const [, minor, patch] = /^undici@7\.(\d+)\.(\d+)$/.exec(entry) ?? [];
+      assert.ok(
+        Number(minor) > 30 || (Number(minor) === 30 && Number(patch) >= 1),
+        `${section}: ${entry} must be at least 7.30.1`,
+      );
+    }
+  }
+});
+
 test('public packages retain discoverable, package-specific npm metadata', () => {
   const descriptions = new Set();
   for (const { directory, manifest } of publicPackages) {
