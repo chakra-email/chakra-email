@@ -1,22 +1,15 @@
 # @chakra-email/chakra-v2
 
-[![npm](https://img.shields.io/npm/v/%40chakra-email%2Fchakra-v2?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/chakra-v2)
-[![NPM](https://img.shields.io/npm/l/%40chakra-email%2Fchakra-v2?style=flat-square)](https://github.com/chakra-email/chakra-email/blob/main/LICENSE)
-[![npm](https://img.shields.io/npm/dt/%40chakra-email%2Fchakra-v2?style=flat-square)](https://www.pkgstats.com/pkg:@chakra-email/chakra-v2)
+React email components that reuse existing Chakra UI v2-style theme scales.
 
-React email components and theme adapter for Chakra UI v2.
+[Documentation](https://chakra.email/docs/chakra-v2) · [Getting started](https://chakra.email/docs/getting-started) · [Examples](https://chakra.email/examples) · [Issues](https://github.com/chakra-email/chakra-email/issues)
+
+[![npm](https://img.shields.io/npm/v/%40chakra-email%2Fchakra-v2?style=flat-square)](https://www.npmjs.com/package/@chakra-email/chakra-v2)
+[![NPM](https://img.shields.io/npm/l/%40chakra-email%2Fchakra-v2?style=flat-square)](https://github.com/chakra-email/chakra-email/blob/main/LICENSE)
 
 Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
 
-Use this package when an existing codebase still uses Chakra UI v2-style theme scales such as `colors`, `space`, `fontSizes`, `fontWeights`, `fonts`, and `radii` directly on the theme object.
-
-## What The Adapter Converts
-
-`ChakraEmailV2Provider` and `createChakraV2EmailTheme` adapt a Chakra UI v2 theme (e.g. `extendTheme` output) into email-safe tokens:
-
-- **`rem`/`em` → `px`** at a 16px root font size across length scales (`space`, `spacing`, `sizes`, `fontSizes`, `lineHeights`, `letterSpacings`, `radii`, `borders`, `borderWidths`), including inside composite border strings such as `'0.0625rem solid #cbd5e0'`. Unitless values (e.g. numeric line-heights) are preserved as-is. `rem`/`em` is not reliable in email clients like Outlook desktop, so everything becomes `px`.
-- **v2 `semanticTokens`** preserve `default` and `_dark` values, including aliases to other semantic tokens. Bare token references like `'red.500'` resolve against the matching scale; literal CSS values pass through. The default renderer keeps light styles inline and adds dark CSS as progressive enhancement. Use provider or render `colorMode` to force inline light or dark output. Other conditions are not supported. See the [color-mode guide](https://github.com/chakra-email/chakra-email/blob/main/docs/theming.md#light-and-dark-email-colors).
-- **Non-visual v2 keys are dropped**: `components`, `styles`, `config`, `breakpoints`, `transition`, and `zIndices` have no effect on rendered email and are removed rather than silently carried along.
+Use this adapter if you already have a v2 theme with flat `colors`, `space`, `fonts`, and other scales. For a new project, start with [`chakra-email`](https://chakra.email/docs/getting-started). Neither package requires `@chakra-ui/react` for ordinary email rendering.
 
 ## Install
 
@@ -24,10 +17,13 @@ Use this package when an existing codebase still uses Chakra UI v2-style theme s
 npm install @chakra-email/chakra-v2 react react-dom
 ```
 
-> [!NOTE]
-> `@chakra-email/chakra-v2` is ESM-only (no CommonJS build). Use `import`, or Node.js 20.19+ where `require()` of ESM modules is supported. Node.js 20.19.0 is the compatibility floor; Node.js 22 or 24 is recommended for new deployments.
+React 18 and 19 are supported. Packages are ESM-only: use `import` in an ESM-capable server or build tool. Node.js 24 is recommended; the published engine compatibility floor remains Node.js 20.19.
 
-## Usage
+## Quick start
+
+Save this as `src/emails/welcome.email.tsx`. This complete example uses a plain v2-style theme object; replace it with your existing theme when ready.
+
+<!-- quickstart:start -->
 
 ```tsx
 import {
@@ -35,50 +31,78 @@ import {
   Button,
   ChakraEmailV2Provider,
   Container,
+  Head,
+  Heading,
   Html,
+  Preview,
   Text,
-  render,
+  renderEmail,
 } from '@chakra-email/chakra-v2';
 
-const html = await render(
-  <ChakraEmailV2Provider theme={chakraV2Theme}>
-    <Html>
-      <Body bg="gray.50">
-        <Container p={6}>
-          <Text color="gray.700">Legacy Chakra v2 theme support.</Text>
-          <Button href="https://example.com" bg="brand.500">
-            Open
-          </Button>
-        </Container>
-      </Body>
-    </Html>
-  </ChakraEmailV2Provider>,
-);
+const chakraV2Theme = {
+  colors: { brand: { 500: '#6366f1' } },
+};
+
+export default function WelcomeEmail() {
+  return (
+    <ChakraEmailV2Provider theme={chakraV2Theme}>
+      <Html lang="en">
+        <Head>
+          <title>Welcome to Acme</title>
+        </Head>
+        <Preview>Your Acme account is ready.</Preview>
+        <Body bg="gray.50">
+          <Container bg="white" p={6} maxW="600px">
+            <Heading as="h1">Welcome!</Heading>
+            <Text>Your existing theme can style your email, too.</Text>
+            <Button
+              href="https://example.com/get-started"
+              bg="brand.500"
+              color="white"
+            >
+              Get started
+            </Button>
+          </Container>
+        </Body>
+      </Html>
+    </ChakraEmailV2Provider>
+  );
+}
+
+export async function renderWelcomeEmail() {
+  const { html, text } = await renderEmail(<WelcomeEmail />);
+  return { html, text };
+}
 ```
 
-## When To Use This Package
+<!-- quickstart:end -->
 
-Use `@chakra-email/chakra-v2` when you already have a Chakra UI v2 theme and want the email renderer to understand the same flat theme scales.
+Call `renderWelcomeEmail()` in your server-side send handler and pass `html` and `text` to any email delivery provider. The package renders messages; it does not send them.
 
-Use `chakra-email` for new projects or Chakra UI v3-style token objects.
+To preview the default-exported template, install `@chakra-email/preview` as a development dependency and follow the [preview setup](https://chakra.email/docs/preview). There is no need to install `chakra-email` alongside this adapter.
 
-The shared email renderer, primitives, and markdown-body components come from `@chakra-email/core`.
+## What the adapter converts
 
-The focused `@chakra-email/chakra-v2/security` entry point re-exports strict URL
-policies, typed rendering errors, and output limits without requiring consumers
-to import the core package directly.
+`ChakraEmailV2Provider` and `createChakraV2EmailTheme` adapt a plain v2 theme or existing `extendTheme` output into email-safe tokens:
 
-The shared components also support Chakra Email's `recipes` and `slotRecipes` theme keys. Chakra UI v2's legacy `components` configurations are still dropped because they depend on the browser-oriented v2 style runtime; define email recipes with the exports re-exported by `@chakra-email/chakra-v2` instead.
+- **`rem`/`em` → `px`** at a 16px root font size across length scales, including composite border strings. Unitless values such as numeric line heights stay unchanged. Relative units are not dependable in clients such as Outlook desktop.
+- **v2 semantic tokens** preserve `default` and `_dark`, including aliases. The default renderer keeps light styles inline and adds dark CSS as progressive enhancement; provider or render `colorMode` can force inline light or dark output. Other conditions are unsupported. See [light and dark email colors](https://chakra.email/docs/theming#light-and-dark-email-colors).
+- **Browser-oriented v2 keys are dropped**: `components`, `styles`, `config`, `breakpoints`, `transition`, and `zIndices` do not apply to email output. Use Chakra Email's exported `recipes` and `slotRecipes` instead of legacy v2 component configurations.
 
-## More Docs
+The shared renderer and components come from `@chakra-email/core` and are re-exported here. The focused `@chakra-email/chakra-v2/security` entry point exposes strict URL policies, typed rendering errors, and final HTML/text byte limits.
 
-- [Chakra UI v2 guide](https://github.com/chakra-email/chakra-email/blob/main/docs/chakra-v2.md)
-- [Components](https://github.com/chakra-email/chakra-email/blob/main/docs/components.md)
-- [Markdown](https://github.com/chakra-email/chakra-email/blob/main/docs/markdown.md)
+## Safety and next steps
+
+Email is not a browser layout target: test representative email clients. Use absolute public URLs for links and images, or valid `cid:` image attachments. Keep raw HTML in Markdown disabled unless it has been sanitized, and keep sending credentials on the server.
+
+- [Chakra UI v2 guide](https://chakra.email/docs/chakra-v2)
+- [Components](https://chakra.email/docs/components) and [theming](https://chakra.email/docs/theming)
+- [Rendering and safety](https://chakra.email/docs/rendering)
+- [Markdown bodies](https://chakra.email/docs/markdown)
 
 ## Help and contributing
 
-See the [project README](https://github.com/chakra-email/chakra-email#readme), [open an issue](https://github.com/chakra-email/chakra-email/issues), or read the [contribution guidelines](https://github.com/chakra-email/chakra-email/blob/main/CONTRIBUTING.md). Report vulnerabilities privately through the [security policy](https://github.com/chakra-email/chakra-email/security/policy).
+[Open an issue](https://github.com/chakra-email/chakra-email/issues) or read the [contribution guidelines](https://github.com/chakra-email/chakra-email/blob/main/CONTRIBUTING.md). Report vulnerabilities privately through the [security policy](https://github.com/chakra-email/chakra-email/security/policy).
 
 ## License
 

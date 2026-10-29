@@ -45,16 +45,16 @@ Actions workflow only verifies and publishes the package versions already on
 To prepare a later release, create a branch and run:
 
 ```bash
-pnpm nx release version 0.3.0
-pnpm nx release changelog 0.3.0
+pnpm nx release version 0.3.1
+pnpm nx release changelog 0.3.1
 pnpm run check
 ```
 
-Replace `0.3.0` with the intended exact version, review the package manifests,
+Replace `0.3.1` with the intended exact version, review the package manifests,
 lockfile, and `CHANGELOG.md`, then merge those changes through a pull request.
 Align internal first-party dependency ranges and the site version pill too.
 Nx is configured not to commit, tag, push, or create a GitHub release. The
-`0.3.0` preparation is already committed; do not run another version bump just
+`0.3.1` preparation is already committed; do not run another version bump just
 to retry a publication.
 
 To publish:
@@ -76,11 +76,11 @@ approval, rebuilds the packages, and verifies the requested version against
 every public package manifest. It needs only read access to GitHub and OIDC
 permission for npm trusted publishing.
 
-You can preview the prepared 0.3.0 publication locally with:
+You can preview the prepared 0.3.1 publication locally with:
 
 ```bash
 pnpm run build
-RELEASE_VERSION=0.3.0 RELEASE_DRY_RUN=true RELEASE_FIRST_RELEASE=false \
+RELEASE_VERSION=0.3.1 RELEASE_DRY_RUN=true RELEASE_FIRST_RELEASE=false \
   node scripts/run-release.mjs
 ```
 

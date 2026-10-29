@@ -57,9 +57,113 @@ const publicPackages = readdirSync(new URL('../packages/', import.meta.url), {
 });
 const committedVersion = publicPackages[0]?.manifest.version;
 
+test('Undici 7 resolves to the patched security baseline', () => {
+  const workspace = parseYaml(
+    readFileSync(new URL('../pnpm-workspace.yaml', import.meta.url), 'utf8'),
+  );
+  const lockfile = parseYaml(
+    readFileSync(new URL('../pnpm-lock.yaml', import.meta.url), 'utf8'),
+  );
+  const selector = 'undici@>=7.0.0 <7.30.1';
+  assert.equal(workspace.overrides[selector], '7.30.1');
+  assert.equal(lockfile.overrides[selector], workspace.overrides[selector]);
+  for (const section of ['packages', 'snapshots']) {
+    const entries = Object.keys(lockfile[section]).filter((key) =>
+      key.startsWith('undici@7.'),
+    );
+    assert.ok(entries.length > 0, `${section}: Undici 7 must be checked`);
+    for (const entry of entries) {
+      const [, minor, patch] = /^undici@7\.(\d+)\.(\d+)$/.exec(entry) ?? [];
+      assert.ok(
+        Number(minor) > 30 || (Number(minor) === 30 && Number(patch) >= 1),
+        `${section}: ${entry} must be at least 7.30.1`,
+      );
+    }
+  }
+});
+
+test('public packages retain discoverable, package-specific npm metadata', () => {
+  const descriptions = new Set();
+  for (const { directory, manifest } of publicPackages) {
+    assert.equal(typeof manifest.description, 'string', manifest.name);
+    assert.match(manifest.description, /email/i, manifest.name);
+    assert.notEqual(manifest.description.trim(), manifest.name);
+    assert.ok(!descriptions.has(manifest.description), manifest.name);
+    descriptions.add(manifest.description);
+
+    assert.ok(Array.isArray(manifest.keywords), manifest.name);
+    for (const keyword of [
+      'chakra-email',
+      'react',
+      'typescript',
+      'html-email',
+    ]) {
+      assert.ok(
+        manifest.keywords.includes(keyword),
+        `${manifest.name}: ${keyword}`,
+      );
+    }
+    assert.equal(
+      new Set(manifest.keywords).size,
+      manifest.keywords.length,
+      manifest.name,
+    );
+    for (const keyword of manifest.keywords) {
+      assert.match(keyword, /^[a-z0-9]+(?:-[a-z0-9]+)*$/, manifest.name);
+    }
+
+    const homepage = new URL(manifest.homepage);
+    assert.equal(homepage.origin, 'https://chakra.email', manifest.name);
+    if (manifest.name !== 'chakra-email') {
+      assert.ok(homepage.pathname.startsWith('/docs/'), manifest.name);
+    }
+    assert.deepEqual(manifest.bugs, packageManifest.bugs, manifest.name);
+    assert.equal(
+      manifest.repository.type,
+      packageManifest.repository.type,
+      manifest.name,
+    );
+    assert.equal(
+      manifest.repository.url,
+      packageManifest.repository.url,
+      manifest.name,
+    );
+    assert.equal(
+      manifest.repository.directory,
+      `packages/${directory}`,
+      manifest.name,
+    );
+    assert.equal(manifest.license, packageManifest.license, manifest.name);
+    assert.deepEqual(manifest.author, packageManifest.author, manifest.name);
+    assert.deepEqual(
+      manifest.contributors,
+      packageManifest.contributors,
+      manifest.name,
+    );
+    assert.deepEqual(manifest.funding, packageManifest.funding, manifest.name);
+
+    for (const filename of ['README.md', 'LICENSE']) {
+      assert.ok(
+        manifest.files.includes(filename),
+        `${manifest.name}: ${filename} is packed`,
+      );
+      assert.ok(
+        readFileSync(
+          new URL(`../packages/${directory}/${filename}`, import.meta.url),
+          'utf8',
+        ).trim(),
+        `${manifest.name}: ${filename} is not empty`,
+      );
+    }
+  }
+});
+
 test('public dependency ranges and the site version match the committed release', () => {
   const names = new Set(publicPackages.map(({ manifest }) => manifest.name));
-  for (const { manifest } of publicPackages) {
+  const lock = parseYaml(
+    readFileSync(new URL('../pnpm-lock.yaml', import.meta.url), 'utf8'),
+  );
+  for (const { directory, manifest } of publicPackages) {
     assert.equal(manifest.version, committedVersion, manifest.name);
     for (const field of [
       'dependencies',
@@ -72,6 +176,11 @@ test('public dependency ranges and the site version match the committed release'
             range,
             `^${committedVersion}`,
             `${manifest.name}: ${name}`,
+          );
+          assert.equal(
+            lock.importers[`packages/${directory}`]?.[field]?.[name]?.specifier,
+            range,
+            `${manifest.name}: ${name} lockfile specifier`,
           );
         }
       }

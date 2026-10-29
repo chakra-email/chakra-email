@@ -1,7 +1,7 @@
 {
   "name": "@chakra-email/core",
-  "version": "0.3.0",
-  "description": "Shared Chakra Email primitives, markdown-body components, renderer, and Chakra-style theme resolver.",
+  "version": "0.3.1",
+  "description": "Low-level React email primitives, HTML and plain-text rendering, and theme resolution for Chakra Email adapters and integrations.",
   "license": "MIT",
   "author": {
     "name": "Ryan Hefner",
@@ -78,19 +78,13 @@
     "!**/*.tsbuildinfo"
   ],
   "keywords": [
-    "chakra",
-    "chakra-ui",
+    "chakra-email",
     "chakra-theme",
-    "email",
     "email-components",
     "email-renderer",
-    "email-templates",
     "html-email",
-    "jsx-email",
-    "markdown-email",
     "react",
-    "react-email",
-    "server-rendered",
+    "renderer-adapter",
     "typescript",
     "transactional-email"
   ],

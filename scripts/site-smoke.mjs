@@ -63,6 +63,7 @@ try {
   for (const [route, title] of [
     ['/', 'Chakra Email'],
     ['/docs/getting-started', 'Getting Started'],
+    ['/docs/code-block', 'Code Blocks'],
     ['/docs', 'Getting Started'],
     ['/examples', 'Template examples'],
     ['/packages', 'Packages'],

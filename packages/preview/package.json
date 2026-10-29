@@ -1,7 +1,7 @@
 {
   "name": "@chakra-email/preview",
-  "version": "0.3.0",
-  "description": "Local React email preview server with live rendering, template variants, and email linting.",
+  "version": "0.3.1",
+  "description": "Preview and inspect React emails locally with live props, template variants, HTML and plain-text views, and email lint checks.",
   "license": "MIT",
   "author": {
     "name": "Ryan Hefner",
@@ -50,17 +50,15 @@
     "!**/*.tsbuildinfo"
   ],
   "keywords": [
-    "chakra",
-    "chakra-ui",
+    "chakra-email",
     "email-development",
-    "email",
     "email-preview",
     "email-templates",
     "email-testing",
+    "html-email",
     "react",
     "react-email",
-    "typescript",
-    "vite"
+    "typescript"
   ],
   "engines": {
     "node": ">=20.19.0"
@@ -78,7 +76,7 @@
     ]
   },
   "dependencies": {
-    "@chakra-email/core": "^0.3.0",
+    "@chakra-email/core": "^0.3.1",
     "jiti": "^2.4.2",
     "launch-editor": "^2.14.2",
     "parse5": "^8.0.0",

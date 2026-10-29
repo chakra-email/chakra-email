@@ -177,6 +177,9 @@
             },
             {
               "command": "vitest run --config examples/vitest.smoke.config.mts"
+            },
+            {
+              "command": "node scripts/readme-smoke.mjs"
             }
           ],
           "parallel": false

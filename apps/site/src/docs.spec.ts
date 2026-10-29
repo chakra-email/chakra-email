@@ -1,3 +1,8 @@
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import ReactMarkdown from 'react-markdown';
+import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 import { getRecommendedSearchResults } from './search-recommendations';
 
@@ -10,6 +15,90 @@ import { docsManifest } from './test/content';
 import { resolveSitePage } from './server/pages';
 
 describe('documentation manifest', () => {
+  it('keeps published README links on real documentation routes and anchors', () => {
+    const root = new URL('../../../', import.meta.url);
+    const readmes = [
+      new URL('README.md', root),
+      ...readdirSync(new URL('packages/', root), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => new URL(`packages/${entry.name}/README.md`, root)),
+    ];
+    for (const readme of readmes) {
+      const markdown = readFileSync(readme, 'utf8');
+      const dom = new JSDOM(
+        renderToStaticMarkup(
+          createElement(ReactMarkdown, { children: markdown }),
+        ),
+      );
+      try {
+        let documentationLinks = 0;
+        for (const link of dom.window.document.querySelectorAll('a[href]')) {
+          const href = link.getAttribute('href') ?? '';
+          if (href.startsWith('#')) continue;
+          if (!/^[a-z][a-z\d+.-]*:/i.test(href)) {
+            expect(existsSync(new URL(href.split('#')[0], readme)), href).toBe(
+              true,
+            );
+            continue;
+          }
+          const url = new URL(href);
+          if (url.origin !== 'https://chakra.email') continue;
+          documentationLinks++;
+          const page = resolveSitePage(url.pathname, docsManifest);
+          expect(page, `${readme.pathname}: ${href}`).toBeDefined();
+          if (url.hash) {
+            expect(
+              page?.headings?.map(({ id }) => `#${id}`),
+              href,
+            ).toContain(url.hash);
+          }
+        }
+        expect(documentationLinks, readme.pathname).toBeGreaterThan(0);
+      } finally {
+        dom.window.close();
+      }
+    }
+  });
+
+  it('gives every public package a valid canonical homepage and documentation anchor', () => {
+    const packages = new URL('../../../packages/', import.meta.url);
+    for (const directory of readdirSync(packages, { withFileTypes: true })) {
+      if (!directory.isDirectory()) continue;
+      const manifest = JSON.parse(
+        readFileSync(
+          new URL(`${directory.name}/package.json`, packages),
+          'utf8',
+        ),
+      );
+      if (manifest.private) continue;
+      const homepage = new URL(manifest.homepage);
+      expect(homepage.origin, manifest.name).toBe('https://chakra.email');
+      if (manifest.name !== 'chakra-email') {
+        expect(homepage.pathname, manifest.name).toMatch(/^\/docs\//);
+      }
+      if (homepage.pathname === '/') continue;
+      const page = docsManifest.byRoute[homepage.pathname];
+      expect(page, manifest.name).toBeDefined();
+      if (homepage.hash) {
+        expect(
+          page.headings?.map(({ id }) => `#${id}`),
+          manifest.name,
+        ).toContain(homepage.hash);
+      }
+    }
+  });
+
+  it('includes the CodeBlock guide in navigation, search, and the sitemap', () => {
+    const route = '/docs/code-block';
+    expect(docsManifest.byRoute[route]?.title).toBe('Code Blocks');
+    expect(docsManifest.nav.some(({ href }) => href === route)).toBe(true);
+    expect(docsManifest.search.some((result) => result.route === route)).toBe(
+      true,
+    );
+    expect(docsManifest.sitemap.some(({ url }) => url === route)).toBe(true);
+    expect(resolveMarkdownHref('./code-block.md')).toBe(route);
+  });
+
   it('recommends the six onboarding pages using their manifest metadata', () => {
     const results = getRecommendedSearchResults(docsManifest.search);
     expect(results.map(({ title }) => title)).toEqual([

@@ -6,6 +6,8 @@
 
 Local React email preview server with live rendering, template variants, and email linting.
 
+[Documentation](https://chakra.email/docs/preview) · [Getting started](https://chakra.email/docs/getting-started) · [Examples](https://chakra.email/examples) · [Issues](https://github.com/chakra-email/chakra-email/issues)
+
 Created by [Ryan Hefner](https://www.ryanhefner.com) and [Commune Software](https://commune.software).
 
 `@chakra-email/preview` discovers template modules in your repository, renders
@@ -23,7 +25,9 @@ npm install --save-dev @chakra-email/preview
 ```
 
 > [!NOTE]
-> `@chakra-email/preview` is ESM-only. Node.js 20.19.0 is the compatibility floor; Node.js 22 or 24 is recommended for new development environments.
+> ESM-only. Published packages support React 18/19 and Node.js 20.19.0 or newer;
+> Node.js 24 is recommended. This repository's contributor tooling uses Node.js
+> 24 and pnpm.
 
 Your email library should also install its normal rendering package and React
 peer dependencies, for example:
@@ -32,9 +36,69 @@ peer dependencies, for example:
 npm install chakra-email react react-dom
 ```
 
-## Configure
+Chakra UI itself is not required. No delivery provider or credentials are needed
+to preview and export emails locally.
 
-Create `chakra-email.config.ts` next to the email project or package:
+## Quick start
+
+Create `src/emails/welcome.email.tsx` with a default-exported component and
+representative props:
+
+<!-- quickstart:start -->
+
+```tsx
+import { Body, Head, Html, Text } from 'chakra-email';
+
+export const previewProps = { firstName: 'Ada' };
+
+export default function WelcomeEmail({ firstName }: { firstName: string }) {
+  return (
+    <Html>
+      <Head>
+        <title>Welcome to your workspace</title>
+      </Head>
+      <Body>
+        <Text>Welcome, {firstName}. Your workspace is ready.</Text>
+      </Body>
+    </Html>
+  );
+}
+```
+
+<!-- quickstart:end -->
+
+Create `chakra-email.config.ts` in the project root:
+
+```ts
+import { defineConfig } from '@chakra-email/preview';
+
+export default defineConfig({
+  templates: './src/emails',
+});
+```
+
+Add a script to your existing `package.json`:
+
+```json
+{
+  "scripts": {
+    "email:dev": "chakra-email-preview --config chakra-email.config.ts"
+  }
+}
+```
+
+```bash
+npm run email:dev
+```
+
+Open `http://127.0.0.1:4100` to edit fixture props, compare viewports, and inspect
+HTML, plain text, and lint findings. Local source changes refresh the preview;
+editing props in the workspace never modifies your source files.
+
+## Additional configuration
+
+Once the default workspace is running, extend the configuration to customize
+discovery, local assets, reverse-proxy access, or the workspace theme:
 
 ```ts
 import { defineConfig, previewSlotRecipeKeys } from '@chakra-email/preview';
@@ -72,6 +136,10 @@ export default defineConfig({
 The default renderer is `chakraEmailRenderer` from `@chakra-email/core`. To
 preview templates that rely on React Email rendering behavior, install the
 optional adapter and configure it server-side:
+
+```bash
+npm install @chakra-email/react-email react-email
+```
 
 ```ts
 import { reactEmailRenderer } from '@chakra-email/react-email';
@@ -143,7 +211,7 @@ fatal run failures exit `2`. A broken template is reported and checking
 continues. Use `--default-only` to skip variants. Network checks require both
 `--check-links` and configured `linkCheck` hosts. Repeat `--rule id=level` to
 override config severities. `checkTemplates()` returns the versioned report for
-programmatic consumers. See [Checks in CI](../../docs/preview.md#checks-in-ci)
+programmatic consumers. See [Checks in CI](https://chakra.email/docs/preview#checks-in-ci)
 for package scripts, GitHub Actions, and an explicit cacheable Nx target.
 
 ## Preview workspace
@@ -342,19 +410,8 @@ Run the installed binary from the email project:
 chakra-email-preview --config chakra-email.config.ts
 ```
 
-An npm script keeps that command consistent for the team:
-
-```json
-{
-  "scripts": {
-    "email:dev": "chakra-email-preview --config chakra-email.config.ts"
-  }
-}
-```
-
-```bash
-npm run email:dev
-```
+The quick-start `email:dev` script runs this installed binary without requiring
+a global installation.
 
 The CLI accepts:
 
@@ -538,7 +595,7 @@ const result = await exportTemplates({
 ## Email Lint Checks
 
 Each rendered template includes structured lint findings, and the browser
-shows them in the **Client checks** panel. Findings refresh with template,
+shows them in the **Checks** inspector tab. Findings refresh with template,
 variant, and preview-prop changes and include severity, a stable rule ID,
 suggested remediation, and rendered-HTML location where available. Relevant
 compatibility findings link to their live Can I Email feature page; the package
@@ -672,7 +729,7 @@ access control or TLS.
 Remote images can disclose the developer's IP address, user agent, and request
 timing to the image host. The preview iframe blocks remote image requests by
 default; developers can opt in with the visible **Remote images** control. The
-MVP does not proxy, anonymize, or cache requests after that opt-in. Prefer local
+preview does not proxy, anonymize, or cache requests after that opt-in. Prefer local
 fixtures or image hosts you trust while developing.
 Preview-local assets are not production email URLs; use deliberate absolute
 public or `cid:` sources before sending a message.
@@ -693,9 +750,10 @@ email as production-ready.
 
 ## More Docs
 
-- [Email preview guide](https://github.com/chakra-email/chakra-email/blob/main/docs/preview.md)
-- [Getting started](https://github.com/chakra-email/chakra-email/blob/main/docs/getting-started.md)
-- [Examples](https://github.com/chakra-email/chakra-email/tree/main/examples/preview)
+- [Email preview guide](https://chakra.email/docs/preview)
+- [Getting started](https://chakra.email/docs/getting-started)
+- [Examples](https://chakra.email/examples)
+- [Runnable preview project](https://github.com/chakra-email/chakra-email/tree/main/examples/preview)
 
 ## Help and contributing
 
